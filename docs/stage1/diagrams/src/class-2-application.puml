@@ -1,0 +1,10 @@
+@startuml class-2-application
+!include style.iuml
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 70
+title TraceWise: Class Diagram View 2: Application Services
+!include model.iuml
+remove *
+restore $app
+@enduml

@@ -1,0 +1,9 @@
+@startuml class-4b-tools
+!include style.iuml
+skinparam nodesep 60
+skinparam ranksep 70
+title TraceWise: Class Diagram View 4b: Agent Tools, Retrieval and Verification
+!include model.iuml
+remove *
+restore $tools
+@enduml

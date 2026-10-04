@@ -1,0 +1,9 @@
+@startuml class-4a-agent-core
+!include style.iuml
+skinparam nodesep 60
+skinparam ranksep 70
+title TraceWise: Class Diagram View 4a: Agent Core (Runner, Tasks, Trace, Findings)
+!include model.iuml
+remove *
+restore $agentcore
+@enduml

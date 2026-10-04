@@ -23,3 +23,4 @@ skinparam ParticipantBackgroundColor #FFFFFF
 skinparam ParticipantBorderColor #333333
 hide circle
 hide empty members
+set separator none

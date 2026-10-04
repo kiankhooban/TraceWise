@@ -1,0 +1,9 @@
+@startuml class-7-data
+!include style.iuml
+skinparam nodesep 60
+skinparam ranksep 70
+title TraceWise: Class Diagram View 7: Domain Model, Persistence, Reporting, Network and Metrics
+!include model.iuml
+remove *
+restore $data
+@enduml

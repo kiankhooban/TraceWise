@@ -1,0 +1,958 @@
+' TraceWise master class model.
+' Every class is defined exactly once here. Each class diagram view includes this file and shows a
+' subset of it by tag ($front, $app, $mon, $agentcore, $tools, $llm, $act, $data), so all views stay consistent.
+
+' ===================================================================== external libraries
+package "JavaFX (external)" $front {
+  abstract class Application $front {
+    + {abstract} start(stage: Stage): void
+  }
+}
+package "Java standard library (external)" $front {
+  interface "Callable<V>" as Callable $front {
+    + {abstract} call(): V
+  }
+}
+package "LangChain4j (external)" $llm $tools {
+  interface ChatModel $llm {
+    + {abstract} chat(request: ChatRequest): ChatResponse
+  }
+  interface EmbeddingModel $tools {
+    + {abstract} embed(text: String): Embedding
+  }
+}
+
+' ===================================================================== ui.gui
+package "tracewise.ui.gui" $front {
+  class TraceWiseApp $front {
+    - facade: TraceWiseFacade
+    + start(stage: Stage): void
+  }
+  class AlertsView $front {
+    + onImport(file: Path): void
+    + onRunMonitoring(): void
+    + onFilter(filter: AlertFilter): void
+    + onTriage(limits: TriageLimits): void
+    + onStopTriage(): void
+  }
+  class CaseView $front {
+    + showCase(caseId: String): void
+    + onInvestigate(alertId: String): void
+    + onCancel(alertId: String): void
+    + onAddNote(text: String): void
+    + onReopen(reason: String): void
+    + onSaveReport(report: StrReport): void
+    + onRequestFinalisation(): void
+    + onExport(formats: Set<ExportFormat>, dir: Path): void
+    + onStep(step: TraceStep): void
+    + onFinished(outcome: AgentOutcome): void
+  }
+  class NetworkView $front {
+    + render(graph: MoneyFlowGraph): void
+    + onChangeScope(hops: int, range: DateRange): void
+  }
+  class ApprovalsView $front {
+    + refresh(): void
+    + onApprove(pendingId: String): void
+    + onReject(pendingId: String, reason: String): void
+  }
+  class AssistantView $front {
+    + onSubmit(text: String): void
+  }
+  class AdminView $front {
+    + onSaveRule(ruleId: String, config: RuleConfig): void
+    + onShowMetrics(filter: MetricsFilter): void
+    + onSearchAudit(filter: AuditFilter): void
+    + onSearchKnowledge(query: String): void
+  }
+}
+
+' ===================================================================== ui.cli
+package "tracewise.ui.cli" $front {
+  class TraceWiseCli $front {
+    + {static} main(args: String[]): void
+  }
+  abstract class CliCommandBase $front {
+    # json: boolean
+    + call(): Integer
+    # {abstract} execute(): Object
+    # print(result: Object): void
+  }
+  class ImportCli $front {
+    - file: Path
+    # execute(): Object
+  }
+  class InvestigateCli $front {
+    - alertId: String
+    # execute(): Object
+  }
+  class TriageCli $front {
+    - maxAlerts: int
+    - maxCostCad: BigDecimal
+    # execute(): Object
+  }
+  class AskCli $front {
+    - question: String
+    # execute(): Object
+  }
+  note "One CliCommandBase subclass per command group:\nmonitor, alerts, threshold-reports, rules, approvals,\ncase, audit, network, report, indicators, metrics." as NoteCli $front
+}
+
+' ===================================================================== app (facade and services)
+package "tracewise.app" $front $app $mon $agentcore $act $data {
+  class TraceWiseFacade $front $app {
+    + importTransactions(file: Path): ImportSummary
+    + runMonitoring(): MonitoringSummary
+    + listAlerts(filter: AlertFilter): List<Alert>
+    + listThresholdReports(): List<ThresholdReport>
+    + updateRule(ruleId: String, config: RuleConfig): void
+    + investigate(alertId: String, listener: AgentEventListener): InvestigationResult
+    + cancelInvestigation(alertId: String): void
+    + triage(limits: TriageLimits, listener: AgentEventListener): TriageReport
+    + stopTriage(): void
+    + ask(question: String, context: AssistantContext): AssistantAnswer
+    + pendingApprovals(): List<PendingAction>
+    + approve(pendingId: String, reviewer: Actor): void
+    + reject(pendingId: String, reviewer: Actor, reason: String): void
+    + getCase(caseId: String): Case
+    + addNote(caseId: String, text: String): void
+    + reopenCase(caseId: String, reason: String): void
+    + queryAudit(filter: AuditFilter): List<AuditEntry>
+    + buildNetwork(accountId: String, hops: int, range: DateRange): MoneyFlowGraph
+    + draftReport(caseId: String): StrReport
+    + saveReport(report: StrReport): void
+    + requestFinalisation(caseId: String): PendingAction
+    + exportReport(caseId: String, formats: Set<ExportFormat>, dir: Path): List<Path>
+    + searchKnowledge(query: String): List<RetrievedPassage>
+    + computeMetrics(filter: MetricsFilter): PerformanceMetrics
+  }
+  class TraceWiseBootstrap $app {
+    + {static} create(config: AppConfig): TraceWiseFacade
+  }
+  class AppConfig $app {
+    - databasePath: Path
+    - model: ModelConfig
+    - limits: AgentLimits
+    - analystName: String
+  }
+  class ImportService $app $mon {
+    + importFile(file: Path): ImportSummary
+  }
+  class MonitoringService $app $mon {
+    + run(): MonitoringSummary
+    + updateRule(ruleId: String, config: RuleConfig): void
+  }
+  class InvestigationService $app $agentcore {
+    + investigate(alertId: String, listener: AgentEventListener): InvestigationResult
+    + cancel(alertId: String): void
+  }
+  class TriageService $app $agentcore {
+    - stopRequested: boolean
+    + triage(limits: TriageLimits, listener: AgentEventListener): TriageReport
+    + stop(): void
+  }
+  class AssistantService $app $agentcore {
+    + ask(question: String, context: AssistantContext): AssistantAnswer
+  }
+  class CaseService $app $act {
+    + getCase(caseId: String): Case
+    + addNote(caseId: String, text: String): void
+    + reopen(caseId: String, reason: String): void
+  }
+  class ReportService $app $data {
+    + draft(caseId: String): StrReport
+    + save(report: StrReport): void
+    + requestFinalisation(caseId: String): PendingAction
+    + export(caseId: String, formats: Set<ExportFormat>, dir: Path): List<Path>
+  }
+  class NetworkService $app $data {
+    - maxNodes: int = 50
+    + build(accountId: String, hops: int, range: DateRange): MoneyFlowGraph
+  }
+  class PerformanceService $app $data {
+    + compute(filter: MetricsFilter): PerformanceMetrics
+  }
+}
+
+' ===================================================================== ingest
+package "tracewise.ingest" $mon {
+  interface TransactionFormat $mon {
+    + {abstract} matches(header: List<String>): boolean
+    + {abstract} parse(row: CsvRow, rowNumber: int): Transaction
+  }
+  class IbmCsvFormat $mon {
+    + matches(header: List<String>): boolean
+    + parse(row: CsvRow, rowNumber: int): Transaction
+  }
+  class ScenarioCsvFormat $mon {
+    + matches(header: List<String>): boolean
+    + parse(row: CsvRow, rowNumber: int): Transaction
+  }
+  class CurrencyConverter $mon {
+    - ratesToCad: Map<String, BigDecimal>
+    + toCad(amount: BigDecimal, currency: String): BigDecimal
+  }
+}
+
+' ===================================================================== monitoring
+package "tracewise.monitoring" $mon {
+  interface DetectionRule $mon {
+    + {abstract} id(): String
+    + {abstract} kind(): RuleKind
+    + {abstract} evaluate(ledger: Ledger): List<RuleMatch>
+    + {abstract} configure(config: RuleConfig): void
+  }
+  abstract class WindowedRule $mon {
+    + evaluate(ledger: Ledger): List<RuleMatch>
+    + configure(config: RuleConfig): void
+    # {abstract} candidates(ledger: Ledger, account: Account): List<Transaction>
+    # {abstract} isMatch(window: List<Transaction>): boolean
+    # {abstract} window(): Duration
+  }
+  class LargeCashRule $mon
+  class InternationalTransferRule $mon
+  class StructuringRule $mon
+  class PassThroughRule $mon
+  class FanInRule $mon
+  class FanOutRule $mon
+  note "Each concrete rule implements id(), kind(),\ncandidates(), isMatch() and window().\nFuture: CycleRule (R7) is one more subclass." as NoteRules $mon
+  enum RuleKind <<enumeration>> $mon {
+    THRESHOLD
+    SUSPICION
+  }
+  class RuleConfig $mon {
+    - enabled: boolean
+    - parameters: Map<String, BigDecimal>
+    + validate(): void
+  }
+  class RuleMatch $mon {
+    - ruleId: String
+    - totalCad: BigDecimal
+  }
+  class RiskScorer $mon {
+    + score(match: RuleMatch, account: Account): int
+  }
+}
+
+' ===================================================================== domain
+package "tracewise.domain" $mon $data $act {
+  class Transaction $mon $data {
+    - id: String
+    - timestamp: Instant
+    - amountCad: BigDecimal
+    - originalAmount: BigDecimal
+    - currency: String
+    - counterpartyCountry: String
+    - launderingLabel: Boolean
+    + isInternational(): boolean
+  }
+  class Account $mon $data {
+    - id: String
+    - bankId: String
+    - watchlisted: boolean
+  }
+  enum PaymentChannel <<enumeration>> $data {
+    CASH
+    WIRE
+    ACH
+    CHEQUE
+    CARD
+    CRYPTO
+    OTHER
+  }
+  class Alert $mon $act $data {
+    - id: String
+    - ruleId: String
+    - totalCad: BigDecimal
+    - riskScore: int
+    - priority: int
+    - status: AlertStatus
+  }
+  enum AlertStatus <<enumeration>> $data {
+    NEW
+    IN_CASE
+    CLOSED
+  }
+  class ThresholdReport $mon $data {
+    - ruleId: String
+    - windowStart: Instant
+    - windowEnd: Instant
+    - totalCad: BigDecimal
+  }
+  class Case $act $data {
+    - id: String
+    - openedAt: Instant
+    + startInvestigation(): void
+    + submitForApproval(): void
+    + returnToInvestigation(): void
+    + escalate(): void
+    + close(): void
+    + reopen(reason: String): void
+    + status(): CaseStatus
+    ~ changeState(next: CaseState): void
+  }
+  class CaseNote $data {
+    - text: String
+    - author: String
+    - createdAt: Instant
+  }
+  class FollowUpTask $data {
+    - description: String
+    - done: boolean
+  }
+}
+
+' ===================================================================== cases (State pattern)
+package "tracewise.cases.state" $act {
+  abstract class CaseState $act {
+    + startInvestigation(c: Case): void
+    + submitForApproval(c: Case): void
+    + returnToInvestigation(c: Case): void
+    + escalate(c: Case): void
+    + close(c: Case): void
+    + reopen(c: Case, reason: String): void
+    + {abstract} status(): CaseStatus
+  }
+  class OpenState $act
+  class UnderInvestigationState $act
+  class PendingApprovalState $act
+  class EscalatedState $act
+  class ClosedState $act
+  note "Default transition methods in CaseState throw\nIllegalTransitionException. Each concrete state\noverrides only the transitions it allows:\nOpen: startInvestigation, close\nUnderInvestigation: submitForApproval, close\nPendingApproval: escalate, close, returnToInvestigation\nEscalated: (final)\nClosed: reopen (to Open)" as NoteStates $act
+  enum CaseStatus <<enumeration>> $act {
+    OPEN
+    UNDER_INVESTIGATION
+    PENDING_APPROVAL
+    ESCALATED
+    CLOSED
+  }
+}
+
+' ===================================================================== agent
+package "tracewise.agent" $agentcore $front $act $tools {
+  class AgentRunner $agentcore {
+    + run(task: AgentTask, trace: AgentTrace): AgentOutcome
+    + cancel(): void
+  }
+  interface AgentTask $agentcore {
+    + {abstract} systemPrompt(): String
+    + {abstract} initialMessage(): String
+    + {abstract} toolNames(): Set<String>
+  }
+  class InvestigationTask $agentcore {
+    - alert: Alert
+    + systemPrompt(): String
+    + initialMessage(): String
+    + toolNames(): Set<String>
+    + parseFinding(text: String): AgentFinding
+  }
+  class AssistantTask $agentcore {
+    - question: String
+    + systemPrompt(): String
+    + initialMessage(): String
+    + toolNames(): Set<String>
+    + parseAnswer(text: String): AssistantAnswer
+  }
+  class AgentLimits $agentcore {
+    - maxTurns: int = 12
+    - maxCostCad: BigDecimal
+  }
+  class AgentTrace $agentcore {
+    - usage: TokenUsage
+    + record(step: TraceStep): void
+    + finish(outcome: AgentOutcome): void
+    + addListener(listener: AgentEventListener): void
+    + examinedAccounts(): Set<String>
+    + costCad(): BigDecimal
+  }
+  interface AgentEventListener $front $agentcore {
+    + {abstract} onStep(step: TraceStep): void
+    + {abstract} onFinished(outcome: AgentOutcome): void
+  }
+  class TraceStep $agentcore {
+    - turn: int
+    - toolName: String
+    - arguments: String
+    - result: String
+    - durationMs: long
+  }
+  class AgentOutcome $agentcore {
+    - status: OutcomeStatus
+    - finalText: String
+  }
+  class AgentFinding $act $agentcore $tools {
+    - verdict: Verdict
+    - confidence: double
+    - indicators: List<String>
+    - narrative: String
+  }
+  class Claim $tools {
+    - transactionId: String
+    - accountId: String
+    - amountCad: BigDecimal
+    - date: LocalDate
+  }
+  enum Verdict <<enumeration>> $agentcore {
+    ESCALATE
+    DISMISS
+    INCONCLUSIVE
+  }
+  class ConversationMemory $agentcore {
+    + append(question: String, answer: AssistantAnswer): void
+    + recent(n: int): List<String>
+  }
+  class InvestigationResult $agentcore {
+    - status: OutcomeStatus
+  }
+  class AssistantAnswer $agentcore {
+    - text: String
+  }
+  class TriageReport $agentcore {
+    - processed: int
+    - failed: int
+    - costCad: BigDecimal
+  }
+}
+
+' ===================================================================== agent.tools
+package "tracewise.agent.tools" $tools $agentcore $act {
+  interface AgentTool $tools {
+    + {abstract} name(): String
+    + {abstract} schema(): ToolSchema
+    + {abstract} execute(args: ToolArguments): ToolResult
+  }
+  class ToolRegistry $agentcore $tools {
+    + register(tool: AgentTool): void
+    + schemas(names: Set<String>): List<ToolSchema>
+    + execute(call: ToolCall): ToolResult
+  }
+  class AccountHistoryTool $tools
+  class CounterpartiesTool $tools
+  class SearchIndicatorsTool $tools
+  class SimilarCasesTool $tools
+  note "Other read tools: LinkedAlertsTool,\nWindowAggregateTool, QueryCasesTool.\nEach implements name(), schema(), execute()." as NoteReadTools $tools
+  abstract class ActionTool $act $tools {
+    + execute(args: ToolArguments): ToolResult
+    # {abstract} createCommand(args: ToolArguments): ActionCommand
+  }
+  class SetPriorityTool $act $tools {
+    # createCommand(args: ToolArguments): ActionCommand
+  }
+  class ProposeCloseTool $act $tools {
+    # createCommand(args: ToolArguments): ActionCommand
+  }
+  class ProposeEscalationTool $act $tools {
+    # createCommand(args: ToolArguments): ActionCommand
+  }
+  note "Other action tools: LinkAlertsTool,\nAddToWatchlistTool, CreateTaskTool,\nSaveDraftTool. Each creates its command." as NoteActionTools $act $tools
+  class FaultInjectingTool $tools {
+    - mode: FaultMode
+    + name(): String
+    + schema(): ToolSchema
+    + execute(args: ToolArguments): ToolResult
+  }
+}
+
+' ===================================================================== llm
+package "tracewise.llm" $llm $agentcore $app {
+  interface LLMClient $llm $agentcore {
+    + {abstract} chat(request: LLMRequest): LLMResponse
+    + {abstract} modelId(): String
+  }
+  abstract class LangChain4jClient $llm {
+    + chat(request: LLMRequest): LLMResponse
+    + modelId(): String
+    - toChatRequest(request: LLMRequest): ChatRequest
+    - toLLMResponse(response: ChatResponse): LLMResponse
+  }
+  class AnthropicLLMClient $llm {
+    + AnthropicLLMClient(config: ModelConfig)
+  }
+  class OpenAiCompatibleLLMClient $llm {
+    + OpenAiCompatibleLLMClient(config: ModelConfig)
+  }
+  class ReplayLLMClient $llm {
+    + chat(request: LLMRequest): LLMResponse
+    + modelId(): String
+  }
+  abstract class LLMClientDecorator $llm {
+    + chat(request: LLMRequest): LLMResponse
+    + modelId(): String
+  }
+  class RetryingLLMClient $llm {
+    - maxRetries: int = 2
+    + chat(request: LLMRequest): LLMResponse
+  }
+  class RecordingLLMClient $llm {
+    + chat(request: LLMRequest): LLMResponse
+  }
+  class ReplayStore $llm {
+    + save(request: LLMRequest, response: LLMResponse): void
+    + find(request: LLMRequest): Optional<LLMResponse>
+  }
+  class LLMClientFactory $llm $app {
+    + create(config: ModelConfig): LLMClient
+  }
+  class ModelConfig $llm {
+    - provider: String
+    - modelName: String
+    - inputPricePerMTok: BigDecimal
+    - outputPricePerMTok: BigDecimal
+    - record: boolean
+  }
+  class LLMRequest $llm {
+    - systemPrompt: String
+    - messages: List<LLMMessage>
+    - tools: List<ToolSchema>
+  }
+  class LLMResponse $llm {
+    - text: String
+    - toolCalls: List<ToolCall>
+    - usage: TokenUsage
+  }
+}
+
+' ===================================================================== retrieval and verification
+package "tracewise.retrieval" $tools $app {
+  interface Retriever $tools $app {
+    + {abstract} search(query: String, maxResults: int): List<RetrievedPassage>
+  }
+  class EmbeddingRetriever $tools {
+    - minScore: double
+    + index(passages: List<Passage>): void
+    + search(query: String, maxResults: int): List<RetrievedPassage>
+  }
+  class CaseMemory $tools {
+    + remember(closedCase: Case): void
+    + similar(description: String, maxResults: int): List<RetrievedPassage>
+  }
+  class RetrievedPassage $tools {
+    - text: String
+    - source: String
+    - score: double
+  }
+}
+package "tracewise.verification" $agentcore $tools {
+  class ClaimVerifier $agentcore $tools {
+    - toleranceCad: BigDecimal = 0.01
+    + verify(claims: List<Claim>): VerificationReport
+  }
+  class VerificationReport $agentcore $tools {
+    - status: VerificationStatus
+    + rejected(): List<ClaimCheck>
+  }
+  class ClaimCheck $tools {
+    - confirmed: boolean
+    - reason: String
+  }
+}
+
+' ===================================================================== actions (Command pattern) and audit
+package "tracewise.actions" $act $tools $app {
+  interface ActionCommand $act {
+    + {abstract} validate(ctx: CommandContext): void
+    + {abstract} execute(ctx: CommandContext): void
+    + {abstract} describe(): String
+  }
+  class SetPriorityCommand $act {
+    - alertId: String
+    - priority: int
+  }
+  class LinkAlertsCommand $act {
+    - alertIds: List<String>
+  }
+  class AddToWatchlistCommand $act {
+    - accountId: String
+  }
+  class CreateTaskCommand $act {
+    - caseId: String
+    - description: String
+  }
+  class SaveReportDraftCommand $act {
+    - report: StrReport
+  }
+  class AddNoteCommand $act {
+    - caseId: String
+    - text: String
+  }
+  class CloseCaseCommand $act {
+    - caseId: String
+  }
+  class EscalateCaseCommand $act {
+    - caseId: String
+  }
+  class ReopenCaseCommand $act {
+    - caseId: String
+    - reason: String
+  }
+  note "Each concrete command implements\nvalidate(), execute() and describe()." as NoteCommands $act
+  class CommandContext $act {
+    + cases(): CaseRepository
+    + alerts(): AlertRepository
+    + accounts(): TransactionRepository
+  }
+  class CommandDispatcher $act $tools {
+    + submit(command: ActionCommand, actor: Actor, justification: String): DispatchResult
+  }
+  class PermissionPolicy $act {
+    + tierFor(command: ActionCommand, actor: Actor): PermissionTier
+  }
+  enum PermissionTier <<enumeration>> $act {
+    AUTONOMOUS
+    REQUIRES_APPROVAL
+  }
+  class ApprovalQueue $act $app {
+    + enqueue(command: ActionCommand, actor: Actor, justification: String): PendingAction
+    + approve(pendingId: String, reviewer: Actor): void
+    + reject(pendingId: String, reviewer: Actor, reason: String): void
+    + pending(): List<PendingAction>
+  }
+  class PendingAction $act {
+    - id: String
+    - justification: String
+    - status: ProposalStatus
+    - proposedAt: Instant
+  }
+  enum ProposalStatus <<enumeration>> $act {
+    PENDING
+    APPROVED
+    REJECTED
+    EXPIRED
+  }
+  class Actor $act {
+    - name: String
+    - type: ActorType
+  }
+}
+package "tracewise.audit" $act $agentcore $app {
+  class AuditLog $act $agentcore $app {
+    + append(entry: AuditEntry): void
+    + query(filter: AuditFilter): List<AuditEntry>
+    + onStep(step: TraceStep): void
+    + onFinished(outcome: AgentOutcome): void
+  }
+  class AuditEntry $act {
+    - timestamp: Instant
+    - eventType: String
+    - target: String
+    - details: String
+    - outcome: String
+  }
+}
+
+' ===================================================================== reporting, network, metrics
+package "tracewise.reporting" $data {
+  class StrReport $data {
+    - groundsForSuspicion: String
+    - actionsTaken: String
+    - status: ReportStatus
+  }
+  interface ReportExporter $data {
+    + {abstract} format(): ExportFormat
+    + {abstract} export(report: StrReport, dir: Path): Path
+  }
+  class HtmlReportExporter $data
+  class JsonReportExporter $data
+  note "Future: PdfReportExporter is one\nmore ReportExporter implementation." as NoteExporters $data
+}
+package "tracewise.network" $data {
+  class MoneyFlowGraph $data {
+    - omittedCount: int
+  }
+  class AccountNode $data {
+    - accountId: String
+    - alerted: boolean
+    - examined: boolean
+  }
+  class FlowEdge $data {
+    - totalCad: BigDecimal
+    - transferCount: int
+  }
+}
+package "tracewise.metrics" $data {
+  class PerformanceMetrics $data {
+    - precision: Double
+    - recall: Double
+    - verificationRate: double
+    - averageTurns: double
+    - averageCostCad: BigDecimal
+    - failureRate: double
+    - overrideRate: double
+    - sampleSize: int
+  }
+}
+
+' ===================================================================== persistence
+package "tracewise.persistence" $mon $data $tools {
+  interface Ledger $mon $data $tools {
+    + {abstract} accounts(): List<Account>
+    + {abstract} transactionsFor(accountId: String, range: DateRange): List<Transaction>
+    + {abstract} findTransaction(id: String): Optional<Transaction>
+  }
+  interface TransactionRepository $data $mon {
+    + {abstract} saveAll(transactions: List<Transaction>): void
+    + {abstract} exists(id: String): boolean
+  }
+  interface AlertRepository $data $mon {
+    + {abstract} save(alert: Alert): void
+    + {abstract} find(filter: AlertFilter): List<Alert>
+    + {abstract} hasOpenAlert(match: RuleMatch): boolean
+  }
+  interface CaseRepository $data {
+    + {abstract} save(c: Case): void
+    + {abstract} findById(id: String): Optional<Case>
+    + {abstract} findByAlert(alertId: String): Optional<Case>
+  }
+  note "Other repository interfaces: ThresholdReportRepository,\nApprovalRepository, AuditRepository, RuleConfigRepository.\nEvery repository interface has one SQLite implementation\n(for example SqliteTransactionRepository)." as NoteRepos $data
+  class SqliteTransactionRepository $data {
+    + saveAll(transactions: List<Transaction>): void
+    + exists(id: String): boolean
+    + accounts(): List<Account>
+    + transactionsFor(accountId: String, range: DateRange): List<Transaction>
+    + findTransaction(id: String): Optional<Transaction>
+  }
+  class Database $data {
+    - connection: Connection
+    + inTransaction(work: Runnable): void
+  }
+}
+
+' ===================================================================== relationships
+' ui.gui
+TraceWiseApp --|> Application
+TraceWiseApp "1" *-- "1" AlertsView
+TraceWiseApp "1" *-- "1" CaseView
+TraceWiseApp "1" *-- "1" ApprovalsView
+TraceWiseApp "1" *-- "1" AssistantView
+TraceWiseApp "1" *-- "1" AdminView
+CaseView "1" *-- "1" NetworkView
+TraceWiseApp ..> TraceWiseBootstrap : <<use>>
+AlertsView --> "1" TraceWiseFacade
+CaseView --> "1" TraceWiseFacade
+ApprovalsView --> "1" TraceWiseFacade
+AssistantView --> "1" TraceWiseFacade
+AdminView --> "1" TraceWiseFacade
+CaseView ..|> AgentEventListener
+AlertsView ..|> AgentEventListener
+
+' ui.cli
+CliCommandBase ..|> Callable
+CliCommandBase <|-- ImportCli
+CliCommandBase <|-- InvestigateCli
+CliCommandBase <|-- TriageCli
+CliCommandBase <|-- AskCli
+TraceWiseCli "1" o-- "1..*" CliCommandBase : subcommands
+CliCommandBase --> "1" TraceWiseFacade : facade
+NoteCli .. CliCommandBase
+
+' app
+TraceWiseBootstrap ..> TraceWiseFacade : <<create>>
+TraceWiseBootstrap ..> LLMClientFactory : <<use>>
+TraceWiseBootstrap ..> AppConfig : <<use>>
+TraceWiseFacade --> "1" ImportService
+TraceWiseFacade --> "1" MonitoringService
+TraceWiseFacade --> "1" InvestigationService
+TraceWiseFacade --> "1" TriageService
+TraceWiseFacade --> "1" AssistantService
+TraceWiseFacade --> "1" CaseService
+TraceWiseFacade --> "1" ReportService
+TraceWiseFacade --> "1" NetworkService
+TraceWiseFacade --> "1" PerformanceService
+TraceWiseFacade --> "1" ApprovalQueue
+TraceWiseFacade --> "1" AuditLog
+TraceWiseFacade --> "1" Retriever : knowledge
+TriageService --> "1" InvestigationService
+
+' ingest
+ImportService --> "1..*" TransactionFormat
+TransactionFormat <|.. IbmCsvFormat
+TransactionFormat <|.. ScenarioCsvFormat
+ImportService --> "1" CurrencyConverter
+ImportService --> "1" TransactionRepository
+
+' monitoring
+MonitoringService --> "1..*" DetectionRule
+MonitoringService --> "1" RiskScorer
+MonitoringService --> "1" Ledger
+MonitoringService --> "1" AlertRepository
+DetectionRule <|.. WindowedRule
+WindowedRule <|-- LargeCashRule
+WindowedRule <|-- InternationalTransferRule
+WindowedRule <|-- StructuringRule
+WindowedRule <|-- PassThroughRule
+WindowedRule <|-- FanInRule
+WindowedRule <|-- FanOutRule
+NoteRules .. WindowedRule
+WindowedRule -left-> "1" RuleConfig : config
+DetectionRule ..> RuleKind
+WindowedRule ..> RuleMatch : <<create>>
+DetectionRule ..> Ledger : <<use>>
+
+' domain
+Transaction "*" --> "1" Account : sender
+Transaction "*" --> "1" Account : receiver
+Transaction --> "1" PaymentChannel : channel
+Alert "*" --> "1" Account : subject
+Alert "*" --> "1..*" Transaction : triggeredBy
+ThresholdReport "*" --> "1" Account : subject
+ThresholdReport "*" --> "1..*" Transaction : aggregates
+Case "1" o-- "1..*" Alert : alerts
+Case "1" *-- "0..*" CaseNote
+Case "1" *-- "0..*" FollowUpTask
+Case "1" *-- "0..*" AgentFinding : findings
+Case "1" *-- "0..1" StrReport : report
+
+' cases (State)
+Case "1" --> "1" CaseState : state
+CaseState <|-- OpenState
+CaseState <|-- UnderInvestigationState
+CaseState <|-- PendingApprovalState
+CaseState <|-- EscalatedState
+CaseState <|-- ClosedState
+NoteStates .. CaseState
+CaseState ..> CaseStatus
+
+' agent
+InvestigationService --> "1" AgentRunner
+InvestigationService --> "1" ClaimVerifier
+InvestigationService --> "1" CaseRepository
+InvestigationService --> "1" AlertRepository
+InvestigationService ..> InvestigationTask : <<create>>
+InvestigationService ..> AgentTrace : <<create>>
+AssistantService --> "1" AgentRunner
+AssistantService --> "1" ClaimVerifier
+AssistantService "1" *-- "1" ConversationMemory
+AssistantService ..> AssistantTask : <<create>>
+AgentRunner --> "1" LLMClient
+AgentRunner --> "1" ToolRegistry
+AgentRunner --> "1" AgentLimits
+AgentRunner ..> AgentTask : <<use>>
+AgentTask <|.. InvestigationTask
+AgentTask <|.. AssistantTask
+AgentTrace "1" *-- "0..*" TraceStep : steps
+AgentTrace "1" --> "0..*" AgentEventListener : listeners
+AgentEventListener <|.. AuditLog
+AgentFinding "1" *-- "1..*" Claim : claims
+AgentFinding "1" *-- "0..1" VerificationReport : verification
+AgentFinding "1" *-- "1" AgentTrace : trace
+InvestigationTask ..> AgentFinding : <<create>>
+AssistantTask ..> AssistantAnswer : <<create>>
+
+' agent.tools
+ToolRegistry "1" o-- "1..*" AgentTool : tools
+AgentTool <|.. AccountHistoryTool
+AgentTool <|.. CounterpartiesTool
+AgentTool <|.. SearchIndicatorsTool
+AgentTool <|.. SimilarCasesTool
+NoteReadTools .. AgentTool
+AgentTool <|.. ActionTool
+AgentTool <|.. FaultInjectingTool
+AgentTool "1" <--o "0..1" FaultInjectingTool : wrapped
+ActionTool <|-- SetPriorityTool
+ActionTool <|-- ProposeCloseTool
+ActionTool <|-- ProposeEscalationTool
+NoteActionTools .. ActionTool
+ActionTool --> "1" CommandDispatcher : dispatcher
+SetPriorityTool ..> SetPriorityCommand : <<create>>
+ProposeCloseTool ..> CloseCaseCommand : <<create>>
+ProposeEscalationTool ..> EscalateCaseCommand : <<create>>
+AccountHistoryTool --> "1" Ledger
+CounterpartiesTool --> "1" Ledger
+SearchIndicatorsTool --> "1" Retriever
+SimilarCasesTool --> "1" CaseMemory
+
+' llm
+LLMClient <|.. LangChain4jClient
+LangChain4jClient <|-- AnthropicLLMClient
+LangChain4jClient <|-- OpenAiCompatibleLLMClient
+LangChain4jClient --> "1" ChatModel : adaptee
+LLMClient <|.. ReplayLLMClient
+ReplayLLMClient --> "1" ReplayStore
+LLMClient <|.. LLMClientDecorator
+LLMClient "1" <--o "0..1" LLMClientDecorator : inner
+LLMClientDecorator <|-- RetryingLLMClient
+LLMClientDecorator <|-- RecordingLLMClient
+RecordingLLMClient --> "1" ReplayStore
+LLMClientFactory ..> LLMClient : <<create>>
+LLMClientFactory ..> ModelConfig : <<use>>
+LLMClient ..> LLMRequest : <<use>>
+LLMClient ..> LLMResponse : <<use>>
+
+' retrieval and verification
+Retriever <|.. EmbeddingRetriever
+EmbeddingRetriever --> "1" EmbeddingModel
+CaseMemory --> "1" EmbeddingRetriever
+EmbeddingRetriever ..> RetrievedPassage : <<create>>
+ClaimVerifier --> "1" Ledger
+ClaimVerifier ..> VerificationReport : <<create>>
+VerificationReport "1" *-- "0..*" ClaimCheck : checks
+ClaimCheck --> "1" Claim
+
+' actions and audit
+ActionCommand <|.. SetPriorityCommand
+ActionCommand <|.. LinkAlertsCommand
+ActionCommand <|.. AddToWatchlistCommand
+ActionCommand <|.. CreateTaskCommand
+ActionCommand <|.. SaveReportDraftCommand
+ActionCommand <|.. AddNoteCommand
+ActionCommand <|.. CloseCaseCommand
+ActionCommand <|.. EscalateCaseCommand
+ActionCommand <|.. ReopenCaseCommand
+NoteCommands .. ActionCommand
+ActionCommand ..> CommandContext : <<use>>
+CloseCaseCommand ..> Case : <<use>>
+EscalateCaseCommand ..> Case : <<use>>
+ReopenCaseCommand ..> Case : <<use>>
+CommandDispatcher --> "1" PermissionPolicy
+CommandDispatcher --> "1" ApprovalQueue
+CommandDispatcher --> "1" AuditLog
+CommandDispatcher --> "1" CommandContext
+CommandContext --> "1" CaseRepository
+CommandContext --> "1" AlertRepository
+CommandContext --> "1" TransactionRepository
+PermissionPolicy ..> PermissionTier
+ApprovalQueue "1" *-- "0..*" PendingAction : proposals
+ApprovalQueue --> "1" CommandContext
+ApprovalQueue --> "1" AuditLog
+PendingAction --> "1" ActionCommand : command
+PendingAction --> "1" Actor : proposedBy
+CaseService --> "1" CaseRepository
+CaseService --> "1" CommandDispatcher
+AuditLog ..> AuditEntry : <<create>>
+AuditEntry --> "1" Actor : actor
+
+' reporting, network, metrics
+ReportService --> "1" CaseRepository
+ReportService --> "1" LLMClient
+ReportService --> "1" CommandDispatcher
+ReportService --> "1..*" ReportExporter
+ReportExporter <|.. HtmlReportExporter
+ReportExporter <|.. JsonReportExporter
+NoteExporters .. ReportExporter
+StrReport --> "1" Account : subject
+StrReport --> "1..*" Transaction : transactions
+NetworkService --> "1" Ledger
+NetworkService --> "1" CaseRepository
+NetworkService ..> MoneyFlowGraph : <<create>>
+MoneyFlowGraph "1" *-- "1..*" AccountNode : nodes
+MoneyFlowGraph "1" *-- "0..*" FlowEdge : edges
+FlowEdge --> "1" AccountNode : from
+FlowEdge --> "1" AccountNode : to
+PerformanceService --> "1" CaseRepository
+PerformanceService --> "1" Ledger
+PerformanceService ..> PerformanceMetrics : <<create>>
+
+' persistence
+Ledger <|-- TransactionRepository
+TransactionRepository <|.. SqliteTransactionRepository
+SqliteTransactionRepository --> "1" Database
+NoteRepos .. TransactionRepository
+
+' added after view review
+InvestigationService ..> InvestigationResult : <<create>>
+TriageService ..> TriageReport : <<create>>
+AgentRunner ..> AgentOutcome : <<create>>
+InvestigationResult --> "0..1" AgentFinding : finding
+MonitoringService ..> Alert : <<create>>
+MonitoringService ..> ThresholdReport : <<create>>
+TransactionFormat ..> Transaction : <<create>>

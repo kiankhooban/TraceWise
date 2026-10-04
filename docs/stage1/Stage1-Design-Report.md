@@ -898,7 +898,323 @@ human override rate, and per-rule alert precision, for the selected filters.
 
 ## 2.1 Class Diagram and Design Patterns
 
-*To be completed.*
+### How the class diagram is organised
+
+TraceWise has about 90 classes, which is too many to read in a single image. The class diagram is
+therefore defined once, in a single master model
+([`diagrams/src/model.iuml`](diagrams/src/model.iuml)), and presented as eight **views**. Each view
+shows one part of the system plus the neighbouring classes it connects to. Because every view is
+generated from the same master model, a class always has the same attributes, methods and
+relationships in every view.
+
+* **Complete diagram:** every class and relationship in one zoomable image,
+  [`diagrams/class-full.svg`](diagrams/class-full.svg).
+* **Views 1 to 7** below, one per subsystem.
+
+Notation follows the course UML conventions: interface and abstract class names in italics with
+«interface» or «enumeration» stereotypes; abstract operations in italics; static members underlined;
+visibility `+ - # ~`; generalization (solid line, hollow triangle); realization (dashed line, hollow
+triangle); composition (filled diamond on the whole); aggregation (hollow diamond on the whole);
+directed association with multiplicities at both ends; dependency (dashed arrow), labelled «use» or
+«create» where relevant. Trivial getters and setters are omitted, and inherited methods are not
+repeated unless overridden.
+
+### View 1: Front ends and facade
+
+![Class diagram view 1](diagrams/class-1-frontends.png)
+
+The JavaFX GUI and the picocli CLI are two separate front ends. Both depend only on
+`TraceWiseFacade`. `CaseView` and `AlertsView` implement `AgentEventListener`, so they can display an
+investigation's steps as they happen. Each CLI command extends `CliCommandBase`, whose `call()`
+method fixes the steps every command follows.
+
+### View 2: Application services
+
+![Class diagram view 2](diagrams/class-2-application.png)
+
+`TraceWiseFacade` delegates each request to one application service. `TraceWiseBootstrap` builds the
+object graph once at start-up (manual dependency injection), so no class creates its own
+dependencies.
+
+### View 3: Ingestion and monitoring rules
+
+![Class diagram view 3](diagrams/class-3-monitoring.png)
+
+`ImportService` chooses a `TransactionFormat` by inspecting the file header. `MonitoringService` runs
+a list of `DetectionRule` objects. The six rules share the windowed scanning algorithm in
+`WindowedRule` and supply only what differs.
+
+### View 4a: Agent core
+
+![Class diagram view 4a](diagrams/class-4a-agent-core.png)
+
+`AgentRunner` executes the agent loop for any `AgentTask`. `InvestigationTask` and `AssistantTask`
+supply the prompt, the allowed tools and the result parsing. Every step is recorded in an
+`AgentTrace`, which notifies its `AgentEventListener`s. A finding owns its claims, its verification
+report and its trace.
+
+### View 4b: Agent tools, retrieval and verification
+
+![Class diagram view 4b](diagrams/class-4b-tools.png)
+
+The agent can only act through `AgentTool` objects held in the `ToolRegistry`. Read tools query the
+`Ledger` or a `Retriever`. Action tools extend `ActionTool` and turn a request into an
+`ActionCommand`. `FaultInjectingTool` wraps any tool to simulate failures in tests.
+`ClaimVerifier` checks claims against the `Ledger`.
+
+### View 5: LLM access layer
+
+![Class diagram view 5](diagrams/class-5-llm.png)
+
+The rest of the system depends only on the `LLMClient` interface. `LangChain4jClient` adapts the
+LangChain4j `ChatModel` to it; `ReplayLLMClient` replays recorded responses for tests and offline
+demonstrations; `RetryingLLMClient` and `RecordingLLMClient` add behaviour around any client.
+`LLMClientFactory` builds the configured combination.
+
+### View 6: Actions, approvals, case states and audit
+
+![Class diagram view 6](diagrams/class-6-actions.png)
+
+Every change requested by the agent or a person is an `ActionCommand`. `CommandDispatcher` asks
+`PermissionPolicy` whether it may run now or must wait in the `ApprovalQueue`. A `Case` delegates
+its lifecycle to its current `CaseState` object. `AuditLog` records everything.
+
+### View 7: Domain model, persistence, reporting, network and metrics
+
+![Class diagram view 7](diagrams/class-7-data.png)
+
+Services depend on repository interfaces (`Ledger`, `TransactionRepository`, `AlertRepository`,
+`CaseRepository`), each implemented with SQLite. Reports are exported through the `ReportExporter`
+interface.
+
+---
+
+### Design patterns
+
+TraceWise uses nine design patterns from the course list. Each one solves a specific problem in
+this design.
+
+#### 1. Facade
+
+* **Design problem:** Two different front ends (GUI and CLI) need the same functionality, which is
+  spread across about a dozen services. Without a single entry point, each front end would have to
+  know and coordinate those services itself.
+* **Participating classes and roles:**
+
+  | Role | Class |
+  |---|---|
+  | Facade | `TraceWiseFacade` |
+  | Subsystem classes | `ImportService`, `MonitoringService`, `InvestigationService`, `TriageService`, `AssistantService`, `CaseService`, `ReportService`, `NetworkService`, `PerformanceService`, `ApprovalQueue`, `AuditLog`, `Retriever` |
+  | Clients | `AlertsView`, `CaseView`, `ApprovalsView`, `AssistantView`, `AdminView`, `CliCommandBase` and its subclasses |
+
+* **Why it is appropriate:** The facade gives both front ends one simple interface with one method
+  per user operation, and keeps the front ends independent of how the core is organised.
+* **What would be harder without it:** Every GUI view and every CLI command would depend directly on
+  several services. A change inside the core would ripple into both front ends, and the two would
+  drift apart in behaviour.
+
+#### 2. Strategy
+
+* **Design problem:** Several parts of the system must choose between interchangeable algorithms at
+  run time: which detection rules to apply, which file format to parse, which retrieval method to
+  use, which format to export to, and which agent task to run.
+* **Participating classes and roles:**
+
+  | Role | Main instance (detection rules) | Other instances |
+  |---|---|---|
+  | Strategy interface | `DetectionRule` | `TransactionFormat`, `Retriever`, `ReportExporter`, `AgentTask` |
+  | Concrete strategies | `LargeCashRule`, `InternationalTransferRule`, `StructuringRule`, `PassThroughRule`, `FanInRule`, `FanOutRule` | `IbmCsvFormat`, `ScenarioCsvFormat`; `EmbeddingRetriever`; `HtmlReportExporter`, `JsonReportExporter`; `InvestigationTask`, `AssistantTask` |
+  | Context | `MonitoringService` | `ImportService`; `SearchIndicatorsTool`; `ReportService`; `AgentRunner` |
+
+* **Why it is appropriate:** The Compliance Supervisor can enable, disable and configure rules
+  independently, so the rule set must be a list of objects, not a fixed block of code.
+* **What would be harder without it:** `MonitoringService` would contain one large conditional
+  covering every rule. Adding a rule (such as the planned R7 cycle rule), a file format, a PDF
+  exporter or a keyword retriever would mean editing existing, tested code instead of adding a class.
+
+#### 3. Template Method
+
+* **Design problem:** All six detection rules follow the same algorithm (for each account, select
+  candidate transactions, slide a time window over them, test each window, build a match) and differ
+  only in three steps. Similarly, every CLI command follows the same steps (run, format the result as
+  text or JSON, map errors to exit codes) and differs only in what it runs.
+* **Participating classes and roles:**
+
+  | Role | Rules | CLI |
+  |---|---|---|
+  | Abstract class with the template method | `WindowedRule.evaluate()` | `CliCommandBase.call()` |
+  | Primitive operations (abstract) | `candidates()`, `isMatch()`, `window()` | `execute()` |
+  | Concrete classes | the six rule classes | `ImportCli`, `InvestigateCli`, `TriageCli`, `AskCli` and the other command classes |
+
+* **Why it is appropriate:** The shared algorithm is written and tested once; each subclass supplies
+  only what makes it different.
+* **What would be harder without it:** The window-sliding logic would be copied into six rules, and
+  output formatting and error handling into every CLI command. A bug fix would have to be repeated
+  in every copy, and the copies would drift apart.
+
+#### 4. Factory Method
+
+* **Design problem:** Every action tool performs the same steps when the agent calls it (validate the
+  arguments, create a command, submit it to the dispatcher, report the result), but each tool must
+  create a different kind of command.
+* **Participating classes and roles:**
+
+  | Role | Class |
+  |---|---|
+  | Creator, with the factory method | `ActionTool`, method `createCommand()` |
+  | Concrete creators | `SetPriorityTool`, `ProposeCloseTool`, `ProposeEscalationTool` and the other action tools |
+  | Product interface | `ActionCommand` |
+  | Concrete products | `SetPriorityCommand`, `CloseCaseCommand`, `EscalateCaseCommand` and the other commands |
+
+* **Why it is appropriate:** `ActionTool.execute()` stays generic and never names a concrete command
+  class; each subclass decides which command to instantiate.
+* **What would be harder without it:** Either every action tool would duplicate the
+  validate-submit-report logic, or `ActionTool` would need a conditional over every command type that
+  has to change whenever an action is added.
+
+#### 5. Command
+
+* **Design problem:** Actions come from two sources (the agent and a person) and must all be
+  validated against the case's current state, checked against a permission policy, possibly held
+  for approval and executed later, and recorded in the audit trail.
+* **Participating classes and roles:**
+
+  | Role | Class |
+  |---|---|
+  | Command interface | `ActionCommand` (`validate()`, `execute()`, `describe()`) |
+  | Concrete commands | `SetPriorityCommand`, `LinkAlertsCommand`, `AddToWatchlistCommand`, `CreateTaskCommand`, `SaveReportDraftCommand`, `AddNoteCommand`, `CloseCaseCommand`, `EscalateCaseCommand`, `ReopenCaseCommand` |
+  | Invoker | `CommandDispatcher` (immediate execution), `ApprovalQueue` (deferred execution after approval) |
+  | Receivers | `Case`, `Alert`, `Account`, reached through `CommandContext` |
+  | Clients | the action tools, `CaseService`, `ReportService` |
+
+* **Why it is appropriate:** Turning each action into an object is what makes the approval queue
+  possible: a proposal is simply a stored command waiting to be executed. Every action passes through
+  one dispatcher, so the permission check and the audit entry cannot be skipped.
+* **What would be harder without it:** Agent actions and human actions would be separate method
+  calls scattered across services. Deferring an action until it is approved, applying one
+  permission policy, and logging every action consistently would each need custom code in every
+  place an action happens.
+
+#### 6. State
+
+* **Design problem:** What may be done to a case depends on its lifecycle stage. For example, a case
+  pending approval may be escalated or closed but not investigated again, and a closed case may only
+  be reopened.
+* **Participating classes and roles:**
+
+  | Role | Class |
+  |---|---|
+  | Context | `Case` |
+  | State (abstract) | `CaseState`, whose default transition methods reject the transition |
+  | Concrete states | `OpenState`, `UnderInvestigationState`, `PendingApprovalState`, `EscalatedState`, `ClosedState` |
+
+* **Why it is appropriate:** Each state class overrides only the transitions it allows, so the
+  lifecycle rules are explicit, local and individually testable. An illegal transition fails in one
+  place, with a clear error.
+* **What would be harder without it:** `Case` would need a status field and a conditional on that
+  status in every method. The lifecycle rules would be spread across those conditionals, and adding
+  a state would mean editing all of them.
+
+#### 7. Observer
+
+* **Design problem:** While the agent works, several unrelated parts of the system must react to each
+  step: the Agent Steps panel, the triage progress view and the audit log. The agent loop must not
+  depend on any of them.
+* **Participating classes and roles:**
+
+  | Role | Class |
+  |---|---|
+  | Subject | `AgentTrace` (`addListener()`, `record()`, `finish()`) |
+  | Observer interface | `AgentEventListener` (`onStep()`, `onFinished()`) |
+  | Concrete observers | `CaseView`, `AlertsView`, `AuditLog` |
+
+* **Why it is appropriate:** The agent core stays independent of the GUI, so the same loop runs
+  unchanged from the CLI, where no view exists.
+* **What would be harder without it:** `AgentRunner` would call the GUI and the audit log directly,
+  tying the core to JavaFX and making it impossible to run headless for the CLI and the Stage 3 KUMA
+  tests. The planned live highlighting of the network graph would also need changes inside the agent
+  loop; with Observer, it is one more listener.
+
+#### 8. Adapter
+
+* **Design problem:** TraceWise calls LLMs through LangChain4j, whose `ChatModel` interface uses
+  LangChain4j's own request and response types. The rest of TraceWise should not depend on a
+  third-party library's types.
+* **Participating classes and roles:**
+
+  | Role | Class |
+  |---|---|
+  | Target | `LLMClient` |
+  | Adapter | `LangChain4jClient` (with `AnthropicLLMClient` and `OpenAiCompatibleLLMClient` choosing the provider) |
+  | Adaptee | `ChatModel` (LangChain4j) |
+  | Client | `AgentRunner`, `ReportService` |
+
+* **Why it is appropriate:** The adapter converts between TraceWise's `LLMRequest`/`LLMResponse` and
+  LangChain4j's types in one class. It also lets `ReplayLLMClient` stand in for a real model.
+* **What would be harder without it:** LangChain4j types would appear throughout the agent code. A
+  change in the library, or a provider it does not support, would affect every class that calls the
+  model, and deterministic tests without network access would not be possible.
+
+#### 9. Decorator
+
+* **Design problem:** Some behaviour must be added around an LLM client or a tool without changing
+  it, and in combinations chosen at run time: retrying failed calls, recording responses for later
+  replay, and injecting faults to test the agent's error handling.
+* **Participating classes and roles:**
+
+  | Role | LLM client instance | Tool instance |
+  |---|---|---|
+  | Component interface | `LLMClient` | `AgentTool` |
+  | Concrete components | `AnthropicLLMClient`, `OpenAiCompatibleLLMClient`, `ReplayLLMClient` | the read and action tools |
+  | Decorator | `LLMClientDecorator` (holds `inner`) | `FaultInjectingTool` (holds `wrapped`) |
+  | Concrete decorators | `RetryingLLMClient`, `RecordingLLMClient` | `FaultInjectingTool` |
+
+* **Why it is appropriate:** `LLMClientFactory` can stack decorators according to configuration (for
+  example a recording, retrying Anthropic client), and each decorator is small and testable alone.
+* **What would be harder without it:** Retry, recording and fault behaviour would be built into each
+  client and tool class, or require a subclass for every combination. Testing "what does the agent
+  do when a tool fails?" would require changing production tool code.
+
+### Design principles
+
+| Principle | Where it appears in the design |
+|---|---|
+| Abstraction | `LLMClient`, `DetectionRule`, `AgentTool`, `Ledger` and the repository interfaces describe what is done, not how |
+| Encapsulation | `Case` exposes lifecycle operations, not its state field; `ToolRegistry` hides argument validation; the audit log is append-only |
+| Separation of concerns | Detection (rules), judgment (agent), checking (`ClaimVerifier`), permission (`PermissionPolicy`) and presentation (views) are separate classes |
+| High cohesion | Each service handles one feature area; each rule class encodes one rule |
+| Low coupling | Front ends depend only on `TraceWiseFacade`; the agent core does not know the GUI exists (Observer) |
+| Interfaces | Every external dependency (LLM, database, embedding model, file formats) is behind an interface |
+| Dependency inversion | Services depend on `LLMClient`, `Ledger` and the repository interfaces, never on `AnthropicLLMClient` or SQLite classes; `TraceWiseBootstrap` supplies the implementations |
+| Polymorphism | Rules, tools, commands, case states, exporters and LLM clients are each used through their common interface |
+
+### Key design decisions
+
+1. **The agent loop is TraceWise's own, not LangChain4j's `AiServices`.** LangChain4j's high-level
+   service runs the tool-calling loop internally. TraceWise instead uses LangChain4j's documented
+   lower-level tool-calling interface inside `AgentRunner`, so every tool call passes through
+   `ToolRegistry` (validation), `AgentTrace` (recording), the turn and cost limits, and the
+   permission policy. This is also what makes the trace available to the GUI, the audit log and the
+   Stage 3 KUMA harness.
+2. **Permissions are enforced in code, not in the prompt.** The agent is told which actions need
+   approval, but `PermissionPolicy` decides. A prompt-injection attempt cannot make the agent skip
+   approval, because the agent never chooses the tier.
+3. **Every agent claim is verified, and unverified claims block finalisation.** No AML product
+   reviewed during research publicly documents blocking a report on unsupported statements; this is
+   a deliberate TraceWise design choice, motivated by a vendor's published account of AI-drafted
+   reports containing fabricated content.
+4. **Long-running work stays off the JavaFX UI thread.** Investigations and triage take tens of
+   seconds, so they run in background tasks. `AgentEventListener` callbacks hand updates back to the
+   UI thread, so the window never freezes.
+5. **SQLite in WAL mode with a single writer.** All writes go through the repositories on one
+   connection, avoiding database lock errors between the UI thread and background agent work.
+6. **The model is configuration, not code.** Provider and model are chosen in `AppConfig`, so
+   comparing Sonnet and Opus in Stage 3 is a configuration change, and the replay client allows the
+   application to run without an API key.
+7. **Extension points for planned additions.** The deferred items in the roadmap each map to one new
+   class at an existing extension point: a new `DetectionRule` (cycle rule), a new `ReportExporter`
+   (PDF), a new `AgentEventListener` (live graph highlighting), and a new `Retriever` (keyword
+   search).
 
 ## 2.2 Use-Case Diagram and Use-Case Descriptions
 

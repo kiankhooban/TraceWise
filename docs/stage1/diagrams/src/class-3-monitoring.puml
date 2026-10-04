@@ -1,0 +1,9 @@
+@startuml class-3-monitoring
+!include style.iuml
+skinparam nodesep 60
+skinparam ranksep 70
+title TraceWise: Class Diagram View 3: Ingestion and Monitoring Rules
+!include model.iuml
+remove *
+restore $mon
+@enduml

@@ -1,0 +1,9 @@
+@startuml class-5-llm
+!include style.iuml
+skinparam nodesep 60
+skinparam ranksep 70
+title TraceWise: Class Diagram View 5: LLM Access Layer
+!include model.iuml
+remove *
+restore $llm
+@enduml

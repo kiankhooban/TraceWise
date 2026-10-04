@@ -1,0 +1,10 @@
+@startuml class-1-frontends
+!include style.iuml
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 70
+title TraceWise: Class Diagram View 1: Front Ends and Facade (GUI, CLI)
+!include model.iuml
+remove *
+restore $front
+@enduml

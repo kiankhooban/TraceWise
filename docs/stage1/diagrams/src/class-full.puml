@@ -1,0 +1,7 @@
+@startuml class-full
+!include style.iuml
+skinparam nodesep 60
+skinparam ranksep 70
+title TraceWise: Complete Class Diagram
+!include model.iuml
+@enduml

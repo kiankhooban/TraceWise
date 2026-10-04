@@ -1,0 +1,9 @@
+@startuml class-6-actions
+!include style.iuml
+skinparam nodesep 60
+skinparam ranksep 70
+title TraceWise: Class Diagram View 6: Actions, Approvals, Case States and Audit
+!include model.iuml
+remove *
+restore $act
+@enduml
