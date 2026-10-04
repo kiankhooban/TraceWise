@@ -15,7 +15,7 @@ ledger before a human analyst approves or dismisses the case.
 
 | Stage | Content | Status |
 |---|---|---|
-| Stage 1: Design | [Design report](docs/stage1/Stage1-Design-Report.md) | In progress |
+| Stage 1: Design | [Design report](docs/stage1/Stage1-Design-Report.md) (UML sources and images in [`docs/stage1/diagrams`](docs/stage1/diagrams)) | Complete, under review |
 | Stage 2: Implementation | Source code, AI collaboration log | Not started |
 | Stage 3: Testing | JUnit tests, KUMA agent behaviour tests | Not started |
 

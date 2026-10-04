@@ -29,3 +29,28 @@ Representative interactions, in the format required by the project instructions 
 **Human Contribution:** Confirmed that a small Python harness for KUMA is acceptable, since KUMA is mandated by the course. Confirmed that API keys for KUMA are available.
 
 **Outcome:** These additions are included in the Stage 1 class diagram.
+
+---
+
+## Entry 3: UML diagrams and design review (2026-10-03 to 2026-10-04)
+
+**Task:** Produce the Stage 1 UML (use-case, class and sequence diagrams) following the EECS3311 UML
+lecture conventions.
+
+**Input/Instruction:** Asked Claude Code to draw every diagram, check each rendered PNG individually,
+and follow the lecture's notation rules exactly.
+
+**AI Contribution:** Chose PlantUML over UMLet for automatic layout and single-source consistency,
+after rendering notation test sheets. Built a master class model with tag-filtered views, rendered
+and inspected every diagram, and caught its own errors during review: attributes duplicating
+association lines, a missing multiplicity hidden behind an arrowhead, misleading labels from
+orthogonal routing, missing «interface» stereotypes, and several sequence diagrams where an `alt` or
+`break` fragment let a failed path continue as if it had succeeded.
+
+**Human Contribution:** Rejected an initial use-case diagram layout and a class-diagram presentation
+that was too large to read. Brought in an independent reviewer's critique, which led to a new main
+class diagram of major classes, with the detailed views kept as supporting material. Required that
+each diagram be checked individually before moving on.
+
+**Outcome:** One use-case diagram, a main class diagram plus eight detailed views, and ten sequence
+diagrams, all generated from PlantUML sources in `docs/stage1/diagrams/src/`.
