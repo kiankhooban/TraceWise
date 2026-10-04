@@ -43,6 +43,7 @@ else tier is REQUIRES_APPROVAL
   activate Queue
   create participant "p:PendingAction" as Pending
   Queue -> Pending : <<create>>
+  Queue -> Cmd : targetCaseId()
   Queue -> Ctx : cases()
   Queue -> CaseRepo : findById(caseId)
   activate CaseRepo
@@ -94,6 +95,12 @@ deactivate Queue
 Facade --> View
 deactivate Facade
 View -> View : refresh()
+View -> Facade : pendingApprovals()
+activate Facade
+Facade -> Queue : pending()
+activate Queue
+return pendingActions
+return pendingActions
 View --> Analyst : updated approvals list
 deactivate View
 
@@ -105,6 +112,7 @@ activate Facade
 Facade -> Queue : reject(pendingId, analystActor, reason)
 activate Queue
 Queue -> Pending : markRejected(analystActor, reason)
+Queue -> Cmd : targetCaseId()
 Queue -> CaseRepo : findById(caseId)
 activate CaseRepo
 return c

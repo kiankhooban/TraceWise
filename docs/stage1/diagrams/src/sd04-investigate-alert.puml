@@ -103,6 +103,7 @@ return outcome
 
 alt outcome is COMPLETED or INCOMPLETE
   Inv -> Task : parseFinding(outcome.finalText())
+  note right of Inv : If the output does not match the required\nstructure, the agent is asked once to correct it\n(one more chat() call); a second failure ends\nthe investigation as FAILED.
   activate Task
   create participant "f:AgentFinding" as Finding
   Task -> Finding : <<create>>
@@ -125,5 +126,18 @@ end
 return investigationResult
 return investigationResult
 View -> View : showCase(caseId)
+deactivate View
+
+== Alternative: the analyst cancels a running investigation ==
+Analyst -> View : onCancel(alertId)
+activate View
+View -> Facade : cancelInvestigation(alertId)
+activate Facade
+Facade -> Inv : cancel(alertId)
+activate Inv
+Inv -> Runner : cancel()
+note right of Runner : The loop stops after the current\nstep; outcome = CANCELLED and the\npartial trace is kept.
+return
+return
 deactivate View
 @enduml

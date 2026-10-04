@@ -72,4 +72,28 @@ return alerts
 return alerts
 View --> Analyst : show summary and alert queue
 deactivate View
+
+== Filter the queue and view threshold reports ==
+Analyst -> View : onFilter(filter)
+activate View
+View -> Facade : listAlerts(filter)
+activate Facade
+Facade -> Mon : listAlerts(filter)
+activate Mon
+Mon -> AlertRepo : find(filter)
+activate AlertRepo
+return alerts
+return alerts
+return alerts
+View -> Facade : listThresholdReports()
+activate Facade
+Facade -> Mon : listThresholdReports()
+activate Mon
+Mon -> TRRepo : findAll()
+activate TRRepo
+return thresholdReports
+return thresholdReports
+return thresholdReports
+View --> Analyst : show filtered queue and threshold reports
+deactivate View
 @enduml

@@ -6,8 +6,8 @@ title TraceWise: Main Class Diagram (major classes; "..." marks members omitted 
 
 package "Presentation (GUI and CLI)" {
   class CaseView <<boundary>> {
-    + onInvestigate(alertId: String): void
-    + onStep(step: TraceStep): void
+    + onInvestigate(alertId: String)
+    + onStep(step: TraceStep)
     ...
   }
   abstract class CliCommandBase <<Template Method>> {
@@ -24,7 +24,7 @@ package "Application" {
   class TraceWiseFacade <<Facade>> {
     + investigate(alertId: String, listener: AgentEventListener): InvestigationResult
     + runMonitoring(): MonitoringSummary
-    + approve(pendingId: String, reviewer: Actor): void
+    + approve(pendingId: String, reviewer: Actor)
     ...
   }
   class MonitoringService {
@@ -58,12 +58,12 @@ package "Agent" {
     + run(task: AgentTask, trace: AgentTrace): AgentOutcome
   }
   class AgentTrace <<Observer: subject>> {
-    + record(step: TraceStep): void
-    + addListener(listener: AgentEventListener): void
+    + record(step: TraceStep)
+    + addListener(listener: AgentEventListener)
   }
   interface AgentEventListener <<interface>> <<Observer>> {
-    + {abstract} onStep(step: TraceStep): void
-    + {abstract} onFinished(outcome: AgentOutcome): void
+    + {abstract} onStep(step: TraceStep)
+    + {abstract} onFinished(outcome: AgentOutcome)
   }
   class ToolRegistry {
     + execute(call: ToolCall): ToolResult
@@ -105,8 +105,8 @@ package "LLM access" {
 
 package "Actions and approvals" {
   interface ActionCommand <<interface>> <<Command>> {
-    + {abstract} validate(ctx: CommandContext): void
-    + {abstract} execute(ctx: CommandContext): void
+    + {abstract} validate(ctx: CommandContext)
+    + {abstract} execute(ctx: CommandContext)
     ...
   }
   class CloseCaseCommand
@@ -118,7 +118,7 @@ package "Actions and approvals" {
   }
   class ApprovalQueue {
     + enqueue(command: ActionCommand, actor: Actor, justification: String): PendingAction
-    + approve(pendingId: String, reviewer: Actor): void
+    + approve(pendingId: String, reviewer: Actor)
     ...
   }
   class PendingAction {
@@ -126,21 +126,21 @@ package "Actions and approvals" {
     ...
   }
   class AuditLog {
-    + append(entry: AuditEntry): void
+    + append(entry: AuditEntry)
     ...
   }
 }
 
 package "Domain and case lifecycle" {
   class Case <<State: context>> {
-    + startInvestigation(): void
-    + close(): void
-    + reopen(reason: String): void
+    + startInvestigation()
+    + close()
+    + reopen(reason: String)
     ...
   }
   abstract class CaseState <<State>> {
-    + close(c: Case): void
-    + reopen(c: Case, reason: String): void
+    + close(c: Case)
+    + reopen(c: Case, reason: String)
     ...
   }
   class ClosedState
@@ -165,16 +165,16 @@ package "Domain and case lifecycle" {
 }
 
 ' presentation and facade
-CaseView --> "1" TraceWiseFacade
-CliCommandBase --> "1" TraceWiseFacade : facade
+CaseView "1" --> "1" TraceWiseFacade
+CliCommandBase "*" --> "1" TraceWiseFacade : facade
 CliCommandBase <|-- InvestigateCli
 CaseView ..|> AgentEventListener
-TraceWiseFacade --> "1" MonitoringService
-TraceWiseFacade --> "1" InvestigationService
-TraceWiseFacade --> "1" ApprovalQueue
+TraceWiseFacade "1" --> "1" MonitoringService
+TraceWiseFacade "1" --> "1" InvestigationService
+TraceWiseFacade "1" --> "1" ApprovalQueue
 
 ' monitoring
-MonitoringService --> "1..*" DetectionRule
+MonitoringService "1" --> "1..*" DetectionRule
 DetectionRule <|.. WindowedRule
 WindowedRule <|-- StructuringRule
 WindowedRule <|-- FanInRule
@@ -183,34 +183,34 @@ DetectionRule ..> Ledger : <<use>>
 MonitoringService ..> Alert : <<create>>
 
 ' agent
-InvestigationService --> "1" AgentRunner
-InvestigationService --> "1" ClaimVerifier
-AgentRunner --> "1" LLMClient
-AgentRunner --> "1" ToolRegistry
+InvestigationService "1" --> "1" AgentRunner
+InvestigationService "1" --> "1" ClaimVerifier
+AgentRunner "1" --> "1" LLMClient
+AgentRunner "1" --> "1" ToolRegistry
 AgentRunner ..> AgentTrace : <<use>>
 AgentTrace "1" --> "0..*" AgentEventListener : listeners
 AgentEventListener <|.. AuditLog
 ToolRegistry "1" o-- "1..*" AgentTool : tools
 AgentTool <|.. ActionTool
 ActionTool <|-- ProposeCloseTool
-ActionTool --> "1" CommandDispatcher : dispatcher
+ActionTool "1" --> "1" CommandDispatcher : dispatcher
 ProposeCloseTool ..> CloseCaseCommand : <<create>>
-ClaimVerifier --> "1" Ledger
+ClaimVerifier "1" --> "1" Ledger
 
 ' llm
 LLMClient <|.. LangChain4jClient
-LangChain4jClient --> "1" ChatModel : adaptee
+LangChain4jClient "1" --> "1" ChatModel : adaptee
 LLMClient <|.. LLMClientDecorator
 LLMClient "1" <--o "0..1" LLMClientDecorator : inner
 LLMClientDecorator <|-- RetryingLLMClient
 
 ' actions
 ActionCommand <|.. CloseCaseCommand
-CommandDispatcher --> "1" PermissionPolicy
-CommandDispatcher --> "1" ApprovalQueue
-CommandDispatcher --> "1" AuditLog
+CommandDispatcher "1" --> "1" PermissionPolicy
+CommandDispatcher "1" --> "1" ApprovalQueue
+CommandDispatcher "1" --> "1" AuditLog
 ApprovalQueue "1" *-- "0..*" PendingAction : proposals
-PendingAction --> "1" ActionCommand : command
+PendingAction "0..1" --> "1" ActionCommand : command
 CloseCaseCommand ..> Case : <<use>>
 
 ' domain and state

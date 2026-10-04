@@ -684,7 +684,8 @@ reporting are deterministic.
 **1. Feature ID and Name:** F08, Case Management and Audit Trail
 
 **2. Description:** Manages the case behind each investigation through a defined lifecycle:
-**Open → Under Investigation → Pending Approval → Escalated or Closed**. A rejected proposal returns
+**Open → Under Investigation → Pending Approval → Escalated or Closed**. A case that is Under
+Investigation can be investigated again (for example after a failed run). A rejected proposal returns
 the case from Pending Approval to Under Investigation, and a closed case can be reopened, which
 returns it to Open with the reason recorded. A case groups its linked alerts, transactions, findings, verification reports, notes,
 tasks and report drafts. Every event in the system (imports, monitoring runs, tool calls, actions,
@@ -912,7 +913,7 @@ stereotypes (for example «Strategy», «Facade», «Command: invoker»).
 
 ### Detailed class views
 
-The complete design has about 90 classes, too many for one readable image. The detailed views below
+The complete design has 146 classifiers (119 classes, 20 interfaces and 7 enumerations), too many for one readable image. The detailed views below
 show every class with all its important attributes and methods, one subsystem at a time. They are
 the reference for the design-pattern explanations, the sequence diagrams (2.3) and the traceability
 table (Task 3), which all use exactly these class and method names.

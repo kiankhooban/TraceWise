@@ -18,6 +18,7 @@ Cli -> Cli : call()
 note right of Cli : Template Method: CliCommandBase.call()\nruns execute(), then print(), and maps\nerrors to a non-zero exit code.
 Cli -> Cli : execute()
 Cli -> Facade : ask(question, context)
+note right of Facade : From the GUI, the AML Analyst uses\nAssistantView.onSubmit(text), which calls\nthe same TraceWiseFacade.ask(); the rest\nof the interaction is identical.
 activate Facade
 Facade -> Asst : ask(question, context)
 activate Asst
