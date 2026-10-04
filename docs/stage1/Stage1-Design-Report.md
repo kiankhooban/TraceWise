@@ -898,26 +898,37 @@ human override rate, and per-rule alert precision, for the selected filters.
 
 ## 2.1 Class Diagram and Design Patterns
 
-### How the class diagram is organised
+### Main class diagram
 
-TraceWise has about 90 classes, which is too many to read in a single image. The class diagram is
-therefore defined once, in a single master model
-([`diagrams/src/model.iuml`](diagrams/src/model.iuml)), and presented as eight **views**. Each view
-shows one part of the system plus the neighbouring classes it connects to. Because every view is
-generated from the same master model, a class always has the same attributes, methods and
-relationships in every view.
+The main class diagram shows the major classes and interfaces of TraceWise, grouped by subsystem,
+with the relationships between them. Each class shows only its most important members; "..." marks
+members omitted here, which appear in the detailed views below. Design-pattern roles are shown as
+stereotypes (for example «Strategy», «Facade», «Command: invoker»).
 
-* **Complete diagram:** every class and relationship in one zoomable image,
-  [`diagrams/class-full.svg`](diagrams/class-full.svg).
-* **Views 1 to 7** below, one per subsystem.
+![TraceWise main class diagram](diagrams/class-main.png)
 
-Notation follows the course UML conventions: interface and abstract class names in italics with
-«interface» or «enumeration» stereotypes; abstract operations in italics; static members underlined;
-visibility `+ - # ~`; generalization (solid line, hollow triangle); realization (dashed line, hollow
-triangle); composition (filled diamond on the whole); aggregation (hollow diamond on the whole);
-directed association with multiplicities at both ends; dependency (dashed arrow), labelled «use» or
-«create» where relevant. Trivial getters and setters are omitted, and inherited methods are not
-repeated unless overridden.
+*Source: [`diagrams/src/class-main.puml`](diagrams/src/class-main.puml). Zoomable version:
+[`diagrams/class-main.svg`](diagrams/class-main.svg).*
+
+### Detailed class views
+
+The complete design has about 90 classes, too many for one readable image. The detailed views below
+show every class with all its important attributes and methods, one subsystem at a time. They are
+the reference for the design-pattern explanations, the sequence diagrams (2.3) and the traceability
+table (Task 3), which all use exactly these class and method names.
+
+All views are generated from one master model
+([`diagrams/src/model.iuml`](diagrams/src/model.iuml)), so a class always has the same members and
+relationships in every view. The complete model is also available as one zoomable image,
+[`diagrams/class-full.svg`](diagrams/class-full.svg), for reference only.
+
+Notation follows the course UML conventions: «interface» above the name of an interface, interface
+and abstract class names in italics, «enumeration» for enumerations; abstract operations in italics;
+static members underlined; visibility `+ - # ~`; generalization (solid line, hollow triangle);
+realization (dashed line, hollow triangle); composition (filled diamond on the whole); aggregation
+(hollow diamond on the whole); directed association with multiplicities at both ends; dependency
+(dashed arrow), labelled «use» or «create» where relevant. Trivial getters and setters are omitted,
+and inherited methods are not repeated unless overridden.
 
 ### View 1: Front ends and facade
 
@@ -1719,7 +1730,68 @@ an actor.
 
 ## 2.3 Sequence Diagrams
 
-*To be completed.*
+Ten sequence diagrams cover every use case. Each shows the initiating actor, the boundary objects
+(«boundary», the GUI views and CLI commands), the control objects («control», the facade and
+services), the domain objects («entity») and the agent components, using only the classes and
+methods defined in the class diagram. Calls are solid lines with filled arrowheads, returns are
+dashed lines, and `alt`, `opt`, `loop`, `break` and `ref` fragments show alternative, optional,
+repeated, terminating and referenced behaviour. Messages are numbered.
+
+| Diagram | Use cases | Features | What it shows |
+|---|---|---|---|
+| SD01 Import Transactions | UC01 | F01 | Format detection (Strategy), row validation, currency conversion, all-or-nothing save |
+| SD02 Run Monitoring | UC02 | F02 | Rules evaluated through `WindowedRule.evaluate()` (Template Method); threshold reports versus alerts; duplicate suppression |
+| SD03 Configure Monitoring Rules | UC03 | F02 | Validation of a rule change, persistence and audit |
+| SD04 Investigate Alert | UC04, UC05, UC06 | F03, F04, F05, F09 | The agent loop: LLM calls, validated tool calls, retrieval, trace events to listeners (Observer), turn limit, failure handling, claim verification |
+| SD05 Agent Action and Approval | UC04 (actions), UC08 | F06 | Action tools creating commands (Factory Method), dispatch through the permission policy (Command), approval, expiry and rejection |
+| SD06 Triage Alert Queue | UC07 | F07 | Repeated investigation (ref SD04) within cost and count limits, stopping |
+| SD07 Ask the Assistant (CLI JSON mode) | UC13 | F10 | The CLI Template Method, the assistant agent, verification, and the JSON output used by the Stage 3 KUMA harness |
+| SD08 Draft, Finalise and Export a Report | UC14, UC15 | F11 | Narrative drafting by the LLM, saving through a command, finalisation blocked by rejected claims, escalation through the approval queue, export |
+| SD09 Manage and Reopen a Case | UC09, UC10 | F08 | A human action through the command dispatcher, and the State pattern rejecting an illegal transition |
+| SD10 Read-Only Views | UC11, UC12, UC16, UC17 | F08, F09, F04, F12 | Audit query, money-flow graph construction, knowledge search, performance metrics. These four share the same structure (view, facade, service, repository), so they are grouped in one diagram |
+
+### SD01: Import Transactions
+
+![SD01](diagrams/sd01-import-transactions.png)
+
+### SD02: Run Monitoring and Review Alerts
+
+![SD02](diagrams/sd02-run-monitoring.png)
+
+### SD03: Configure Monitoring Rules
+
+![SD03](diagrams/sd03-configure-rules.png)
+
+### SD04: Investigate Alert
+
+![SD04](diagrams/sd04-investigate-alert.png)
+
+### SD05: Agent Action and Approval
+
+![SD05](diagrams/sd05-actions-and-approval.png)
+
+### SD06: Triage Alert Queue
+
+![SD06](diagrams/sd06-triage-queue.png)
+
+### SD07: Ask the Assistant through the CLI JSON Mode
+
+![SD07](diagrams/sd07-ask-assistant-cli.png)
+
+### SD08: Draft, Finalise and Export a Suspicious Transaction Report
+
+![SD08](diagrams/sd08-report-draft-finalise-export.png)
+
+### SD09: Manage and Reopen a Case
+
+![SD09](diagrams/sd09-manage-reopen-case.png)
+
+### SD10: Read-Only Views
+
+![SD10](diagrams/sd10-read-only-views.png)
+
+*All sequence diagram sources are in [`diagrams/src/`](diagrams/src/); each has a zoomable SVG next to
+its PNG.*
 
 ---
 
