@@ -274,9 +274,11 @@ No real customer data is used at any point.
 * TraceWise does not file anything with FINTRAC. Report "filing" produces a local document only.
 * TraceWise is not legal or compliance advice. Its rules are modelled on FINTRAC's published rules
   for learning purposes.
-* **Future work.** The following were considered and deliberately left out of the committed scope,
-  to keep the project achievable. Any of them may be added in Stage 2 if time allows, and would be
-  documented as a design change:
+* **Planned stretch goals.** The following were deliberately left out of the committed scope to keep
+  the project achievable. They are planned for Stage 2, once all 12 committed features work, in the
+  priority order given in [`docs/ROADMAP.md`](../ROADMAP.md), with visual items first. The design in
+  Task 2 includes an extension point for each, so each addition extends the design rather than
+  changing it, and will be recorded as a design change:
   * an adversarial "red-team" mode, in which a second agent designs laundering schemes intended to
     evade the rules and the investigator agent proposes new rules in response (pending instructor
     approval);
