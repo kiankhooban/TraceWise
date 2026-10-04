@@ -1,0 +1,29 @@
+# Build output
+target/
+out/
+bin/
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.project
+.classpath
+.settings/
+.metadata/
+
+# OS
+.DS_Store
+
+# Secrets and local config: never commit API keys
+.env
+*.env
+application-local.properties
+
+# Local data and runtime state
+*.db
+*.sqlite
+data/raw/
+.kuma/
+logs/
