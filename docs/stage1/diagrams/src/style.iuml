@@ -1,0 +1,25 @@
+' Shared style for every TraceWise UML diagram.
+skinparam style strictuml
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 12
+skinparam dpi 150
+skinparam classAttributeIconSize 0
+skinparam roundCorner 0
+skinparam packageStyle rectangle
+skinparam ArrowColor #333333
+skinparam ClassBorderColor #333333
+skinparam ClassBackgroundColor #FFFFFF
+skinparam ClassHeaderBackgroundColor #EEF2F7
+skinparam PackageBorderColor #7A869A
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B8A35A
+skinparam ActorBorderColor #333333
+skinparam UsecaseBorderColor #333333
+skinparam UsecaseBackgroundColor #FFFFFF
+skinparam RectangleBorderColor #333333
+skinparam SequenceLifeLineBorderColor #555555
+skinparam ParticipantBackgroundColor #FFFFFF
+skinparam ParticipantBorderColor #333333
+hide circle
+hide empty members

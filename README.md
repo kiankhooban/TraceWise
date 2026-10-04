@@ -28,6 +28,6 @@ SQLite, JUnit 5, Maven.
 
 ```
 docs/
-  stage1/          Stage 1 design report and UML diagrams (UMLet .uxf sources + exported .png)
+  stage1/          Stage 1 design report and UML diagrams (PlantUML sources + exported PNG and SVG)
   ai-usage/        AI tools used and the AI-human collaboration log
 ```

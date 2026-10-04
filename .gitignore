@@ -27,3 +27,6 @@ application-local.properties
 data/raw/
 .kuma/
 logs/
+
+# Downloaded build tools
+tools/*.jar

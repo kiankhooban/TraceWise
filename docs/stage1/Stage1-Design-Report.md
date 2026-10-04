@@ -243,7 +243,7 @@ TraceWise is a single Java application split into three Maven modules.
 | Network graph view | JavaFXSmartGraph |
 | Deterministic tests | JUnit 5, Mockito |
 | Agent behaviour tests (Stage 3) | KUMA, through a small Python harness that calls the CLI's JSON mode |
-| UML | UMLet |
+| UML | PlantUML (with Graphviz layout) |
 
 ### 1.1.8 Data
 
@@ -684,8 +684,9 @@ reporting are deterministic.
 **1. Feature ID and Name:** F08, Case Management and Audit Trail
 
 **2. Description:** Manages the case behind each investigation through a defined lifecycle:
-**Open → Under Investigation → Pending Approval → Escalated or Closed**, with **Reopened** possible
-from Closed. A case groups its linked alerts, transactions, findings, verification reports, notes,
+**Open → Under Investigation → Pending Approval → Escalated or Closed**. A rejected proposal returns
+the case from Pending Approval to Under Investigation, and a closed case can be reopened, which
+returns it to Open with the reason recorded. A case groups its linked alerts, transactions, findings, verification reports, notes,
 tasks and report drafts. Every event in the system (imports, monitoring runs, tool calls, actions,
 approvals, rule changes) is written to an append-only audit trail that can be filtered and
 exported. Entries are never edited or deleted.
@@ -901,7 +902,504 @@ human override rate, and per-rule alert precision, for the selected filters.
 
 ## 2.2 Use-Case Diagram and Use-Case Descriptions
 
-*To be completed.*
+### Use-case diagram
+
+![TraceWise use-case diagram](diagrams/usecase-diagram.png)
+
+*Source: [`diagrams/src/usecase-diagram.puml`](diagrams/src/usecase-diagram.puml). A zoomable SVG version is
+[`diagrams/usecase-diagram.svg`](diagrams/usecase-diagram.svg).*
+
+**Actors**
+
+| Actor | Kind | Description |
+|---|---|---|
+| AML Analyst | Primary, human | Investigates alerts, reviews the agent's work, and makes the final decisions |
+| Compliance Supervisor | Primary, human | A specialised analyst (shown by generalization): can do everything an analyst can, and also configures the monitoring rules and monitors agent performance |
+| Automation Client | Primary, system | A script or test harness, such as the Stage 3 KUMA harness, that uses TraceWise through the CLI's JSON mode |
+| LLM Service | Secondary, external system | The Anthropic Claude API, which the agent calls for reasoning, tool selection and text generation |
+
+The local embedding model used for retrieval runs inside TraceWise, so it is part of the system, not
+an actor.
+
+**Relationships**
+
+* **«include»:** behaviour that a base use case always performs and that is shared. Investigating an
+  alert always retrieves indicators (UC05) and verifies the agent's claims (UC06). Triage always
+  investigates each alert (UC04). Asking the assistant always verifies its claims (UC06). Searching
+  the knowledge base always uses retrieval (UC05).
+* **«extend»:** optional behaviour added to a base use case that is complete without it. Reopening
+  (UC10) extends Manage Case at the extension point "case closed". Exporting (UC15) extends Draft and
+  Finalise STR at the extension point "report finalised".
+
+### Use-case descriptions
+
+| ID | Use case | Actor(s) | Related feature(s) |
+|---|---|---|---|
+| UC01 | Import Transactions | AML Analyst | F01 |
+| UC02 | Run Monitoring and Review Alerts | AML Analyst | F02 |
+| UC03 | Configure Monitoring Rules | Compliance Supervisor | F02 |
+| UC04 | Investigate Alert | AML Analyst, Automation Client, LLM Service | F03, F06, F09 |
+| UC05 | Retrieve Indicators and Similar Cases | (included) | F04 |
+| UC06 | Verify Agent Claims | (included) | F05 |
+| UC07 | Triage Alert Queue | AML Analyst, Automation Client | F07 |
+| UC08 | Review Agent Proposals | AML Analyst | F06 |
+| UC09 | Manage Case | AML Analyst | F08 |
+| UC10 | Reopen Case | AML Analyst | F08 |
+| UC11 | Review Audit Trail | AML Analyst | F08 |
+| UC12 | Explore Money-Flow Network | AML Analyst | F09 |
+| UC13 | Ask the Assistant | AML Analyst, Automation Client, LLM Service | F10 |
+| UC14 | Draft and Finalise Suspicious Transaction Report | AML Analyst, LLM Service | F11 |
+| UC15 | Export Report | AML Analyst | F11 |
+| UC16 | Search Knowledge Base | AML Analyst | F04 |
+| UC17 | View Agent Performance | Compliance Supervisor | F12 |
+
+---
+
+#### UC01: Import Transactions
+
+* **Use Case ID:** UC01
+* **Use Case Name:** Import Transactions
+* **Actor(s):** AML Analyst
+* **Goal:** Load a file of transactions into TraceWise so they can be monitored and investigated.
+* **Preconditions:** TraceWise is running. The analyst has a CSV file in the IBM format or the
+  TraceWise scenario format.
+* **Trigger:** The analyst selects **File > Import Transactions** (CLI: `tracewise import <file>`).
+* **Main Success Scenario:**
+  1. The analyst selects a CSV file.
+  2. The system detects the file format from its header and shows a preview of the first rows.
+  3. The analyst confirms the import.
+  4. The system validates each row.
+  5. The system assigns an ID to each transaction that lacks one and converts every amount to CAD.
+  6. The system stores the valid transactions and creates or updates the accounts, in one database
+     transaction.
+  7. The system shows the import summary (rows read, imported, rejected with reasons, accounts, date
+     range) and records the import in the audit trail.
+* **Alternative/Exception Flows:**
+  * 2a. The format is not recognised: the system refuses the import and lists the expected columns.
+    The use case ends.
+  * 3a. The analyst cancels at the preview: nothing is imported. The use case ends.
+  * 4a. A row is invalid (missing field, negative amount, bad date, unknown currency, or a currency
+    missing from the rate table): the row is skipped and listed with its reason; the import continues.
+  * 4b. A transaction ID already exists: the row is skipped and reported as a duplicate.
+  * 6a. The file cannot be read or the database write fails: the whole import is rolled back and an
+    error is shown. No partial data remains.
+* **Postconditions:** The valid transactions and their accounts are stored, and the import is in the
+  audit trail. On failure, the database is unchanged.
+* **Related Feature(s):** F01
+
+---
+
+#### UC02: Run Monitoring and Review Alerts
+
+* **Use Case ID:** UC02
+* **Use Case Name:** Run Monitoring and Review Alerts
+* **Actor(s):** AML Analyst
+* **Goal:** Find transactions that must be reported and patterns that need investigation, and see them
+  in priority order.
+* **Preconditions:** Transactions have been imported (UC01).
+* **Trigger:** The analyst clicks **Run Monitoring** (CLI: `tracewise monitor run`).
+* **Main Success Scenario:**
+  1. The analyst starts monitoring.
+  2. The system evaluates every enabled rule against the transactions.
+  3. The system adds threshold-rule matches (R1, R2) to the Threshold Report Register.
+  4. The system creates an alert for each new suspicion-rule match (R3 to R6), skipping matches that
+     already have an open alert.
+  5. The system computes a risk score for each new alert.
+  6. The system shows a summary and the updated alert queue, sorted by risk score, and records the run
+     in the audit trail.
+  7. The analyst sorts and filters the queue, and opens the Threshold Reports screen as needed.
+* **Alternative/Exception Flows:**
+  * 1a. No transactions are loaded: the system directs the analyst to import data. The use case ends.
+  * 2a. One rule fails at runtime: the failure is reported and logged, and the other rules still run.
+  * 4a. There are no new matches: the system reports "No new alerts". This is a normal outcome.
+* **Postconditions:** New threshold reports and alerts are stored; the run is in the audit trail.
+* **Related Feature(s):** F02
+
+---
+
+#### UC03: Configure Monitoring Rules
+
+* **Use Case ID:** UC03
+* **Use Case Name:** Configure Monitoring Rules
+* **Actor(s):** Compliance Supervisor
+* **Goal:** Adjust the rules' parameters, or enable and disable rules, to suit the institution's risk
+  appetite.
+* **Preconditions:** TraceWise is running.
+* **Trigger:** The Supervisor opens the **Rules** settings screen (CLI: `tracewise rules set ...`).
+* **Main Success Scenario:**
+  1. The system shows each rule with its current parameters and whether it is enabled.
+  2. The Supervisor edits a parameter (for example R3's window) or enables or disables a rule.
+  3. The system validates the new configuration.
+  4. The system saves it and records the change, with old and new values, in the audit trail.
+  5. The new configuration applies to the next monitoring run.
+* **Alternative/Exception Flows:**
+  * 3a. The configuration is invalid (for example a negative threshold, or a band whose lower bound is
+    above its upper bound): the system rejects it with a message and keeps the previous configuration.
+* **Postconditions:** The rule configuration is updated and the change is in the audit trail.
+* **Related Feature(s):** F02
+
+---
+
+#### UC04: Investigate Alert
+
+* **Use Case ID:** UC04
+* **Use Case Name:** Investigate Alert
+* **Actor(s):** AML Analyst or Automation Client (primary); LLM Service (secondary)
+* **Goal:** Have the agent gather and assess the evidence behind an alert, produce a verified finding,
+  and take or propose actions.
+* **Preconditions:** The alert exists and is not closed. An LLM model is configured.
+* **Trigger:** The analyst selects an alert and clicks **Investigate** (CLI:
+  `tracewise investigate <alertId> [--json]`).
+* **Main Success Scenario:**
+  1. The system creates a case for the alert if it has none and moves the case to Under Investigation.
+  2. The system starts the agent with the alert details and the available tools.
+  3. The agent requests a tool call; the system validates the arguments, runs the tool, records the
+     step, and returns the result to the agent. The step appears live in the Agent Steps panel.
+  4. Step 3 repeats, with the agent choosing each next step from what it has learned. This includes
+     retrieving indicators and similar cases (**include UC05**).
+  5. The agent requests actions where appropriate. Autonomous actions are carried out immediately;
+     approval-tier actions are placed in the Approval Queue (see UC08).
+  6. The agent returns its finding in the required structure.
+  7. The system verifies the finding's claims (**include UC06**).
+  8. The system stores the finding, its verification report and the trace, and shows them in the case
+     view.
+* **Alternative/Exception Flows:**
+  * 3a. The tool arguments are invalid: the tool does not run; the validation error is returned to the
+    agent, which can correct itself.
+  * 3b. A tool fails: the failure is returned to the agent, which must continue without that data or
+    report that it cannot conclude.
+  * 3c. The LLM call fails: it is retried up to 2 times with increasing delay. If it still fails, the
+    investigation stops, the partial trace is kept, and the case shows "Investigation failed".
+  * 4a. The turn limit is reached: the agent is asked for its best finding so far, which is marked
+    "Incomplete".
+  * 4b. The analyst cancels: the investigation stops after the current step and the partial trace is
+    kept.
+  * 6a. The output does not match the required structure: the agent is asked once to correct it; on a
+    second failure the investigation is marked failed.
+* **Postconditions:** The case holds a verified (or failed or incomplete) finding and a complete trace;
+  autonomous actions are applied; proposals are queued; everything is in the audit trail.
+* **Related Feature(s):** F03, F06, F09 (the network view marks the accounts examined)
+
+---
+
+#### UC05: Retrieve Indicators and Similar Cases (included)
+
+* **Use Case ID:** UC05
+* **Use Case Name:** Retrieve Indicators and Similar Cases
+* **Actor(s):** None directly. Included by UC04 and UC16.
+* **Goal:** Find the FINTRAC indicators and past cases most similar to a description of a pattern.
+* **Preconditions:** The indicator corpus has been indexed at start-up.
+* **Trigger:** UC04 (the agent calls a retrieval tool) or UC16 (the analyst searches).
+* **Main Success Scenario:**
+  1. The system receives a query text.
+  2. The system embeds the query with the local embedding model.
+  3. The system searches the indicator index and the case memory.
+  4. The system returns the top results above the minimum similarity score, each with its score and,
+     for past cases, the final decision.
+* **Alternative/Exception Flows:**
+  * 4a. No result reaches the minimum score: an empty result is returned with an explicit "nothing
+    relevant found" message.
+  * 3a. The case memory is empty: only indicators are searched.
+  * 1a. The indicator corpus is unavailable: retrieval returns an error that states the limitation; the
+    calling use case continues without retrieval.
+* **Postconditions:** The results are returned to the caller and, during an investigation, recorded in
+  the trace.
+* **Related Feature(s):** F04
+
+---
+
+#### UC06: Verify Agent Claims (included)
+
+* **Use Case ID:** UC06
+* **Use Case Name:** Verify Agent Claims
+* **Actor(s):** None directly. Included by UC04 and UC13.
+* **Goal:** Confirm or reject every factual claim the agent made, so that invented evidence is caught
+  before anyone relies on it.
+* **Preconditions:** A finding or answer with cited claims exists.
+* **Trigger:** The agent has produced a finding (UC04) or an answer (UC13).
+* **Main Success Scenario:**
+  1. The system extracts the claims: cited transaction IDs, amounts, dates and accounts.
+  2. For each claim, the system checks that the transaction exists, that the amount matches (within
+     $0.01) and the date matches, and that the account is involved.
+  3. The system checks that each stated total equals the sum of its cited transactions.
+  4. The system produces a verification report and attaches it to the finding.
+* **Alternative/Exception Flows:**
+  * 2a. A claim does not match: it is marked rejected with the reason; checking continues.
+  * 1a. The finding cites no transactions: it is flagged "Unsupported".
+* **Postconditions:** A verification report is attached; any rejected claim blocks report finalisation
+  until removed (UC14).
+* **Related Feature(s):** F05
+
+---
+
+#### UC07: Triage Alert Queue
+
+* **Use Case ID:** UC07
+* **Use Case Name:** Triage Alert Queue
+* **Actor(s):** AML Analyst or Automation Client
+* **Goal:** Have the agent work through all open alerts unattended, within cost and count limits.
+* **Preconditions:** There are open alerts. An LLM model is configured.
+* **Trigger:** The analyst clicks **Triage Queue** and sets limits (CLI: `tracewise triage
+  [--max-alerts N] [--max-cost X] [--json]`).
+* **Main Success Scenario:**
+  1. The analyst sets the alert filter, maximum alert count and maximum cost, and starts triage.
+  2. The system orders the matching open alerts by risk score, highest first.
+  3. For each alert, the system investigates it (**include UC04**), then updates the progress view with
+     the running counts and cost.
+  4. When every alert is processed, the system produces the triage summary and records it in the audit
+     trail.
+* **Alternative/Exception Flows:**
+  * 2a. No open alerts match: the system shows "Nothing to triage". The use case ends.
+  * 3a. One alert's investigation fails: it is recorded as failed and left open; triage continues.
+  * 3b. The cost or count limit is reached: triage stops cleanly; the rest stay open.
+  * 3c. The analyst clicks **Stop**: triage stops after the current alert; completed work is kept.
+* **Postconditions:** Each processed alert has a finding or a recorded failure; a triage report exists.
+* **Related Feature(s):** F07
+
+---
+
+#### UC08: Review Agent Proposals
+
+* **Use Case ID:** UC08
+* **Use Case Name:** Review Agent Proposals
+* **Actor(s):** AML Analyst
+* **Goal:** Approve or reject the high-impact actions the agent has proposed.
+* **Preconditions:** At least one proposal is pending.
+* **Trigger:** The analyst opens the **Approvals** screen (CLI: `tracewise approvals list`).
+* **Main Success Scenario:**
+  1. The system lists pending proposals with the action, the agent's reasoning, and the verification
+     status of the finding behind it.
+  2. The analyst selects a proposal and clicks **Approve**.
+  3. The system checks that the case's current state still allows the action.
+  4. The system carries out the action (for example closing or escalating the case) and records the
+     approval and the action in the audit trail.
+* **Alternative/Exception Flows:**
+  * 2a. The analyst clicks **Reject** and enters a reason: the proposal is discarded and the rejection
+    and reason are logged. A rejection without a reason is not accepted.
+  * 3a. The case has changed since the proposal (for example it is already closed): the proposal is
+    marked "Expired" and nothing is executed.
+* **Postconditions:** The proposal is approved and executed, rejected, or expired; the outcome is in the
+  audit trail.
+* **Related Feature(s):** F06
+
+---
+
+#### UC09: Manage Case
+
+* **Use Case ID:** UC09
+* **Use Case Name:** Manage Case
+* **Actor(s):** AML Analyst
+* **Goal:** View everything about a case and record the analyst's own work on it.
+* **Preconditions:** The case exists.
+* **Trigger:** The analyst opens a case from the Cases screen or the alert queue (CLI:
+  `tracewise case show <id>`).
+* **Extension points:** *case closed* (when the case is in the Closed state).
+* **Main Success Scenario:**
+  1. The system shows the case: its state, linked alerts, transactions, findings with verification
+     results, notes, tasks, report draft, and history timeline.
+  2. The analyst adds a note or completes a follow-up task.
+  3. The system checks that the case's state allows the operation, saves it, and records it in the
+     audit trail in the same database transaction.
+* **Alternative/Exception Flows:**
+  * 3a. The operation is not allowed in the current state: it is rejected with a message naming the
+    state.
+  * 3b. The audit write fails: the operation is rolled back as well.
+* **Postconditions:** The case and the audit trail reflect the analyst's changes.
+* **Related Feature(s):** F08
+
+---
+
+#### UC10: Reopen Case (extends UC09)
+
+* **Use Case ID:** UC10
+* **Use Case Name:** Reopen Case
+* **Actor(s):** AML Analyst
+* **Goal:** Return a closed case to active work, for example when new evidence arrives.
+* **Preconditions:** The case is Closed (extension point "case closed" of UC09).
+* **Trigger:** In the case view of a closed case, the analyst clicks **Reopen** (CLI:
+  `tracewise case reopen <id> --reason "<text>"`).
+* **Main Success Scenario:**
+  1. The analyst clicks **Reopen** and enters a reason.
+  2. The system moves the case from Closed to Open.
+  3. The system records the reopening and its reason in the case history and the audit trail.
+* **Alternative/Exception Flows:**
+  * 1a. No reason is given: the reopening is not accepted.
+* **Postconditions:** The case is Open; the earlier closure remains in the history and is never
+  erased.
+* **Related Feature(s):** F08
+
+---
+
+#### UC11: Review Audit Trail
+
+* **Use Case ID:** UC11
+* **Use Case Name:** Review Audit Trail
+* **Actor(s):** AML Analyst (and, by generalization, Compliance Supervisor)
+* **Goal:** See who did what and when, including every action the agent took.
+* **Preconditions:** TraceWise is running.
+* **Trigger:** The user opens the **Audit Log** screen (CLI: `tracewise audit export ...`).
+* **Main Success Scenario:**
+  1. The system shows audit entries, newest first.
+  2. The user filters by date range, actor (a person or the agent), case, or event type.
+  3. The system shows the matching entries.
+  4. The user optionally exports them to CSV.
+* **Alternative/Exception Flows:**
+  * 3a. No entries match: an empty list is shown.
+  * 4a. The export file cannot be written: an error is shown; the entries are unaffected.
+* **Postconditions:** No data is changed; the audit trail is read-only.
+* **Related Feature(s):** F08
+
+---
+
+#### UC12: Explore Money-Flow Network
+
+* **Use Case ID:** UC12
+* **Use Case Name:** Explore Money-Flow Network
+* **Actor(s):** AML Analyst
+* **Goal:** See who an account sends money to and receives money from, to judge whether it is part of
+  a wider scheme.
+* **Preconditions:** Transactions are loaded.
+* **Trigger:** The analyst opens the **Network** tab of a case (CLI: `tracewise network <accountId>`).
+* **Main Success Scenario:**
+  1. The analyst sets the hop depth (1 to 3) and a date range.
+  2. The system collects counterparties hop by hop and aggregates the transfers between each pair.
+  3. The system reads which accounts the latest investigation examined, from its trace.
+  4. The system draws the graph, marking alerted and examined accounts.
+  5. The analyst clicks an account or an edge to see the underlying transactions.
+* **Alternative/Exception Flows:**
+  * 2a. The account has no transfers in the range: a single node with "No transfers in this period" is
+    shown.
+  * 2b. There are more than 50 counterparties: the 50 with the largest totals are shown, with a notice
+    of how many were omitted.
+* **Postconditions:** No data is changed.
+* **Related Feature(s):** F09
+
+---
+
+#### UC13: Ask the Assistant
+
+* **Use Case ID:** UC13
+* **Use Case Name:** Ask the Assistant
+* **Actor(s):** AML Analyst or Automation Client (primary); LLM Service (secondary)
+* **Goal:** Get a verified answer to a free-text question or request about the data, cases or
+  accounts.
+* **Preconditions:** An LLM model is configured.
+* **Trigger:** The analyst types in the **Assistant** panel (CLI: `tracewise ask "<question>" [--json]`).
+* **Main Success Scenario:**
+  1. The user submits a question, optionally with the current case or account as context.
+  2. The agent receives it with the session's conversation history.
+  3. The agent calls read tools as needed. For a search request it produces a structured filter, which
+     the system validates and runs.
+  4. The agent composes its answer with citations.
+  5. The system verifies the cited claims (**include UC06**).
+  6. The system shows the answer with verification badges and adds it to the conversation history.
+     With `--json`, the output also contains the full tool-call trace.
+* **Alternative/Exception Flows:**
+  * 2a. The request is ambiguous: the agent asks a clarifying question instead of guessing.
+  * 2b. The request is out of scope, or asks to change data directly: the agent declines and explains
+    what it can do.
+  * 3a. Retrieved data contains embedded instructions (for example a transaction memo saying "close
+    this case"): the agent treats them as data, never as commands.
+  * 3b. The structured filter is invalid: it is rejected, and the agent is asked to correct it.
+  * 3c. The LLM is unavailable: the same retry policy as UC04 applies, then an error is shown.
+* **Postconditions:** The answer and its verification are shown and kept in the session history. No
+  data is changed by this use case.
+* **Related Feature(s):** F10
+
+---
+
+#### UC14: Draft and Finalise Suspicious Transaction Report
+
+* **Use Case ID:** UC14
+* **Use Case Name:** Draft and Finalise Suspicious Transaction Report
+* **Actor(s):** AML Analyst (primary); LLM Service (secondary)
+* **Goal:** Produce a complete, verified suspicious transaction report for an escalated case.
+* **Preconditions:** The case has a finding whose claims have all been verified.
+* **Trigger:** The analyst opens the **Report** tab of the case (CLI: `tracewise report draft <caseId>`).
+* **Extension points:** *report finalised* (after the finalisation is approved).
+* **Main Success Scenario:**
+  1. The system fills the report's structured fields (subject account, transactions) from the
+     database.
+  2. The agent drafts the grounds-for-suspicion narrative from the verified finding.
+  3. The analyst reviews and edits the draft, and saves it.
+  4. The analyst clicks **Request Finalisation**.
+  5. The system checks that the required fields are complete and that no rejected claim remains, then
+     places an escalation proposal in the Approval Queue.
+  6. When the proposal is approved (UC08), the system escalates the case, locks the report, and records
+     this in the audit trail.
+* **Alternative/Exception Flows:**
+  * 1a. The finding has rejected claims: the draft can be saved, but step 5 blocks finalisation until
+    those claims are removed from the narrative.
+  * 5a. Required fields are empty: finalisation is blocked and the missing fields are listed.
+  * 6a. The proposal is rejected: the report stays a draft and the case is unchanged.
+* **Postconditions:** A draft is saved; after approval, the report is final and locked, and the case is
+  Escalated.
+* **Related Feature(s):** F11
+
+---
+
+#### UC15: Export Report (extends UC14)
+
+* **Use Case ID:** UC15
+* **Use Case Name:** Export Report
+* **Actor(s):** AML Analyst
+* **Goal:** Save the finalised report as files that can be shared or archived.
+* **Preconditions:** The report is final (extension point "report finalised" of UC14).
+* **Trigger:** The analyst clicks **Export** (CLI: `tracewise report export <caseId> --format html|json`).
+* **Main Success Scenario:**
+  1. The analyst chooses the format (HTML, JSON or both) and a folder.
+  2. The system writes the files.
+  3. The system records the export in the audit trail and shows the file paths.
+* **Alternative/Exception Flows:**
+  * 2a. A file cannot be written: an error is shown; the report stays final in the database, so the
+    export can be retried.
+* **Postconditions:** The report files exist; the export is in the audit trail. Nothing is sent to
+  FINTRAC.
+* **Related Feature(s):** F11
+
+---
+
+#### UC16: Search Knowledge Base
+
+* **Use Case ID:** UC16
+* **Use Case Name:** Search Knowledge Base
+* **Actor(s):** AML Analyst
+* **Goal:** Look up FINTRAC indicators or similar past cases directly.
+* **Preconditions:** The indicator corpus has been indexed.
+* **Trigger:** The analyst types a query on the **Knowledge** screen (CLI:
+  `tracewise indicators search "<text>"`).
+* **Main Success Scenario:**
+  1. The analyst enters a description in plain words.
+  2. The system retrieves matching indicators and cases (**include UC05**).
+  3. The system lists the results with their similarity scores.
+* **Alternative/Exception Flows:**
+  * 2a. Nothing relevant is found: the system says so explicitly.
+* **Postconditions:** No data is changed.
+* **Related Feature(s):** F04
+
+---
+
+#### UC17: View Agent Performance
+
+* **Use Case ID:** UC17
+* **Use Case Name:** View Agent Performance
+* **Actor(s):** Compliance Supervisor
+* **Goal:** Measure how accurate, reliable and costly the agent is, as model-risk monitoring requires.
+* **Preconditions:** At least one investigation has been completed.
+* **Trigger:** The Supervisor opens the **Performance** screen (CLI: `tracewise metrics [--json]`).
+* **Main Success Scenario:**
+  1. The Supervisor selects a date range, model and rule.
+  2. The system loads the matching findings, verification reports, traces and approval decisions.
+  3. Where labels exist, the system compares each verdict with its label.
+  4. The system shows precision, recall, verification rate, average turns and cost, failure rate,
+     human override rate and per-rule alert precision, each with its sample size.
+  5. The Supervisor optionally exports the metrics to CSV.
+* **Alternative/Exception Flows:**
+  * 3a. No labelled data matches: precision and recall are shown as "not available"; the other metrics
+    are still shown.
+  * 4a. A metric is based on fewer than 10 findings: it is marked as not meaningful.
+* **Postconditions:** No data is changed.
+* **Related Feature(s):** F12
 
 ## 2.3 Sequence Diagrams
 
