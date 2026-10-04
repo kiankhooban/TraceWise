@@ -1,0 +1,40 @@
+@startuml sd03-configure-rules
+!include style.iuml
+hide footbox
+autonumber
+title SD03: Configure Monitoring Rules (UC03; feature F02)
+
+actor "Compliance Supervisor" as Sup
+participant ":AdminView" as View <<boundary>>
+participant ":TraceWiseFacade" as Facade <<control>>
+participant ":MonitoringService" as Mon <<control>>
+participant "config:RuleConfig" as Config
+participant ":RuleConfigRepository" as Repo
+participant "rule:DetectionRule" as Rule
+participant ":AuditLog" as Audit
+
+Sup -> View : onSaveRule(ruleId, config)
+activate View
+View -> Facade : updateRule(ruleId, config)
+activate Facade
+Facade -> Mon : updateRule(ruleId, config)
+activate Mon
+Mon -> Config : validate()
+activate Config
+return
+alt configuration valid
+  Mon -> Repo : save(ruleId, config)
+  Mon -> Rule : configure(config)
+  Mon -> Audit : append(entry with old and new values)
+  Mon --> Facade
+  Facade --> View
+  View --> Sup : show "rule updated"
+else configuration invalid (for example a negative threshold)
+  Mon --> Facade : InvalidConfigurationException
+  Facade --> View : error
+  View --> Sup : show reason; previous configuration stays active
+end
+deactivate Mon
+deactivate Facade
+deactivate View
+@enduml

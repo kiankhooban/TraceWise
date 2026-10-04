@@ -1,0 +1,102 @@
+@startuml sd08-report-draft-finalise-export
+!include style.iuml
+hide footbox
+autonumber
+title SD08: Draft, Finalise and Export a Suspicious Transaction Report (UC14, UC15; feature F11)
+
+actor "AML Analyst" as Analyst
+participant ":CaseView" as View <<boundary>>
+participant ":TraceWiseFacade" as Facade <<control>>
+participant ":ReportService" as Rep <<control>>
+participant ":CaseRepository" as CaseRepo
+participant "c:Case" as Case <<entity>>
+participant ":LLMClient" as LLM
+participant ":CommandDispatcher" as Disp <<control>>
+participant "exporter:ReportExporter" as Exp
+participant ":AuditLog" as Audit
+
+== Draft ==
+Analyst -> View : open Report tab
+activate View
+View -> Facade : draftReport(caseId)
+activate Facade
+Facade -> Rep : draft(caseId)
+activate Rep
+Rep -> CaseRepo : findById(caseId)
+activate CaseRepo
+return c
+Rep -> Case : latestFinding()
+activate Case
+return finding (verified)
+create participant "r:StrReport" as Report
+Rep -> Report : <<create>> (subject, transactions from the ledger)
+Rep -> LLM : chat(request: narrative from the verified finding)
+activate LLM
+return narrative
+return r
+return r
+View --> Analyst : show editable draft
+deactivate View
+
+== Save edits ==
+Analyst -> View : onSaveReport(report)
+activate View
+View -> Facade : saveReport(report)
+activate Facade
+Facade -> Rep : save(report)
+activate Rep
+create participant "save:SaveReportDraftCommand" as SaveCmd
+Rep -> SaveCmd : <<create>>
+Rep -> Disp : submit(save, analystActor, "edit draft")
+activate Disp
+note right of Disp : Policy returns AUTONOMOUS for a\nhuman draft edit; executed and audited.
+return dispatchResult
+return
+return
+deactivate View
+
+== Request finalisation ==
+Analyst -> View : onRequestFinalisation()
+activate View
+View -> Facade : requestFinalisation(caseId)
+activate Facade
+Facade -> Rep : requestFinalisation(caseId)
+activate Rep
+alt a rejected claim remains, or required fields are empty
+  Rep --> Facade : FinalisationBlockedException (reasons listed)
+  Facade --> View : error
+  View --> Analyst : show what must be fixed
+else report is complete and fully verified
+  create participant "esc:EscalateCaseCommand" as Esc
+  Rep -> Esc : <<create>>
+  Rep -> Disp : submit(esc, analystActor, "finalise report")
+  activate Disp
+  ref over Disp : SD05 Part A, REQUIRES_APPROVAL branch:\nthe escalation waits in the ApprovalQueue.
+  return dispatchResult (queued)
+  Rep --> Facade : pendingAction
+  Facade --> View : pendingAction
+  View --> Analyst : show "awaiting approval"
+end
+deactivate Rep
+deactivate Facade
+deactivate View
+note over Analyst, Esc : On approval (SD05 Part B), esc.execute(ctx) calls c.escalate() and r.lock().
+
+== Export (extends UC14 after the report is finalised) ==
+Analyst -> View : onExport(formats, dir)
+activate View
+View -> Facade : exportReport(caseId, formats, dir)
+activate Facade
+Facade -> Rep : export(caseId, formats, dir)
+activate Rep
+loop for each selected format (HTML, JSON)
+  Rep -> Exp : export(r, dir)
+  activate Exp
+  return path
+end
+Rep -> Audit : append(entry: report exported)
+return paths
+return paths
+View --> Analyst : show file paths
+deactivate View
+@enduml

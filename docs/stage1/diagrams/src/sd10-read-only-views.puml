@@ -1,0 +1,91 @@
+@startuml sd10-read-only-views
+!include style.iuml
+hide footbox
+autonumber
+title SD10: Read-Only Views: Audit Trail, Money-Flow Network, Knowledge Search, Agent Performance\n(UC11, UC12, UC16 including UC05, UC17; features F08, F09, F04, F12)
+
+actor "AML Analyst or\nCompliance Supervisor" as User
+participant ":AdminView" as Admin <<boundary>>
+participant ":NetworkView" as Net <<boundary>>
+participant ":TraceWiseFacade" as Facade <<control>>
+participant ":AuditLog" as Audit
+participant ":NetworkService" as NetSvc <<control>>
+participant ":Retriever" as Retriever
+participant ":CaseMemory" as Memory
+participant ":PerformanceService" as Perf <<control>>
+participant ":Ledger" as Ledger
+participant ":CaseRepository" as CaseRepo
+
+== UC11 Review audit trail ==
+User -> Admin : onSearchAudit(filter)
+activate Admin
+Admin -> Facade : queryAudit(filter)
+activate Facade
+Facade -> Audit : query(filter)
+activate Audit
+note right of Audit : Reads AuditRepository.find(filter);\nentries are never modified.
+return entries
+return entries
+deactivate Admin
+
+== UC12 Explore money-flow network ==
+User -> Net : onChangeScope(hops, range)
+activate Net
+Net -> Facade : buildNetwork(accountId, hops, range, caseId)
+activate Facade
+Facade -> NetSvc : build(accountId, hops, range, caseId)
+activate NetSvc
+loop for each hop (1 to 3)
+  NetSvc -> Ledger : transactionsFor(accountId, range)
+  activate Ledger
+  return transactions
+end
+NetSvc -> CaseRepo : findById(caseId)
+activate CaseRepo
+return c
+NetSvc -> NetSvc : read examinedAccounts() from the AgentTrace of c.latestFinding()
+opt more than 50 counterparties
+  NetSvc -> NetSvc : keep the 50 largest by total; set omittedCount
+end
+create participant "g:MoneyFlowGraph" as Graph
+NetSvc -> Graph : <<create>>
+return g
+return g
+Net -> Net : render(g)
+deactivate Net
+
+== UC16 Search knowledge base (includes UC05) ==
+User -> Admin : onSearchKnowledge(query)
+activate Admin
+Admin -> Facade : searchKnowledge(query)
+activate Facade
+Facade -> Retriever : search(query, maxResults)
+activate Retriever
+return indicator passages
+Facade -> Memory : similar(query, maxResults)
+activate Memory
+return similar cases
+return passages (empty list with a message if nothing relevant)
+deactivate Admin
+
+== UC17 View agent performance ==
+User -> Admin : onShowMetrics(filter)
+activate Admin
+Admin -> Facade : computeMetrics(filter)
+activate Facade
+Facade -> Perf : compute(filter)
+activate Perf
+Perf -> CaseRepo : findAll()
+activate CaseRepo
+return cases (findings, verification reports, traces)
+loop for each finding with labelled transactions
+  Perf -> Ledger : findTransaction(id)
+  activate Ledger
+  return transaction (with launderingLabel)
+end
+create participant "m:PerformanceMetrics" as Metrics
+Perf -> Metrics : <<create>>
+return m
+return m
+deactivate Admin
+@enduml

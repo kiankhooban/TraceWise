@@ -1,0 +1,69 @@
+@startuml sd01-import-transactions
+!include style.iuml
+hide footbox
+autonumber
+title SD01: Import Transactions (UC01; feature F01)
+
+actor "AML Analyst" as Analyst
+participant ":AlertsView" as View <<boundary>>
+participant ":TraceWiseFacade" as Facade <<control>>
+participant ":ImportService" as Import <<control>>
+participant "format:TransactionFormat" as Format
+participant ":CurrencyConverter" as FX
+participant ":TransactionRepository" as Repo
+participant ":AuditLog" as Audit
+
+Analyst -> View : onImport(file)
+activate View
+View -> Facade : previewImport(file)
+activate Facade
+Facade -> Import : preview(file)
+activate Import
+loop for each registered format, until one matches
+  Import -> Format : matches(header)
+  activate Format
+  return true or false
+end
+break no format matches
+  Import --> Facade : error (expected columns listed)
+  Facade --> View : error
+  View --> Analyst : show expected columns; import refused
+end
+Import --> Facade : importPreview (format, first rows)
+deactivate Import
+Facade --> View : importPreview
+deactivate Facade
+View --> Analyst : show preview
+break analyst cancels at the preview
+  View --> Analyst : nothing imported
+end
+Analyst -> View : confirm
+View -> Facade : importTransactions(file)
+activate Facade
+Facade -> Import : importFile(file)
+activate Import
+loop for each row
+  Import -> Format : parse(row, rowNumber)
+  activate Format
+  return transaction (or row error)
+  alt row is valid
+    Import -> FX : toCad(amount, currency)
+    activate FX
+    return amountCad
+    Import -> Repo : exists(id)
+    activate Repo
+    return false
+  else row invalid, currency not in rate table, or duplicate ID
+    Import -> Import : record rejected row and reason
+  end
+end
+Import -> Repo : saveAll(transactions)
+activate Repo
+note right of Repo : One database transaction:\non failure everything is\nrolled back.
+return
+Import -> Audit : append(entry)
+return importSummary
+return importSummary
+View --> Analyst : show import summary
+deactivate View
+@enduml

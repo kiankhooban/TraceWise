@@ -1,0 +1,75 @@
+@startuml sd02-run-monitoring
+!include style.iuml
+hide footbox
+autonumber
+title SD02: Run Monitoring and Review Alerts (UC02; feature F02)
+
+actor "AML Analyst" as Analyst
+participant ":AlertsView" as View <<boundary>>
+participant ":TraceWiseFacade" as Facade <<control>>
+participant ":MonitoringService" as Mon <<control>>
+participant "rule:WindowedRule" as Rule
+participant ":Ledger" as Ledger
+participant ":ThresholdReportRepository" as TRRepo
+participant ":AlertRepository" as AlertRepo
+participant ":RiskScorer" as Scorer
+participant ":AuditLog" as Audit
+
+Analyst -> View : onRunMonitoring()
+activate View
+View -> Facade : runMonitoring()
+activate Facade
+Facade -> Mon : run()
+activate Mon
+loop for each enabled DetectionRule (R1 to R6)
+  Mon -> Rule : evaluate(ledger)
+  activate Rule
+  Rule -> Ledger : accounts()
+  activate Ledger
+  return accounts
+  loop for each account
+    Rule -> Rule : candidates(ledger, account)
+    Rule -> Rule : window()
+    loop for each time window over the candidates
+      Rule -> Rule : isMatch(window)
+    end
+  end
+  return matches
+  note right of Rule : Template Method: evaluate() is\nshared; candidates(), window() and\nisMatch() differ per rule.
+  alt rule kind is THRESHOLD (R1, R2)
+    loop for each match
+      create participant "tr:ThresholdReport" as TR
+      Mon -> TR : <<create>>
+      Mon -> TRRepo : save(tr)
+    end
+  else rule kind is SUSPICION (R3 to R6)
+    loop for each match
+      Mon -> AlertRepo : hasOpenAlert(match)
+      activate AlertRepo
+      return openAlertExists
+      opt no open alert exists for this match
+        Mon -> Scorer : score(match, account)
+        activate Scorer
+        return riskScore
+        create participant "a:Alert" as Alert
+        Mon -> Alert : <<create>>
+        Mon -> AlertRepo : save(a)
+      end
+    end
+  end
+end
+Mon -> Audit : append(entry)
+return monitoringSummary
+return monitoringSummary
+View -> Facade : listAlerts(filter)
+activate Facade
+Facade -> Mon : listAlerts(filter)
+activate Mon
+Mon -> AlertRepo : find(filter)
+activate AlertRepo
+return alerts
+return alerts
+return alerts
+View --> Analyst : show summary and alert queue
+deactivate View
+@enduml

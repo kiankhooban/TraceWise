@@ -1,0 +1,117 @@
+@startuml sd05-actions-and-approval
+!include style.iuml
+hide footbox
+autonumber
+title SD05: Agent Action and Approval (UC04 step 5, UC08; feature F06)
+
+actor "AML Analyst" as Analyst
+participant ":ApprovalsView" as View <<boundary>>
+participant ":TraceWiseFacade" as Facade <<control>>
+participant ":AgentRunner" as Runner <<control>>
+participant ":ToolRegistry" as Registry
+participant ":ProposeCloseTool" as Tool
+participant ":CommandDispatcher" as Disp <<control>>
+participant ":PermissionPolicy" as Policy
+participant ":ApprovalQueue" as Queue
+participant ":CommandContext" as Ctx
+participant ":CaseRepository" as CaseRepo
+participant "c:Case" as Case <<entity>>
+participant ":AuditLog" as Audit
+
+== Part A: during an investigation, the agent proposes closing the case ==
+Runner -> Registry : execute(call)
+activate Registry
+Registry -> Tool : execute(args)
+activate Tool
+Tool -> Tool : createCommand(args)
+note right of Tool : Factory Method: each action tool\ncreates its own command type.
+create participant "cmd:CloseCaseCommand" as Cmd
+Tool -> Cmd : <<create>>
+Tool -> Disp : submit(cmd, agentActor, justification)
+activate Disp
+Disp -> Cmd : validate(ctx)
+activate Cmd
+return
+Disp -> Policy : tierFor(cmd, agentActor)
+activate Policy
+return REQUIRES_APPROVAL
+alt tier is AUTONOMOUS (other commands, for example SetPriorityCommand)
+  Disp -> Cmd : execute(ctx)
+  Disp -> Audit : append(entry: executed by agent)
+else tier is REQUIRES_APPROVAL
+  Disp -> Queue : enqueue(cmd, agentActor, justification)
+  activate Queue
+  create participant "p:PendingAction" as Pending
+  Queue -> Pending : <<create>>
+  Queue -> Ctx : cases()
+  Queue -> CaseRepo : findById(caseId)
+  activate CaseRepo
+  return c
+  Queue -> Case : submitForApproval()
+  Queue -> CaseRepo : save(c)
+  return p
+  Disp -> Audit : append(entry: proposed by agent)
+end
+return dispatchResult
+return toolResult ("proposal queued")
+return toolResult
+
+== Part B: later, the analyst reviews the proposal ==
+Analyst -> View : onApprove(pendingId)
+activate View
+View -> Facade : approve(pendingId, analystActor)
+activate Facade
+Facade -> Queue : approve(pendingId, analystActor)
+activate Queue
+Queue -> Cmd : validate(ctx)
+activate Cmd
+alt case state still allows the action
+  Cmd --> Queue
+  deactivate Cmd
+  Queue -> Cmd : execute(ctx)
+  activate Cmd
+  Cmd -> Ctx : cases()
+  Cmd -> CaseRepo : findById(caseId)
+  activate CaseRepo
+  return c
+  Cmd -> Case : close()
+  note right of Case : PendingApprovalState.close(c)\nchanges c to ClosedState (SD09).
+  Cmd -> Ctx : memory()
+  note right of Cmd : The closed case is added to case\nmemory (CaseMemory.remember) for F04.
+  Cmd -> CaseRepo : save(c)
+  Cmd --> Queue
+  deactivate Cmd
+  Queue -> Pending : markApproved(analystActor)
+  Queue -> Audit : append(entry: approved and executed)
+else case has changed since the proposal
+  Cmd --> Queue : IllegalTransitionException
+  deactivate Cmd
+  Queue -> Pending : markExpired()
+  Queue -> Audit : append(entry: proposal expired)
+end
+Queue --> Facade
+deactivate Queue
+Facade --> View
+deactivate Facade
+View -> View : refresh()
+View --> Analyst : updated approvals list
+deactivate View
+
+== Alternative: the analyst rejects the proposal ==
+Analyst -> View : onReject(pendingId, reason)
+activate View
+View -> Facade : reject(pendingId, analystActor, reason)
+activate Facade
+Facade -> Queue : reject(pendingId, analystActor, reason)
+activate Queue
+Queue -> Pending : markRejected(analystActor, reason)
+Queue -> CaseRepo : findById(caseId)
+activate CaseRepo
+return c
+Queue -> Case : returnToInvestigation()
+Queue -> CaseRepo : save(c)
+Queue -> Audit : append(entry: rejected with reason)
+return
+return
+deactivate View
+@enduml

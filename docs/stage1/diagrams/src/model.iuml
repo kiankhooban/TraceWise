@@ -9,15 +9,15 @@ package "JavaFX (external)" $front {
   }
 }
 package "Java standard library (external)" $front {
-  interface "Callable<V>" as Callable $front {
+  interface "Callable<V>" as Callable <<interface>> $front {
     + {abstract} call(): V
   }
 }
 package "LangChain4j (external)" $llm $tools {
-  interface ChatModel $llm {
+  interface ChatModel <<interface>> $llm {
     + {abstract} chat(request: ChatRequest): ChatResponse
   }
-  interface EmbeddingModel $tools {
+  interface EmbeddingModel <<interface>> $tools {
     + {abstract} embed(text: String): Embedding
   }
 }
@@ -101,6 +101,7 @@ package "tracewise.ui.cli" $front {
 ' ===================================================================== app (facade and services)
 package "tracewise.app" $front $app $mon $agentcore $act $data {
   class TraceWiseFacade $front $app {
+    + previewImport(file: Path): ImportPreview
     + importTransactions(file: Path): ImportSummary
     + runMonitoring(): MonitoringSummary
     + listAlerts(filter: AlertFilter): List<Alert>
@@ -118,7 +119,7 @@ package "tracewise.app" $front $app $mon $agentcore $act $data {
     + addNote(caseId: String, text: String): void
     + reopenCase(caseId: String, reason: String): void
     + queryAudit(filter: AuditFilter): List<AuditEntry>
-    + buildNetwork(accountId: String, hops: int, range: DateRange): MoneyFlowGraph
+    + buildNetwork(accountId: String, hops: int, range: DateRange, caseId: String): MoneyFlowGraph
     + draftReport(caseId: String): StrReport
     + saveReport(report: StrReport): void
     + requestFinalisation(caseId: String): PendingAction
@@ -136,10 +137,13 @@ package "tracewise.app" $front $app $mon $agentcore $act $data {
     - analystName: String
   }
   class ImportService $app $mon {
+    + preview(file: Path): ImportPreview
     + importFile(file: Path): ImportSummary
   }
   class MonitoringService $app $mon {
     + run(): MonitoringSummary
+    + listAlerts(filter: AlertFilter): List<Alert>
+    + listThresholdReports(): List<ThresholdReport>
     + updateRule(ruleId: String, config: RuleConfig): void
   }
   class InvestigationService $app $agentcore {
@@ -167,7 +171,7 @@ package "tracewise.app" $front $app $mon $agentcore $act $data {
   }
   class NetworkService $app $data {
     - maxNodes: int = 50
-    + build(accountId: String, hops: int, range: DateRange): MoneyFlowGraph
+    + build(accountId: String, hops: int, range: DateRange, caseId: String): MoneyFlowGraph
   }
   class PerformanceService $app $data {
     + compute(filter: MetricsFilter): PerformanceMetrics
@@ -176,7 +180,7 @@ package "tracewise.app" $front $app $mon $agentcore $act $data {
 
 ' ===================================================================== ingest
 package "tracewise.ingest" $mon {
-  interface TransactionFormat $mon {
+  interface TransactionFormat <<interface>> $mon {
     + {abstract} matches(header: List<String>): boolean
     + {abstract} parse(row: CsvRow, rowNumber: int): Transaction
   }
@@ -196,7 +200,7 @@ package "tracewise.ingest" $mon {
 
 ' ===================================================================== monitoring
 package "tracewise.monitoring" $mon {
-  interface DetectionRule $mon {
+  interface DetectionRule <<interface>> $mon {
     + {abstract} id(): String
     + {abstract} kind(): RuleKind
     + {abstract} evaluate(ledger: Ledger): List<RuleMatch>
@@ -289,6 +293,10 @@ package "tracewise.domain" $mon $data $act {
     + close(): void
     + reopen(reason: String): void
     + status(): CaseStatus
+    + addFinding(finding: AgentFinding): void
+    + latestFinding(): AgentFinding
+    + addNote(note: CaseNote): void
+    + addTask(task: FollowUpTask): void
     ~ changeState(next: CaseState): void
   }
   class CaseNote $data {
@@ -334,7 +342,7 @@ package "tracewise.agent" $agentcore $front $act $tools {
     + run(task: AgentTask, trace: AgentTrace): AgentOutcome
     + cancel(): void
   }
-  interface AgentTask $agentcore {
+  interface AgentTask <<interface>> $agentcore {
     + {abstract} systemPrompt(): String
     + {abstract} initialMessage(): String
     + {abstract} toolNames(): Set<String>
@@ -365,7 +373,7 @@ package "tracewise.agent" $agentcore $front $act $tools {
     + examinedAccounts(): Set<String>
     + costCad(): BigDecimal
   }
-  interface AgentEventListener $front $agentcore {
+  interface AgentEventListener <<interface>> $front $agentcore {
     + {abstract} onStep(step: TraceStep): void
     + {abstract} onFinished(outcome: AgentOutcome): void
   }
@@ -379,12 +387,16 @@ package "tracewise.agent" $agentcore $front $act $tools {
   class AgentOutcome $agentcore {
     - status: OutcomeStatus
     - finalText: String
+    + finalText(): String
   }
   class AgentFinding $act $agentcore $tools {
     - verdict: Verdict
     - confidence: double
     - indicators: List<String>
     - narrative: String
+    + claims(): List<Claim>
+    + attachVerification(report: VerificationReport): void
+    + verification(): VerificationReport
   }
   class Claim $tools {
     - transactionId: String
@@ -416,7 +428,7 @@ package "tracewise.agent" $agentcore $front $act $tools {
 
 ' ===================================================================== agent.tools
 package "tracewise.agent.tools" $tools $agentcore $act {
-  interface AgentTool $tools {
+  interface AgentTool <<interface>> $tools {
     + {abstract} name(): String
     + {abstract} schema(): ToolSchema
     + {abstract} execute(args: ToolArguments): ToolResult
@@ -455,7 +467,7 @@ package "tracewise.agent.tools" $tools $agentcore $act {
 
 ' ===================================================================== llm
 package "tracewise.llm" $llm $agentcore $app {
-  interface LLMClient $llm $agentcore {
+  interface LLMClient <<interface>> $llm $agentcore {
     + {abstract} chat(request: LLMRequest): LLMResponse
     + {abstract} modelId(): String
   }
@@ -514,7 +526,7 @@ package "tracewise.llm" $llm $agentcore $app {
 
 ' ===================================================================== retrieval and verification
 package "tracewise.retrieval" $tools $app {
-  interface Retriever $tools $app {
+  interface Retriever <<interface>> $tools $app {
     + {abstract} search(query: String, maxResults: int): List<RetrievedPassage>
   }
   class EmbeddingRetriever $tools {
@@ -549,7 +561,7 @@ package "tracewise.verification" $agentcore $tools {
 
 ' ===================================================================== actions (Command pattern) and audit
 package "tracewise.actions" $act $tools $app {
-  interface ActionCommand $act {
+  interface ActionCommand <<interface>> $act {
     + {abstract} validate(ctx: CommandContext): void
     + {abstract} execute(ctx: CommandContext): void
     + {abstract} describe(): String
@@ -590,6 +602,7 @@ package "tracewise.actions" $act $tools $app {
     + cases(): CaseRepository
     + alerts(): AlertRepository
     + accounts(): TransactionRepository
+    + memory(): CaseMemory
   }
   class CommandDispatcher $act $tools {
     + submit(command: ActionCommand, actor: Actor, justification: String): DispatchResult
@@ -612,6 +625,9 @@ package "tracewise.actions" $act $tools $app {
     - justification: String
     - status: ProposalStatus
     - proposedAt: Instant
+    + markApproved(reviewer: Actor): void
+    + markRejected(reviewer: Actor, reason: String): void
+    + markExpired(): void
   }
   enum ProposalStatus <<enumeration>> $act {
     PENDING
@@ -646,8 +662,9 @@ package "tracewise.reporting" $data {
     - groundsForSuspicion: String
     - actionsTaken: String
     - status: ReportStatus
+    + lock(): void
   }
-  interface ReportExporter $data {
+  interface ReportExporter <<interface>> $data {
     + {abstract} format(): ExportFormat
     + {abstract} export(report: StrReport, dir: Path): Path
   }
@@ -683,27 +700,45 @@ package "tracewise.metrics" $data {
 }
 
 ' ===================================================================== persistence
-package "tracewise.persistence" $mon $data $tools {
-  interface Ledger $mon $data $tools {
+package "tracewise.persistence" $mon $data $tools $act {
+  interface Ledger <<interface>> $mon $data $tools {
     + {abstract} accounts(): List<Account>
     + {abstract} transactionsFor(accountId: String, range: DateRange): List<Transaction>
     + {abstract} findTransaction(id: String): Optional<Transaction>
   }
-  interface TransactionRepository $data $mon {
+  interface TransactionRepository <<interface>> $data $mon {
     + {abstract} saveAll(transactions: List<Transaction>): void
     + {abstract} exists(id: String): boolean
   }
-  interface AlertRepository $data $mon {
+  interface AlertRepository <<interface>> $data $mon {
     + {abstract} save(alert: Alert): void
     + {abstract} find(filter: AlertFilter): List<Alert>
     + {abstract} hasOpenAlert(match: RuleMatch): boolean
+    + {abstract} findById(id: String): Optional<Alert>
   }
-  interface CaseRepository $data {
+  interface CaseRepository <<interface>> $data {
     + {abstract} save(c: Case): void
     + {abstract} findById(id: String): Optional<Case>
     + {abstract} findByAlert(alertId: String): Optional<Case>
+    + {abstract} findAll(): List<Case>
   }
-  note "Other repository interfaces: ThresholdReportRepository,\nApprovalRepository, AuditRepository, RuleConfigRepository.\nEvery repository interface has one SQLite implementation\n(for example SqliteTransactionRepository)." as NoteRepos $data
+  interface ThresholdReportRepository <<interface>> $data $mon {
+    + {abstract} save(report: ThresholdReport): void
+    + {abstract} findAll(): List<ThresholdReport>
+  }
+  interface RuleConfigRepository <<interface>> $data $mon {
+    + {abstract} save(ruleId: String, config: RuleConfig): void
+    + {abstract} load(ruleId: String): RuleConfig
+  }
+  interface ApprovalRepository <<interface>> $data $act {
+    + {abstract} save(pending: PendingAction): void
+    + {abstract} findById(id: String): Optional<PendingAction>
+  }
+  interface AuditRepository <<interface>> $data $act {
+    + {abstract} append(entry: AuditEntry): void
+    + {abstract} find(filter: AuditFilter): List<AuditEntry>
+  }
+  note "Every repository interface has one SQLite\nimplementation, for example\nSqliteTransactionRepository." as NoteRepos $data
   class SqliteTransactionRepository $data {
     + saveAll(transactions: List<Transaction>): void
     + exists(id: String): boolean
@@ -956,3 +991,26 @@ InvestigationResult --> "0..1" AgentFinding : finding
 MonitoringService ..> Alert : <<create>>
 MonitoringService ..> ThresholdReport : <<create>>
 TransactionFormat ..> Transaction : <<create>>
+
+' added for the sequence diagrams
+ImportService --> "1" AuditLog
+MonitoringService --> "1" AuditLog
+MonitoringService --> "1" ThresholdReportRepository
+MonitoringService --> "1" RuleConfigRepository
+ReportService --> "1" AuditLog
+TriageService --> "1" AuditLog
+TriageService --> "1" AlertRepository
+ApprovalQueue --> "1" ApprovalRepository
+AuditLog --> "1" AuditRepository
+CommandContext --> "1" CaseMemory
+AssistantAnswer "1" *-- "1" AgentTrace : trace
+AssistantAnswer "1" *-- "0..1" VerificationReport : verification
+TraceWiseFacade --> "1" CaseMemory : similarCases
+InvestigationService ..> Case : <<create>>
+AssistantService ..> AgentTrace : <<create>>
+CaseService ..> AddNoteCommand : <<create>>
+CaseService ..> ReopenCaseCommand : <<create>>
+ReportService ..> StrReport : <<create>>
+ReportService ..> SaveReportDraftCommand : <<create>>
+ReportService ..> EscalateCaseCommand : <<create>>
+ClosedState ..> OpenState : <<create>>

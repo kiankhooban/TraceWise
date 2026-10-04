@@ -1,0 +1,54 @@
+@startuml sd06-triage-queue
+!include style.iuml
+hide footbox
+autonumber
+title SD06: Triage Alert Queue (UC07; feature F07)
+
+actor "AML Analyst" as Analyst
+participant ":AlertsView" as View <<boundary>>
+participant ":TraceWiseFacade" as Facade <<control>>
+participant ":TriageService" as Triage <<control>>
+participant ":AlertRepository" as AlertRepo
+participant ":InvestigationService" as Inv <<control>>
+participant ":AuditLog" as Audit
+
+Analyst -> View : onTriage(limits)
+activate View
+View -> Facade : triage(limits, listener = this)
+activate Facade
+Facade -> Triage : triage(limits, listener)
+activate Triage
+Triage -> AlertRepo : find(filter: open alerts, highest risk first)
+activate AlertRepo
+return alerts
+break no open alerts match the filter
+  Triage --> Facade : triageReport ("Nothing to triage")
+  Facade --> View : triageReport
+  View --> Analyst : show "Nothing to triage"
+end
+loop for each alert, while no limit is reached and stop was not requested
+  Triage -> Inv : investigate(alertId, listener)
+  activate Inv
+  ref over Inv : SD04 Investigate Alert.\nThe listener receives onStep() and\nonFinished() for each investigation,\nwhich drive the progress view.
+  return investigationResult
+  opt investigation failed
+    Triage -> Triage : count as failed; alert stays open
+  end
+  break cost limit or alert-count limit reached
+    Triage -> Triage : stop cleanly; remaining alerts stay open
+  end
+end
+create participant "r:TriageReport" as Report
+Triage -> Report : <<create>>
+Triage -> Audit : append(entry: triage summary)
+return triageReport
+return triageReport
+View --> Analyst : show triage summary with link to approvals
+deactivate View
+
+== Alternative: the analyst stops triage ==
+Analyst -> View : onStopTriage()
+View -> Facade : stopTriage()
+Facade -> Triage : stop()
+note right of Triage : Sets stopRequested; the loop ends\nafter the current alert finishes.
+@enduml

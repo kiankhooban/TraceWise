@@ -1,0 +1,129 @@
+@startuml sd04-investigate-alert
+!include style.iuml
+hide footbox
+autonumber
+title SD04: Investigate Alert (UC04, includes UC05 and UC06; features F03, F04, F05, F09)
+
+actor "AML Analyst" as Analyst
+participant ":CaseView" as View <<boundary>>
+participant ":TraceWiseFacade" as Facade <<control>>
+participant ":InvestigationService" as Inv <<control>>
+participant ":AlertRepository" as AlertRepo
+participant ":CaseRepository" as CaseRepo
+participant "c:Case" as Case <<entity>>
+participant ":AgentRunner" as Runner <<control>>
+participant ":LLMClient" as LLM
+participant ":ToolRegistry" as Registry
+participant "tool:AgentTool" as Tool
+participant ":Retriever" as Retriever
+participant ":ClaimVerifier" as Verifier
+participant ":Ledger" as Ledger
+participant ":AuditLog" as Audit
+
+Analyst -> View : onInvestigate(alertId)
+activate View
+note right of View : Runs in a background task;\nthe UI thread stays free.
+View -> Facade : investigate(alertId, listener = this)
+activate Facade
+Facade -> Inv : investigate(alertId, listener)
+activate Inv
+Inv -> AlertRepo : findById(alertId)
+activate AlertRepo
+return alert
+Inv -> CaseRepo : findByAlert(alertId)
+activate CaseRepo
+return Optional<Case>
+opt no case exists for the alert
+  Inv -> Case ** : <<create>>
+end
+note right of Case : Otherwise c is the existing\ncase returned in step 7.
+Inv -> Case : startInvestigation()
+activate Case
+note right of Case : Delegates to its CaseState\n(State pattern), see SD09.
+return
+create participant "trace:AgentTrace" as Trace
+Inv -> Trace : <<create>>
+Inv -> Trace : addListener(listener)
+Inv -> Trace : addListener(auditLog)
+create participant "task:InvestigationTask" as Task
+Inv -> Task : <<create>> (alert)
+Inv -> Runner : run(task, trace)
+activate Runner
+Runner -> Task : systemPrompt()
+Runner -> Task : toolNames()
+Runner -> Registry : schemas(names)
+activate Registry
+return toolSchemas
+
+loop until the model returns a final answer, or the turn limit (12) or cost limit is reached
+  Runner -> LLM : chat(request)
+  activate LLM
+  note right of LLM : RetryingLLMClient retries\nup to 2 times with backoff.
+  return response
+  break LLM still failing after retries
+    Runner -> Runner : outcome = FAILED
+    note right of Runner : Ends the loop; the partial\ntrace is kept.
+  end
+  opt response contains tool calls
+    loop for each tool call
+      Runner -> Registry : execute(call)
+      activate Registry
+      alt arguments valid
+        Registry -> Tool : execute(args)
+        activate Tool
+        opt tool is SearchIndicatorsTool (UC05)
+          Tool -> Retriever : search(query, maxResults)
+          activate Retriever
+          return passages
+        end
+        opt tool reads the ledger (for example AccountHistoryTool)
+          Tool -> Ledger : transactionsFor(accountId, range)
+          activate Ledger
+          return transactions
+        end
+        return toolResult
+      else arguments invalid
+        Registry -> Registry : reject without running the tool
+      end
+      return toolResult (or validation error)
+      Runner -> Trace : record(step)
+      activate Trace
+      Trace -> View : onStep(step)
+      Trace -> Audit : onStep(step)
+      deactivate Trace
+    end
+  end
+end
+Runner -> Trace : finish(outcome)
+activate Trace
+Trace -> View : onFinished(outcome)
+Trace -> Audit : onFinished(outcome)
+deactivate Trace
+return outcome
+
+alt outcome is COMPLETED or INCOMPLETE
+  Inv -> Task : parseFinding(outcome.finalText())
+  activate Task
+  create participant "f:AgentFinding" as Finding
+  Task -> Finding : <<create>>
+  return f
+  Inv -> Verifier : verify(f.claims())
+  activate Verifier
+  note right of Verifier : UC06: each claim checked\nwithin a $0.01 tolerance.
+  loop for each claim
+    Verifier -> Ledger : findTransaction(transactionId)
+    activate Ledger
+    return Optional<Transaction>
+  end
+  return verificationReport
+  Inv -> Finding : attachVerification(verificationReport)
+  Inv -> Case : addFinding(f)
+  Inv -> CaseRepo : save(c)
+else outcome is FAILED or CANCELLED
+  note over Inv : No finding is stored. The case shows\n"Investigation failed" (or "Cancelled") and the\nalert can be investigated again. Every step taken\nis already in the audit log.
+end
+return investigationResult
+return investigationResult
+View -> View : showCase(caseId)
+deactivate View
+@enduml

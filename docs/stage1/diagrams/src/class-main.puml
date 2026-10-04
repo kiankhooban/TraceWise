@@ -1,0 +1,223 @@
+@startuml class-main
+!include style.iuml
+skinparam nodesep 45
+skinparam ranksep 55
+title TraceWise: Main Class Diagram (major classes; "..." marks members omitted here, shown in the detailed views)
+
+package "Presentation (GUI and CLI)" {
+  class CaseView <<boundary>> {
+    + onInvestigate(alertId: String): void
+    + onStep(step: TraceStep): void
+    ...
+  }
+  abstract class CliCommandBase <<Template Method>> {
+    + call(): Integer
+    # {abstract} execute(): Object
+    ...
+  }
+  class InvestigateCli {
+    # execute(): Object
+  }
+}
+
+package "Application" {
+  class TraceWiseFacade <<Facade>> {
+    + investigate(alertId: String, listener: AgentEventListener): InvestigationResult
+    + runMonitoring(): MonitoringSummary
+    + approve(pendingId: String, reviewer: Actor): void
+    ...
+  }
+  class MonitoringService {
+    + run(): MonitoringSummary
+    ...
+  }
+  class InvestigationService {
+    + investigate(alertId: String, listener: AgentEventListener): InvestigationResult
+    ...
+  }
+}
+
+package "Monitoring rules" {
+  interface DetectionRule <<interface>> <<Strategy>> {
+    + {abstract} kind(): RuleKind
+    + {abstract} evaluate(ledger: Ledger): List<RuleMatch>
+    ...
+  }
+  abstract class WindowedRule <<Template Method>> {
+    + evaluate(ledger: Ledger): List<RuleMatch>
+    # {abstract} isMatch(window: List<Transaction>): boolean
+    ...
+  }
+  class StructuringRule
+  class FanInRule
+  note "Also: LargeCashRule, InternationalTransferRule,\nPassThroughRule, FanOutRule" as NRules
+}
+
+package "Agent" {
+  class AgentRunner {
+    + run(task: AgentTask, trace: AgentTrace): AgentOutcome
+  }
+  class AgentTrace <<Observer: subject>> {
+    + record(step: TraceStep): void
+    + addListener(listener: AgentEventListener): void
+  }
+  interface AgentEventListener <<interface>> <<Observer>> {
+    + {abstract} onStep(step: TraceStep): void
+    + {abstract} onFinished(outcome: AgentOutcome): void
+  }
+  class ToolRegistry {
+    + execute(call: ToolCall): ToolResult
+  }
+  interface AgentTool <<interface>> {
+    + {abstract} execute(args: ToolArguments): ToolResult
+    ...
+  }
+  abstract class ActionTool <<Factory Method>> {
+    + execute(args: ToolArguments): ToolResult
+    # {abstract} createCommand(args: ToolArguments): ActionCommand
+  }
+  class ProposeCloseTool {
+    # createCommand(args: ToolArguments): ActionCommand
+  }
+  class ClaimVerifier {
+    + verify(claims: List<Claim>): VerificationReport
+  }
+}
+
+package "LLM access" {
+  interface LLMClient <<interface>> {
+    + {abstract} chat(request: LLMRequest): LLMResponse
+    ...
+  }
+  abstract class LangChain4jClient <<Adapter>> {
+    + chat(request: LLMRequest): LLMResponse
+  }
+  interface ChatModel <<interface>> <<LangChain4j>> {
+    + {abstract} chat(request: ChatRequest): ChatResponse
+  }
+  abstract class LLMClientDecorator <<Decorator>> {
+    + chat(request: LLMRequest): LLMResponse
+  }
+  class RetryingLLMClient {
+    - maxRetries: int = 2
+  }
+}
+
+package "Actions and approvals" {
+  interface ActionCommand <<interface>> <<Command>> {
+    + {abstract} validate(ctx: CommandContext): void
+    + {abstract} execute(ctx: CommandContext): void
+    ...
+  }
+  class CloseCaseCommand
+  class CommandDispatcher <<Command: invoker>> {
+    + submit(command: ActionCommand, actor: Actor, justification: String): DispatchResult
+  }
+  class PermissionPolicy {
+    + tierFor(command: ActionCommand, actor: Actor): PermissionTier
+  }
+  class ApprovalQueue {
+    + enqueue(command: ActionCommand, actor: Actor, justification: String): PendingAction
+    + approve(pendingId: String, reviewer: Actor): void
+    ...
+  }
+  class PendingAction {
+    - status: ProposalStatus
+    ...
+  }
+  class AuditLog {
+    + append(entry: AuditEntry): void
+    ...
+  }
+}
+
+package "Domain and case lifecycle" {
+  class Case <<State: context>> {
+    + startInvestigation(): void
+    + close(): void
+    + reopen(reason: String): void
+    ...
+  }
+  abstract class CaseState <<State>> {
+    + close(c: Case): void
+    + reopen(c: Case, reason: String): void
+    ...
+  }
+  class ClosedState
+  note "Also: OpenState, UnderInvestigationState,\nPendingApprovalState, EscalatedState" as NStates
+  class Alert {
+    - riskScore: int
+    ...
+  }
+  class Transaction {
+    - amountCad: BigDecimal
+    ...
+  }
+  class AgentFinding {
+    - verdict: Verdict
+    + claims(): List<Claim>
+    ...
+  }
+  interface Ledger <<interface>> {
+    + {abstract} transactionsFor(accountId: String, range: DateRange): List<Transaction>
+    ...
+  }
+}
+
+' presentation and facade
+CaseView --> "1" TraceWiseFacade
+CliCommandBase --> "1" TraceWiseFacade : facade
+CliCommandBase <|-- InvestigateCli
+CaseView ..|> AgentEventListener
+TraceWiseFacade --> "1" MonitoringService
+TraceWiseFacade --> "1" InvestigationService
+TraceWiseFacade --> "1" ApprovalQueue
+
+' monitoring
+MonitoringService --> "1..*" DetectionRule
+DetectionRule <|.. WindowedRule
+WindowedRule <|-- StructuringRule
+WindowedRule <|-- FanInRule
+NRules .. WindowedRule
+DetectionRule ..> Ledger : <<use>>
+MonitoringService ..> Alert : <<create>>
+
+' agent
+InvestigationService --> "1" AgentRunner
+InvestigationService --> "1" ClaimVerifier
+AgentRunner --> "1" LLMClient
+AgentRunner --> "1" ToolRegistry
+AgentRunner ..> AgentTrace : <<use>>
+AgentTrace "1" --> "0..*" AgentEventListener : listeners
+AgentEventListener <|.. AuditLog
+ToolRegistry "1" o-- "1..*" AgentTool : tools
+AgentTool <|.. ActionTool
+ActionTool <|-- ProposeCloseTool
+ActionTool --> "1" CommandDispatcher : dispatcher
+ProposeCloseTool ..> CloseCaseCommand : <<create>>
+ClaimVerifier --> "1" Ledger
+
+' llm
+LLMClient <|.. LangChain4jClient
+LangChain4jClient --> "1" ChatModel : adaptee
+LLMClient <|.. LLMClientDecorator
+LLMClient "1" <--o "0..1" LLMClientDecorator : inner
+LLMClientDecorator <|-- RetryingLLMClient
+
+' actions
+ActionCommand <|.. CloseCaseCommand
+CommandDispatcher --> "1" PermissionPolicy
+CommandDispatcher --> "1" ApprovalQueue
+CommandDispatcher --> "1" AuditLog
+ApprovalQueue "1" *-- "0..*" PendingAction : proposals
+PendingAction --> "1" ActionCommand : command
+CloseCaseCommand ..> Case : <<use>>
+
+' domain and state
+Case "1" o-- "1..*" Alert : alerts
+Case "1" *-- "0..*" AgentFinding : findings
+Case "1" --> "1" CaseState : state
+CaseState <|-- ClosedState
+NStates .. CaseState
+Alert "*" --> "1..*" Transaction : triggeredBy
+@enduml

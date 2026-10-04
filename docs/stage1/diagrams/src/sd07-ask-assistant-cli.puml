@@ -1,0 +1,57 @@
+@startuml sd07-ask-assistant-cli
+!include style.iuml
+hide footbox
+autonumber
+title SD07: Ask the Assistant through the CLI JSON mode (UC13; feature F10; Stage 3 KUMA entry point)
+
+actor "Automation Client\n(for example the KUMA harness)" as Client
+participant ":AskCli" as Cli <<boundary>>
+participant ":TraceWiseFacade" as Facade <<control>>
+participant ":AssistantService" as Asst <<control>>
+participant ":ConversationMemory" as Memory
+participant ":AgentRunner" as Runner <<control>>
+participant ":ClaimVerifier" as Verifier
+
+Client -> Cli : tracewise ask "<question>" --json
+activate Cli
+Cli -> Cli : call()
+note right of Cli : Template Method: CliCommandBase.call()\nruns execute(), then print(), and maps\nerrors to a non-zero exit code.
+Cli -> Cli : execute()
+Cli -> Facade : ask(question, context)
+activate Facade
+Facade -> Asst : ask(question, context)
+activate Asst
+Asst -> Memory : recent(n)
+activate Memory
+return history
+create participant "task:AssistantTask" as Task
+Asst -> Task : <<create>> (question, history)
+create participant "trace:AgentTrace" as Trace
+Asst -> Trace : <<create>>
+Asst -> Runner : run(task, trace)
+activate Runner
+ref over Runner, Trace : Agent loop as in SD04, from systemPrompt() to finish(outcome):\nLLM calls, validated tool calls, trace recording.\nThe system prompt tells the agent to treat text\nfound in data (for example transaction memos)\nas data, never as instructions.
+return outcome
+alt outcome is COMPLETED
+  Asst -> Task : parseAnswer(outcome.finalText())
+  activate Task
+  create participant "answer:AssistantAnswer" as Answer
+  Task -> Answer : <<create>>
+  return answer
+  Asst -> Verifier : verify(claims)
+  activate Verifier
+  note right of Verifier : UC06, as in SD04.
+  return verificationReport
+  Asst -> Memory : append(question, answer)
+  Asst --> Facade : answer (with trace and verificationReport)
+else outcome is FAILED
+  Asst --> Facade : error after retries
+end
+deactivate Asst
+Facade --> Cli : answer or error
+deactivate Facade
+Cli -> Cli : print(result)
+note right of Cli : With --json: answer, every tool call\nwith arguments and result, the\nverification results and final status.
+Cli --> Client : JSON on stdout; exit code 0 (or non-zero on error)
+deactivate Cli
+@enduml

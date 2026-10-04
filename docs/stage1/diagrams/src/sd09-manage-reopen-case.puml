@@ -1,0 +1,101 @@
+@startuml sd09-manage-reopen-case
+!include style.iuml
+hide footbox
+autonumber
+title SD09: Manage and Reopen a Case (UC09, UC10; feature F08), showing the State pattern
+
+actor "AML Analyst" as Analyst
+participant ":CaseView" as View <<boundary>>
+participant ":TraceWiseFacade" as Facade <<control>>
+participant ":CaseService" as Svc <<control>>
+participant ":CommandDispatcher" as Disp <<control>>
+participant ":PermissionPolicy" as Policy
+participant ":CaseRepository" as CaseRepo
+participant "c:Case" as Case <<entity>>
+participant "s:ClosedState" as State
+participant ":AuditLog" as Audit
+
+== View the case and add a note ==
+Analyst -> View : showCase(caseId)
+activate View
+View -> Facade : getCase(caseId)
+activate Facade
+Facade -> Svc : getCase(caseId)
+activate Svc
+Svc -> CaseRepo : findById(caseId)
+activate CaseRepo
+return c
+return c
+return c
+View --> Analyst : show case, findings, notes, history
+Analyst -> View : onAddNote(text)
+View -> Facade : addNote(caseId, text)
+activate Facade
+Facade -> Svc : addNote(caseId, text)
+activate Svc
+create participant "note:AddNoteCommand" as NoteCmd
+Svc -> NoteCmd : <<create>>
+Svc -> Disp : submit(note, analystActor, "")
+activate Disp
+Disp -> NoteCmd : validate(ctx)
+Disp -> Policy : tierFor(note, analystActor)
+activate Policy
+return AUTONOMOUS
+Disp -> NoteCmd : execute(ctx)
+activate NoteCmd
+NoteCmd -> Case : addNote(caseNote)
+NoteCmd -> CaseRepo : save(c)
+deactivate NoteCmd
+Disp -> Audit : append(entry)
+note right of Audit : The change and its audit entry are\nwritten in one database transaction.
+return dispatchResult
+return
+return
+deactivate View
+
+== Reopen a closed case (extends UC09 at "case closed") ==
+Analyst -> View : onReopen(reason)
+activate View
+View -> Facade : reopenCase(caseId, reason)
+activate Facade
+Facade -> Svc : reopen(caseId, reason)
+activate Svc
+create participant "reopen:ReopenCaseCommand" as Reopen
+Svc -> Reopen : <<create>>
+Svc -> Disp : submit(reopen, analystActor, reason)
+activate Disp
+Disp -> Reopen : validate(ctx)
+Disp -> Policy : tierFor(reopen, analystActor)
+activate Policy
+return AUTONOMOUS
+Disp -> Reopen : execute(ctx)
+activate Reopen
+Reopen -> Case : reopen(reason)
+activate Case
+Case -> State : reopen(c, reason)
+activate State
+break c is not in ClosedState
+  State --> Case : IllegalTransitionException
+  Case --> Reopen : IllegalTransitionException
+  Reopen --> Disp : IllegalTransitionException
+  Disp --> Svc : error
+  Svc --> Facade : error
+  Facade --> View : error
+  View --> Analyst : show "only a closed case can be reopened"
+end
+create participant "next:OpenState" as Open
+State -> Open : <<create>>
+State -> Case : changeState(next)
+State --> Case
+deactivate State
+Case --> Reopen
+deactivate Case
+Reopen -> CaseRepo : save(c)
+deactivate Reopen
+Disp -> Audit : append(entry: reopened, with reason)
+return dispatchResult
+return
+return
+View --> Analyst : case shown as Open; history keeps the closure
+deactivate View
+@enduml
