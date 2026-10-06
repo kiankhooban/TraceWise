@@ -30,3 +30,4 @@ logs/
 
 # Downloaded build tools
 tools/*.jar
+tools/umlet/
