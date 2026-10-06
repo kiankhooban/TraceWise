@@ -7,24 +7,24 @@ itself does not change; diagrams show the major classes only.
 ## Acceptance checklist (stage1(real).pdf Task 2 + EECS3311 UML lecture)
 
 Class diagram (2.1)
-- [ ] major classes and interfaces; important attributes; important methods
-- [ ] associations, dependencies, inheritance, aggregation/composition, multiplicities (both ends)
-- [ ] both traditional components and AI/agent components shown
-- [ ] participants of all 9 explained patterns visible
-- [ ] lecture notation: «interface» + italic name; abstract italic; static underlined; visibility
+- [x] major classes and interfaces; important attributes; important methods
+- [x] associations, dependencies, inheritance, aggregation/composition, multiplicities (both ends)
+- [x] both traditional components and AI/agent components shown
+- [x] participants of all 9 explained patterns visible
+- [x] lecture notation: «interface» + italic name; abstract italic; static underlined; visibility
       + - # ~; no return type for void; interface methods never omitted; no inherited methods repeated;
       a relationship is drawn as a line or an attribute, never both
 
 Use-case diagram (2.2)
-- [ ] actors: primary user, administrator (Supervisor), external services/APIs, AI service (LLM)
-- [ ] system boundary; actors outside; all major features covered
-- [ ] «include» base -> included; «extend» extension -> base with extension points
+- [x] actors: primary user, administrator (Supervisor), external services/APIs, AI service (LLM)
+- [x] system boundary; actors outside; all major features covered
+- [x] «include» base -> included; «extend» extension -> base with extension points
 
 Sequence diagrams (2.3)
-- [ ] initiating actor, GUI/boundary, controller, domain, AI/agent components, external services
-- [ ] important method calls, returned results, alt/error flows
-- [ ] only classes and methods that exist on the class diagram
-- [ ] all important behaviours represented (grouping closely related features is allowed)
+- [x] initiating actor, GUI/boundary, controller, domain, AI/agent components, external services
+- [x] important method calls, returned results, alt/error flows
+- [x] only classes and methods that exist on the class diagram
+- [x] all important behaviours represented (grouping closely related features is allowed)
 
 ## Class diagram: one model, four figures (Option 1)
 
@@ -70,4 +70,5 @@ combined fragment stays within that fragment's lifeline span.
 - [x] Use-case diagram in UMLet (gen_usecase_diagram.py), checked
 - [x] Nine sequence diagrams in UMLet (gen_sequence_diagrams.py), all parse, each checked individually
       as a PNG and by the automated checks above
-- [ ] Report updates (2.1, 2.2, 2.3, Task 3, Task 4) and PDF
+- [x] Report updates (2.1, 2.2, 2.3, Task 3, Task 4) and PDF (`../build_pdf.py`); every `Class.method()`
+      named in Tasks 2 to 4 checked against the class diagram

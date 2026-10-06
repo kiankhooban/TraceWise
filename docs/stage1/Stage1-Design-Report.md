@@ -899,105 +899,75 @@ human override rate, and per-rule alert precision, for the selected filters.
 
 ## 2.1 Class Diagram and Design Patterns
 
-### Main class diagram
+### Class diagram
 
-The main class diagram shows the major classes and interfaces of TraceWise, grouped by subsystem,
-with the relationships between them. Each class shows only its most important members; "..." marks
-members omitted here, which appear in the detailed views below. Design-pattern roles are shown as
-stereotypes (for example «Strategy», «Facade», «Command: invoker»).
+The class diagram is drawn in UMLet. It shows the 52 major classes and interfaces of TraceWise: the
+traditional components (front ends, facade, application services, monitoring rules, domain model and
+persistence) and the AI/agent components (agent loop, trace, tools, retrieval, claim verification and
+LLM access), with their important attributes, important methods and relationships. The participants
+of all nine design patterns explained below are on it.
 
-![TraceWise main class diagram](diagrams/class-main.png)
+52 classes do not fit in one readable image, so the one class model is drawn as four figures, one per
+subsystem group. Every class is drawn in full in exactly one figure. When a relationship connects
+classes in different figures, it is drawn in the figure that contains its target (for generalization
+and realization, the parent), and the class from the other figure appears there as a grey reference
+box. Interfaces are always shown with all their methods, including in reference boxes.
 
-*Source: [`diagrams/src/class-main.puml`](diagrams/src/class-main.puml). Zoomable version:
-[`diagrams/class-main.svg`](diagrams/class-main.svg).*
-
-### Detailed class views
-
-The complete design has 146 classifiers (119 classes, 20 interfaces and 7 enumerations), too many for one readable image. The detailed views below
-show every class with all its important attributes and methods, one subsystem at a time. They are
-the reference for the design-pattern explanations, the sequence diagrams (2.3) and the traceability
-table (Task 3), which all use exactly these class and method names.
-
-All views are generated from one master model
-([`diagrams/src/model.iuml`](diagrams/src/model.iuml)), so a class always has the same members and
-relationships in every view. The complete model is also available as one zoomable image,
-[`diagrams/class-full.svg`](diagrams/class-full.svg), for reference only.
+The complete design has 146 classifiers (119 classes, 20 interfaces and 7 enumerations). The ones
+not drawn are value objects, enumerations, and further classes with exactly the same structure as a
+drawn one: for example, the other five detection rules (named in a note in figure 2), the other four
+case states (named in a note in figure 3), and the other action tools and commands.
 
 Notation follows the course UML conventions: «interface» above the name of an interface, interface
-and abstract class names in italics, «enumeration» for enumerations; abstract operations in italics;
-static members underlined; visibility `+ - # ~`; generalization (solid line, hollow triangle);
+and abstract class names in italics; abstract operations in italics; static members underlined;
+visibility `+ - # ~`; no return type for `void` operations; interface operations never omitted and
+inherited methods not repeated unless overridden; generalization (solid line, hollow triangle);
 realization (dashed line, hollow triangle); composition (filled diamond on the whole); aggregation
 (hollow diamond on the whole); directed association with multiplicities at both ends; dependency
-(dashed arrow), labelled «use» or «create» where relevant. Trivial getters and setters are omitted,
-and inherited methods are not repeated unless overridden.
+(dashed arrow) labelled «use» or «create». A relationship is drawn either as a line or as an
+attribute, never both. GUI classes carry the «boundary» stereotype, and design-pattern roles are
+shown as stereotypes (for example «Facade», «Strategy», «Template Method»). Trivial getters and
+setters are omitted.
 
-### View 1: Front ends and facade
+The UMLet source of every diagram is in [`umlet/`](umlet/) (`.uxf` files, which open in UMLet).
 
-![Class diagram view 1](diagrams/class-1-frontends.png)
+#### Figure 1: Front ends, facade and application services
 
-The JavaFX GUI and the picocli CLI are two separate front ends. Both depend only on
-`TraceWiseFacade`. `CaseView` and `AlertsView` implement `AgentEventListener`, so they can display an
-investigation's steps as they happen. Each CLI command extends `CliCommandBase`, whose `call()`
-method fixes the steps every command follows.
+![Class diagram figure 1](umlet/class-diagram-1.png)
 
-### View 2: Application services
+The JavaFX views and the picocli CLI are two separate front ends, and both depend only on
+`TraceWiseFacade`. The facade delegates each request to one application service. Each CLI command
+extends `CliCommandBase`, whose `call()` method fixes the steps every command follows (Template
+Method).
 
-![Class diagram view 2](diagrams/class-2-application.png)
+#### Figure 2: Monitoring rules, domain data and persistence
 
-`TraceWiseFacade` delegates each request to one application service. `TraceWiseBootstrap` builds the
-object graph once at start-up (manual dependency injection), so no class creates its own
-dependencies.
+![Class diagram figure 2](umlet/class-diagram-2.png)
 
-### View 3: Ingestion and monitoring rules
+`MonitoringService` runs a list of `DetectionRule` objects (Strategy). The six rules share the
+windowed scanning algorithm in `WindowedRule.evaluate()` and supply only the steps that differ
+(Template Method). Services depend on the repository interfaces (`Ledger`, `TransactionRepository`,
+`AlertRepository`, `CaseRepository`), each implemented with SQLite.
 
-![Class diagram view 3](diagrams/class-3-monitoring.png)
+#### Figure 3: Actions, approvals, case lifecycle and audit
 
-`ImportService` chooses a `TransactionFormat` by inspecting the file header. `MonitoringService` runs
-a list of `DetectionRule` objects. The six rules share the windowed scanning algorithm in
-`WindowedRule` and supply only what differs.
+![Class diagram figure 3](umlet/class-diagram-3.png)
 
-### View 4a: Agent core
+Every change requested by the agent or a person is an `ActionCommand` (Command). `CommandDispatcher`
+asks `PermissionPolicy` whether it may run now or must wait in the `ApprovalQueue`. A `Case` delegates
+its lifecycle to its current `CaseState` object (State). `AuditLog` records everything.
 
-![Class diagram view 4a](diagrams/class-4a-agent-core.png)
+#### Figure 4: Agent, tools and LLM access
 
-`AgentRunner` executes the agent loop for any `AgentTask`. `InvestigationTask` and `AssistantTask`
-supply the prompt, the allowed tools and the result parsing. Every step is recorded in an
-`AgentTrace`, which notifies its `AgentEventListener`s. A finding owns its claims, its verification
-report and its trace.
+![Class diagram figure 4](umlet/class-diagram-4.png)
 
-### View 4b: Agent tools, retrieval and verification
-
-![Class diagram view 4b](diagrams/class-4b-tools.png)
-
-The agent can only act through `AgentTool` objects held in the `ToolRegistry`. Read tools query the
-`Ledger` or a `Retriever`. Action tools extend `ActionTool` and turn a request into an
-`ActionCommand`. `FaultInjectingTool` wraps any tool to simulate failures in tests.
-`ClaimVerifier` checks claims against the `Ledger`.
-
-### View 5: LLM access layer
-
-![Class diagram view 5](diagrams/class-5-llm.png)
-
-The rest of the system depends only on the `LLMClient` interface. `LangChain4jClient` adapts the
-LangChain4j `ChatModel` to it; `ReplayLLMClient` replays recorded responses for tests and offline
-demonstrations; `RetryingLLMClient` and `RecordingLLMClient` add behaviour around any client.
-`LLMClientFactory` builds the configured combination.
-
-### View 6: Actions, approvals, case states and audit
-
-![Class diagram view 6](diagrams/class-6-actions.png)
-
-Every change requested by the agent or a person is an `ActionCommand`. `CommandDispatcher` asks
-`PermissionPolicy` whether it may run now or must wait in the `ApprovalQueue`. A `Case` delegates
-its lifecycle to its current `CaseState` object. `AuditLog` records everything.
-
-### View 7: Domain model, persistence, reporting, network and metrics
-
-![Class diagram view 7](diagrams/class-7-data.png)
-
-Services depend on repository interfaces (`Ledger`, `TransactionRepository`, `AlertRepository`,
-`CaseRepository`), each implemented with SQLite. Reports are exported through the `ReportExporter`
-interface.
+`AgentRunner` executes the agent loop. Every step is recorded in an `AgentTrace`, which notifies its
+`AgentEventListener`s (Observer). The agent acts only through `AgentTool` objects held in the
+`ToolRegistry`; `SearchIndicatorsTool` queries the `Retriever`, and action tools create commands
+through the factory method `ActionTool.createCommand()` (Factory Method). `ClaimVerifier` checks the
+agent's claims. The rest of the system depends only on `LLMClient`: `LangChain4jClient` adapts the
+LangChain4j `ChatModel` to it (Adapter), and `RetryingLLMClient` adds retries around any client
+(Decorator).
 
 ---
 
@@ -1013,11 +983,11 @@ this design.
   know and coordinate those services itself.
 * **Participating classes and roles:**
 
-  | Role | Class |
-  |---|---|
-  | Facade | `TraceWiseFacade` |
-  | Subsystem classes | `ImportService`, `MonitoringService`, `InvestigationService`, `TriageService`, `AssistantService`, `CaseService`, `ReportService`, `NetworkService`, `PerformanceService`, `ApprovalQueue`, `AuditLog`, `Retriever` |
-  | Clients | `AlertsView`, `CaseView`, `ApprovalsView`, `AssistantView`, `AdminView`, `CliCommandBase` and its subclasses |
+  | Role | On the class diagram | Same role in the design, not drawn |
+  |---|---|---|
+  | Facade | `TraceWiseFacade` | |
+  | Subsystem classes | `ImportService`, `MonitoringService`, `InvestigationService`, `TriageService`, `AssistantService`, `CaseService`, `ReportService`, `NetworkService`, `PerformanceService`, `ApprovalQueue`, `AuditLog`, `Retriever` | |
+  | Clients | `AlertsView`, `CaseView`, `NetworkView`, `ApprovalsView`, `AdminView`, `CliCommandBase` and its subclass `AskCli` | `AssistantView`; the other CLI commands (`ImportCli`, `InvestigateCli`, `TriageCli`, ...) |
 
 * **Why it is appropriate:** The facade gives both front ends one simple interface with one method
   per user operation, and keeps the front ends independent of how the core is organised.
@@ -1032,11 +1002,11 @@ this design.
   use, which format to export to, and which agent task to run.
 * **Participating classes and roles:**
 
-  | Role | Main instance (detection rules) | Other instances |
+  | Role | On the class diagram | Same role in the design, not drawn |
   |---|---|---|
-  | Strategy interface | `DetectionRule` | `TransactionFormat`, `Retriever`, `ReportExporter`, `AgentTask` |
-  | Concrete strategies | `LargeCashRule`, `InternationalTransferRule`, `StructuringRule`, `PassThroughRule`, `FanInRule`, `FanOutRule` | `IbmCsvFormat`, `ScenarioCsvFormat`; `EmbeddingRetriever`; `HtmlReportExporter`, `JsonReportExporter`; `InvestigationTask`, `AssistantTask` |
-  | Context | `MonitoringService` | `ImportService`; `SearchIndicatorsTool`; `ReportService`; `AgentRunner` |
+  | Strategy interface | `DetectionRule`; `Retriever` | `TransactionFormat`, `ReportExporter`, `AgentTask` |
+  | Concrete strategies | `StructuringRule` (the other five rules are named in the note in figure 2) | `LargeCashRule`, `InternationalTransferRule`, `PassThroughRule`, `FanInRule`, `FanOutRule`; `EmbeddingRetriever`; `IbmCsvFormat`, `ScenarioCsvFormat`; `HtmlReportExporter`, `JsonReportExporter`; `InvestigationTask`, `AssistantTask` |
+  | Context | `MonitoringService`; `SearchIndicatorsTool` | `ImportService`, `ReportService`, `AgentRunner` |
 
 * **Why it is appropriate:** The Compliance Supervisor can enable, disable and configure rules
   independently, so the rule set must be a list of objects, not a fixed block of code.
@@ -1052,11 +1022,11 @@ this design.
   text or JSON, map errors to exit codes) and differs only in what it runs.
 * **Participating classes and roles:**
 
-  | Role | Rules | CLI |
+  | Role | On the class diagram | Same role in the design, not drawn |
   |---|---|---|
-  | Abstract class with the template method | `WindowedRule.evaluate()` | `CliCommandBase.call()` |
-  | Primitive operations (abstract) | `candidates()`, `isMatch()`, `window()` | `execute()` |
-  | Concrete classes | the six rule classes | `ImportCli`, `InvestigateCli`, `TriageCli`, `AskCli` and the other command classes |
+  | Abstract class with the template method | `WindowedRule.evaluate()`; `CliCommandBase.call()` | |
+  | Primitive operations (abstract) | `candidates()`, `isMatch()`, `window()`; `execute()` | |
+  | Concrete classes | `StructuringRule`; `AskCli` | the other five rules; `ImportCli`, `InvestigateCli`, `TriageCli` and the other commands |
 
 * **Why it is appropriate:** The shared algorithm is written and tested once; each subclass supplies
   only what makes it different.
@@ -1071,12 +1041,12 @@ this design.
   create a different kind of command.
 * **Participating classes and roles:**
 
-  | Role | Class |
-  |---|---|
-  | Creator, with the factory method | `ActionTool`, method `createCommand()` |
-  | Concrete creators | `SetPriorityTool`, `ProposeCloseTool`, `ProposeEscalationTool` and the other action tools |
-  | Product interface | `ActionCommand` |
-  | Concrete products | `SetPriorityCommand`, `CloseCaseCommand`, `EscalateCaseCommand` and the other commands |
+  | Role | On the class diagram | Same role in the design, not drawn |
+  |---|---|---|
+  | Creator, with the factory method | `ActionTool`, method `createCommand()` | |
+  | Concrete creators | `ProposeCloseTool` | `SetPriorityTool`, `ProposeEscalationTool` and the other action tools |
+  | Product interface | `ActionCommand` | |
+  | Concrete products | `CloseCaseCommand` | `SetPriorityCommand`, `EscalateCaseCommand` and the other commands |
 
 * **Why it is appropriate:** `ActionTool.execute()` stays generic and never names a concrete command
   class; each subclass decides which command to instantiate.
@@ -1091,13 +1061,13 @@ this design.
   for approval and executed later, and recorded in the audit trail.
 * **Participating classes and roles:**
 
-  | Role | Class |
-  |---|---|
-  | Command interface | `ActionCommand` (`validate()`, `execute()`, `describe()`) |
-  | Concrete commands | `SetPriorityCommand`, `LinkAlertsCommand`, `AddToWatchlistCommand`, `CreateTaskCommand`, `SaveReportDraftCommand`, `AddNoteCommand`, `CloseCaseCommand`, `EscalateCaseCommand`, `ReopenCaseCommand` |
-  | Invoker | `CommandDispatcher` (immediate execution), `ApprovalQueue` (deferred execution after approval) |
-  | Receivers | `Case`, `Alert`, `Account`, reached through `CommandContext` |
-  | Clients | the action tools, `CaseService`, `ReportService` |
+  | Role | On the class diagram | Same role in the design, not drawn |
+  |---|---|---|
+  | Command interface | `ActionCommand` (`validate()`, `execute()`, `describe()`, `targetCaseId()`) | |
+  | Concrete commands | `CloseCaseCommand` | `SetPriorityCommand`, `LinkAlertsCommand`, `AddToWatchlistCommand`, `CreateTaskCommand`, `SaveReportDraftCommand`, `AddNoteCommand`, `EscalateCaseCommand`, `ReopenCaseCommand` |
+  | Invoker | `CommandDispatcher` (immediate execution), `ApprovalQueue` (deferred execution after approval) | |
+  | Receivers | `Case`, `Alert` | `Account`, reached through `CommandContext` |
+  | Clients | `ActionTool` and its subclasses, `CaseService`, `ReportService` | |
 
 * **Why it is appropriate:** Turning each action into an object is what makes the approval queue
   possible: a proposal is simply a stored command waiting to be executed. Every action passes through
@@ -1114,11 +1084,11 @@ this design.
   be reopened.
 * **Participating classes and roles:**
 
-  | Role | Class |
-  |---|---|
-  | Context | `Case` |
-  | State (abstract) | `CaseState`, whose default transition methods reject the transition |
-  | Concrete states | `OpenState`, `UnderInvestigationState`, `PendingApprovalState`, `EscalatedState`, `ClosedState` |
+  | Role | On the class diagram | Same role in the design, not drawn |
+  |---|---|---|
+  | Context | `Case` | |
+  | State (abstract) | `CaseState`, whose default transition methods reject the transition | |
+  | Concrete states | `ClosedState` (the other four are named in the note in figure 3) | `OpenState`, `UnderInvestigationState`, `PendingApprovalState`, `EscalatedState` |
 
 * **Why it is appropriate:** Each state class overrides only the transitions it allows, so the
   lifecycle rules are explicit, local and individually testable. An illegal transition fails in one
@@ -1134,11 +1104,11 @@ this design.
   depend on any of them.
 * **Participating classes and roles:**
 
-  | Role | Class |
-  |---|---|
-  | Subject | `AgentTrace` (`addListener()`, `record()`, `finish()`) |
-  | Observer interface | `AgentEventListener` (`onStep()`, `onFinished()`) |
-  | Concrete observers | `CaseView`, `AlertsView`, `AuditLog` |
+  | Role | On the class diagram | Same role in the design, not drawn |
+  |---|---|---|
+  | Subject | `AgentTrace` (`addListener()`, `record()`, `finish()`) | |
+  | Observer interface | `AgentEventListener` (`onStep()`, `onFinished()`) | |
+  | Concrete observers | `CaseView`, `AlertsView`, `AuditLog` | |
 
 * **Why it is appropriate:** The agent core stays independent of the GUI, so the same loop runs
   unchanged from the CLI, where no view exists.
@@ -1154,12 +1124,12 @@ this design.
   third-party library's types.
 * **Participating classes and roles:**
 
-  | Role | Class |
-  |---|---|
-  | Target | `LLMClient` |
-  | Adapter | `LangChain4jClient` (with `AnthropicLLMClient` and `OpenAiCompatibleLLMClient` choosing the provider) |
-  | Adaptee | `ChatModel` (LangChain4j) |
-  | Client | `AgentRunner`, `ReportService` |
+  | Role | On the class diagram | Same role in the design, not drawn |
+  |---|---|---|
+  | Target | `LLMClient` | |
+  | Adapter | `LangChain4jClient` | its provider subclasses `AnthropicLLMClient`, `OpenAiCompatibleLLMClient` |
+  | Adaptee | `ChatModel` (LangChain4j) | |
+  | Client | `AgentRunner`, `ReportService` | |
 
 * **Why it is appropriate:** The adapter converts between TraceWise's `LLMRequest`/`LLMResponse` and
   LangChain4j's types in one class. It also lets `ReplayLLMClient` stand in for a real model.
@@ -1174,12 +1144,12 @@ this design.
   replay, and injecting faults to test the agent's error handling.
 * **Participating classes and roles:**
 
-  | Role | LLM client instance | Tool instance |
+  | Role | On the class diagram (LLM client instance) | Same role in the design, not drawn |
   |---|---|---|
-  | Component interface | `LLMClient` | `AgentTool` |
-  | Concrete components | `AnthropicLLMClient`, `OpenAiCompatibleLLMClient`, `ReplayLLMClient` | the read and action tools |
+  | Component interface | `LLMClient` | `AgentTool` (tool instance) |
+  | Concrete components | `LangChain4jClient` | `AnthropicLLMClient`, `OpenAiCompatibleLLMClient`, `ReplayLLMClient`; the read and action tools |
   | Decorator | `LLMClientDecorator` (holds `inner`) | `FaultInjectingTool` (holds `wrapped`) |
-  | Concrete decorators | `RetryingLLMClient`, `RecordingLLMClient` | `FaultInjectingTool` |
+  | Concrete decorators | `RetryingLLMClient` | `RecordingLLMClient`, `FaultInjectingTool` |
 
 * **Why it is appropriate:** `LLMClientFactory` can stack decorators according to configuration (for
   example a recording, retrying Anthropic client), and each decorator is small and testable alone.
@@ -1232,10 +1202,9 @@ this design.
 
 ### Use-case diagram
 
-![TraceWise use-case diagram](diagrams/usecase-diagram.png)
+![TraceWise use-case diagram](umlet/usecase-diagram.png)
 
-*Source: [`diagrams/src/usecase-diagram.puml`](diagrams/src/usecase-diagram.puml). A zoomable SVG version is
-[`diagrams/usecase-diagram.svg`](diagrams/usecase-diagram.svg).*
+*Drawn in UMLet. Source: [`umlet/usecase-diagram.uxf`](umlet/usecase-diagram.uxf).*
 
 **Actors**
 
@@ -1731,68 +1700,63 @@ an actor.
 
 ## 2.3 Sequence Diagrams
 
-Ten sequence diagrams cover every use case. Each shows the initiating actor, the boundary objects
-(«boundary», the GUI views and CLI commands), the control objects («control», the facade and
-services), the domain objects («entity») and the agent components, using only the classes and
-methods defined in the class diagram. Calls are solid lines with filled arrowheads, returns are
-dashed lines, and `alt`, `opt`, `loop`, `break` and `ref` fragments show alternative, optional,
-repeated, terminating and referenced behaviour. Messages are numbered.
+Nine sequence diagrams, drawn in UMLet, cover every use case. Each shows the initiating actor, the
+boundary objects (the GUI views and the CLI command), the facade and the application services, the
+domain objects, the agent components and the external LLM service (through `LLMClient`). They use
+only classes on the class diagram (2.1), and every message is a method of the receiving class there
+(or one it inherits). Synchronous calls are solid lines with filled arrowheads and returns are dashed
+lines. The `alt`, `opt`, `loop`, `break` and `ref` fragments show alternative, optional, repeated,
+terminating and referenced behaviour, with the guard condition in square brackets.
 
 | Diagram | Use cases | Features | What it shows |
 |---|---|---|---|
-| SD01 Import Transactions | UC01 | F01 | Format detection (Strategy), row validation, currency conversion, all-or-nothing save |
-| SD02 Run Monitoring | UC02 | F02 | Rules evaluated through `WindowedRule.evaluate()` (Template Method); threshold reports versus alerts; duplicate suppression |
-| SD03 Configure Monitoring Rules | UC03 | F02 | Validation of a rule change, persistence and audit |
-| SD04 Investigate Alert | UC04, UC05, UC06 | F03, F04, F05, F09 | The agent loop: LLM calls, validated tool calls, retrieval, trace events to listeners (Observer), turn limit, failure handling, claim verification |
-| SD05 Agent Action and Approval | UC04 (actions), UC08 | F06 | Action tools creating commands (Factory Method), dispatch through the permission policy (Command), approval, expiry and rejection |
-| SD06 Triage Alert Queue | UC07 | F07 | Repeated investigation (ref SD04) within cost and count limits, stopping |
-| SD07 Ask the Assistant (CLI JSON mode) | UC13 | F10 | The CLI Template Method, the assistant agent, verification, and the JSON output used by the Stage 3 KUMA harness |
-| SD08 Draft, Finalise and Export a Report | UC14, UC15 | F11 | Narrative drafting by the LLM, saving through a command, finalisation blocked by rejected claims, escalation through the approval queue, export |
-| SD09 Manage and Reopen a Case | UC09, UC10 | F08 | A human action through the command dispatcher, and the State pattern rejecting an illegal transition |
-| SD10 Read-Only Views | UC11, UC12, UC16, UC17 | F08, F09, F04, F12 | Audit query, money-flow graph construction, knowledge search, performance metrics. These four share the same structure (view, facade, service, repository), so they are grouped in one diagram |
+| SD1 Import Transactions | UC01 | F01 | Preview with format detection, a break when no format matches, per-row parsing and rejection, all-or-nothing save, audit entry |
+| SD2 Run Monitoring and Configure Rules | UC02, UC03 | F02 | Each rule evaluated through `WindowedRule.evaluate()` (Strategy, Template Method); threshold matches versus suspicion alerts; duplicate-alert suppression; the alert queue; a Compliance Supervisor's rule change, with the invalid-configuration alternative |
+| SD3 Investigate Alert | UC04, includes UC05 and UC06 | F03, F04, F05 | The agent loop: LLM calls, the LLM-failure break, validated tool calls, retrieval through `SearchIndicatorsTool`, invalid tool arguments, trace events to the listeners (Observer), claim verification of the finding, cancellation |
+| SD4 Triage Alert Queue | UC07 | F07 | Investigation of each alert in risk order (ref SD3), the analyst stopping a running triage, and the break on a stop request or a cost or count limit |
+| SD5 Agent Action and Approval | UC04 step 5, UC08 | F06 | An action tool creating a command (Factory Method), dispatch through the permission policy (Command), and the analyst's approve or reject decision, including expiry when the case has changed |
+| SD6 Ask the Assistant through the CLI JSON Mode | UC13 (includes UC06) | F10 | The CLI Template Method (`call()` and `execute()`), the assistant agent (ref SD3), claim verification, and the JSON output used by the Stage 3 KUMA harness |
+| SD7 Draft, Finalise and Export a Report | UC14, UC15 | F11 | Narrative drafting by the LLM, finalisation blocked by rejected claims or empty fields, escalation through the approval queue (ref SD5), and export as an option at the "report finalised" extension point |
+| SD8 Manage and Reopen a Case | UC09, UC10 | F08 | A human action through the command dispatcher, and the State pattern: `Case.reopen()` delegated to its current `CaseState`, rejecting the transition unless the case is closed |
+| SD9 Read-Only Views | UC11, UC12, UC16 (includes UC05), UC17 | F08, F09, F04, F12 | Audit query, money-flow graph construction, knowledge search and performance metrics. These four share one structure (view, facade, service, repository), so they are grouped in one diagram |
 
-### SD01: Import Transactions
+### SD1: Import Transactions
 
-![SD01](diagrams/sd01-import-transactions.png)
+![SD1](umlet/sd1-import-transactions.png)
 
-### SD02: Run Monitoring and Review Alerts
+### SD2: Run Monitoring and Configure Rules
 
-![SD02](diagrams/sd02-run-monitoring.png)
+![SD2](umlet/sd2-monitoring-and-rules.png)
 
-### SD03: Configure Monitoring Rules
+### SD3: Investigate Alert
 
-![SD03](diagrams/sd03-configure-rules.png)
+![SD3](umlet/sd3-investigate-alert.png)
 
-### SD04: Investigate Alert
+### SD4: Triage Alert Queue
 
-![SD04](diagrams/sd04-investigate-alert.png)
+![SD4](umlet/sd4-triage-queue.png)
 
-### SD05: Agent Action and Approval
+### SD5: Agent Action and Approval
 
-![SD05](diagrams/sd05-actions-and-approval.png)
+![SD5](umlet/sd5-action-and-approval.png)
 
-### SD06: Triage Alert Queue
+### SD6: Ask the Assistant through the CLI JSON Mode
 
-![SD06](diagrams/sd06-triage-queue.png)
+![SD6](umlet/sd6-ask-assistant-cli.png)
 
-### SD07: Ask the Assistant through the CLI JSON Mode
+### SD7: Draft, Finalise and Export a Report
 
-![SD07](diagrams/sd07-ask-assistant-cli.png)
+![SD7](umlet/sd7-report.png)
 
-### SD08: Draft, Finalise and Export a Suspicious Transaction Report
+### SD8: Manage and Reopen a Case
 
-![SD08](diagrams/sd08-report-draft-finalise-export.png)
+![SD8](umlet/sd8-manage-reopen-case.png)
 
-### SD09: Manage and Reopen a Case
+### SD9: Read-Only Views
 
-![SD09](diagrams/sd09-manage-reopen-case.png)
+![SD9](umlet/sd9-read-only-views.png)
 
-### SD10: Read-Only Views
-
-![SD10](diagrams/sd10-read-only-views.png)
-
-*All sequence diagram sources are in [`diagrams/src/`](diagrams/src/); each has a zoomable SVG next to
-its PNG.*
+*The UMLet sources are in [`umlet/`](umlet/), one `.uxf` file per diagram.*
 
 ---
 
@@ -1800,157 +1764,185 @@ its PNG.*
 
 Every feature traces to the use case that describes it, the classes and methods that implement it,
 the sequence diagram that shows it at runtime, and the design patterns it relies on. All class and
-method names are those in the class diagram (2.1).
+method names are those on the class diagram (2.1). Where a feature also relies on a class that is
+not drawn, it is listed separately as "not drawn".
 
 | Feature | Description | Type | Related Use Case | Classes | Key Methods | Sequence Diagram | Design Pattern(s) |
 |---|---|---|---|---|---|---|---|
-| F01 | Import and validate transactions | Deterministic | UC01 Import Transactions | AlertsView, TraceWiseFacade, ImportService, TransactionFormat, IbmCsvFormat, ScenarioCsvFormat, CurrencyConverter, TransactionRepository, AuditLog | previewImport(), importFile(), matches(), parse(), toCad(), saveAll() | SD01 | Facade, Strategy |
-| F02 | Rule-based monitoring, threshold reporting and alert queue | Deterministic | UC02 Run Monitoring and Review Alerts; UC03 Configure Monitoring Rules | AlertsView, AdminView, TraceWiseFacade, MonitoringService, DetectionRule, WindowedRule, the six rule classes, RiskScorer, RuleConfig, AlertRepository, ThresholdReportRepository, RuleConfigRepository | run(), evaluate(), candidates(), isMatch(), score(), listAlerts(), updateRule(), validate(), configure() | SD02, SD03 | Strategy, Template Method, Facade |
-| F03 | Autonomous alert investigation | AI-based | UC04 Investigate Alert | CaseView, TraceWiseFacade, InvestigationService, AgentRunner, InvestigationTask, LLMClient, ToolRegistry, AgentTool, AgentTrace, AgentFinding, Case | investigate(), run(), chat(), execute(), record(), parseFinding(), startInvestigation() | SD04 | Facade, Strategy (AgentTask), Observer, Adapter, Decorator, State |
-| F04 | Indicator retrieval and case memory | Hybrid | UC05 Retrieve Indicators and Similar Cases; UC16 Search Knowledge Base | SearchIndicatorsTool, SimilarCasesTool, Retriever, EmbeddingRetriever, CaseMemory, AdminView, TraceWiseFacade | search(), similar(), remember(), searchKnowledge() | SD04, SD10 | Strategy (Retriever) |
-| F05 | Claim verification | Deterministic | UC06 Verify Agent Claims | ClaimVerifier, Ledger, AgentFinding, VerificationReport, ClaimCheck | verify(), findTransaction(), claims(), attachVerification() | SD04, SD07 | (none; a deterministic safeguard used by F03, F10 and F11) |
-| F06 | Agent actions with permission tiers and approval queue | Hybrid | UC04 Investigate Alert (step 5); UC08 Review Agent Proposals | ActionTool, ProposeCloseTool, SetPriorityTool, ActionCommand and its implementations, CommandDispatcher, PermissionPolicy, ApprovalQueue, PendingAction, ApprovalsView, AuditLog | createCommand(), submit(), validate(), tierFor(), enqueue(), approve(), reject(), execute() | SD05 | Command, Factory Method, State |
-| F07 | Autonomous queue triage | AI-based | UC07 Triage Alert Queue | AlertsView, TraceWiseFacade, TriageService, AlertRepository, InvestigationService, TriageReport, AuditLog | triage(), find(), investigate(), stop() | SD06 | Facade, Observer |
-| F08 | Case management and audit trail | Deterministic | UC09 Manage Case; UC10 Reopen Case; UC11 Review Audit Trail | CaseView, AdminView, CaseService, Case, CaseState, OpenState, UnderInvestigationState, PendingApprovalState, EscalatedState, ClosedState, AddNoteCommand, ReopenCaseCommand, CommandDispatcher, AuditLog, AuditRepository | getCase(), addNote(), reopen(), changeState(), submit(), append(), query() | SD09, SD10 | State, Command, Observer (AuditLog as listener) |
-| F09 | Money-flow network view | Deterministic | UC12 Explore Money-Flow Network (accounts examined in UC04 are marked) | NetworkView, TraceWiseFacade, NetworkService, Ledger, CaseRepository, AgentTrace, MoneyFlowGraph, AccountNode, FlowEdge | buildNetwork(), build(), transactionsFor(), examinedAccounts(), render() | SD10 | Facade |
-| F10 | Natural-language analyst assistant | AI-based | UC13 Ask the Assistant | AssistantView, AskCli, CliCommandBase, TraceWiseFacade, AssistantService, AssistantTask, ConversationMemory, AgentRunner, ClaimVerifier, AssistantAnswer | ask(), call(), execute(), print(), recent(), run(), parseAnswer(), verify() | SD07 | Template Method, Strategy (AgentTask), Facade |
-| F11 | Suspicious transaction report drafting and export | Hybrid | UC14 Draft and Finalise STR; UC15 Export Report | CaseView, TraceWiseFacade, ReportService, StrReport, LLMClient, SaveReportDraftCommand, EscalateCaseCommand, CommandDispatcher, ApprovalQueue, ReportExporter, HtmlReportExporter, JsonReportExporter | draft(), save(), requestFinalisation(), submit(), export(), lock() | SD08 | Strategy (ReportExporter), Command |
-| F12 | Agent performance dashboard | Deterministic | UC17 View Agent Performance | AdminView, TraceWiseFacade, PerformanceService, CaseRepository, Ledger, PerformanceMetrics | computeMetrics(), compute(), findAll(), findTransaction() | SD10 | Facade |
+| F01 | Import and validate transactions | Deterministic | UC01 Import Transactions | AlertsView, TraceWiseFacade, ImportService, TransactionRepository, Transaction, AuditLog (not drawn: TransactionFormat and its two formats, CurrencyConverter) | onImport(), previewImport(), preview(), detectFormat(), onConfirmImport(), importTransactions(), importFile(), parseRow(), rejectRow(), exists(), saveAll(), append() | SD1 | Facade (Strategy for file formats, not drawn) |
+| F02 | Rule-based monitoring, threshold reporting and alert queue | Deterministic | UC02 Run Monitoring and Review Alerts; UC03 Configure Monitoring Rules | AlertsView, AdminView, TraceWiseFacade, MonitoringService, DetectionRule, WindowedRule, StructuringRule and the five rules named in the figure 2 note, Ledger, AlertRepository, Alert, AuditLog | runMonitoring(), run(), evaluate(), accounts(), candidates(), isMatch(), kind(), recordThreshold(), hasOpenAlert(), save(), listAlerts(), find(), onSaveRule(), updateRule(), configure() | SD2 | Strategy, Template Method, Facade |
+| F03 | Autonomous alert investigation | AI-based | UC04 Investigate Alert | CaseView, TraceWiseFacade, InvestigationService, Case, AgentRunner, AgentTrace, AgentEventListener, LLMClient, ToolRegistry, AgentTool, AgentFinding, AuditLog | onInvestigate(), investigate(), startInvestigation(), addListener(), run(), chat(), execute(), record(), onStep(), finish(), onFinished(), parseFinding(), addFinding(), cancelInvestigation(), cancel() | SD3 | Facade, Observer, Adapter, Decorator, State |
+| F04 | Indicator retrieval and case memory | Hybrid | UC05 Retrieve Indicators and Similar Cases; UC16 Search Knowledge Base | ToolRegistry, SearchIndicatorsTool, Retriever, AdminView, TraceWiseFacade (not drawn: EmbeddingRetriever, SimilarCasesTool, CaseMemory) | execute(), search(), onSearchKnowledge(), searchKnowledge() | SD3, SD9 | Strategy (Retriever) |
+| F05 | Claim verification | Deterministic | UC06 Verify Agent Claims | ClaimVerifier, Ledger, AgentFinding, InvestigationService, AssistantService | verify(), claims(), findTransaction(), attachVerification() | SD3, SD6 | (none; a deterministic safeguard used by F03, F10 and F11) |
+| F06 | Agent actions with permission tiers and approval queue | Hybrid | UC04 Investigate Alert (step 5); UC08 Review Agent Proposals | ToolRegistry, ActionTool, ProposeCloseTool, ActionCommand, CloseCaseCommand, CommandDispatcher, PermissionPolicy, ApprovalQueue, PendingAction, Case, ApprovalsView, TraceWiseFacade, AuditLog | createCommand(), submit(), validate(), tierFor(), enqueue(), targetCaseId(), submitForApproval(), onApprove(), approve(), execute(), close(), markApproved(), markExpired(), onReject(), reject(), markRejected(), returnToInvestigation(), append() | SD5 | Command, Factory Method, State |
+| F07 | Autonomous queue triage | AI-based | UC07 Triage Alert Queue | AlertsView, TraceWiseFacade, TriageService, AlertRepository, InvestigationService | onTriage(), triage(), find(), investigate(), onStopTriage(), stopTriage(), stop() | SD4 | Facade, Observer |
+| F08 | Case management and audit trail | Deterministic | UC09 Manage Case; UC10 Reopen Case; UC11 Review Audit Trail | CaseView, AdminView, TraceWiseFacade, CaseService, CommandDispatcher, ActionCommand, Case, CaseState, ClosedState and the four states named in the figure 3 note, AuditLog | showCase(), getCase(), onAddNote(), addNote(), onReopen(), reopenCase(), reopen(), submit(), execute(), changeState(), onSearchAudit(), queryAudit(), query(), append() | SD8, SD9 | State, Command, Observer (AuditLog as listener) |
+| F09 | Money-flow network view | Deterministic | UC12 Explore Money-Flow Network (accounts examined in UC04 are marked) | NetworkView, TraceWiseFacade, NetworkService, Ledger, CaseRepository, AgentTrace | onChangeScope(), buildNetwork(), build(), transactionsFor(), findById(), examinedAccounts(), render() | SD9 | Facade |
+| F10 | Natural-language analyst assistant | AI-based | UC13 Ask the Assistant | AskCli, CliCommandBase, TraceWiseFacade, AssistantService, AgentRunner, ClaimVerifier (not drawn: AssistantView, AssistantTask, ConversationMemory) | call(), execute(), ask(), run(), verify(), print() | SD6 | Template Method, Facade |
+| F11 | Suspicious transaction report drafting and export | Hybrid | UC14 Draft and Finalise STR; UC15 Export Report | CaseView, TraceWiseFacade, ReportService, CaseRepository, LLMClient, CommandDispatcher, ApprovalQueue, AuditLog (not drawn: StrReport, ReportExporter and its HTML and JSON exporters) | onDraftReport(), draftReport(), draft(), findById(), chat(), onRequestFinalisation(), requestFinalisation(), submit(), onExport(), exportReport(), export(), append() | SD7 | Command, Facade (Strategy for exporters, not drawn) |
+| F12 | Agent performance dashboard | Deterministic | UC17 View Agent Performance | AdminView, TraceWiseFacade, PerformanceService, CaseRepository, Ledger | onShowMetrics(), computeMetrics(), compute(), findAll(), findTransaction() | SD9 | Facade |
 
 ---
 
 # Task 4: Explain How Each Feature Is Realized
 
+Class and method names are those on the class diagram (2.1). Classes that take part but are not drawn
+are named under "Also involved (not drawn)".
+
 ### F01: Import Transactions
 
 **Related Use Case:** UC01 Import Transactions
 
-**Related Sequence Diagram:** SD01
+**Related Sequence Diagram:** SD1
 
 **Classes involved:**
 * `AlertsView`: receives the file chosen by the analyst and shows the preview and summary.
 * `TraceWiseFacade`: single entry point for the request.
-* `ImportService`: coordinates detection, parsing, conversion and saving.
-* `TransactionFormat` (`IbmCsvFormat`, `ScenarioCsvFormat`): recognises and parses one file format each.
-* `CurrencyConverter`: converts amounts to CAD.
+* `ImportService`: coordinates format detection, parsing, conversion and saving.
 * `TransactionRepository`: checks for duplicate IDs and stores transactions.
+* `Transaction`: the stored record, with its amount in CAD.
 * `AuditLog`: records the import.
 
-**Important methods:** `AlertsView.onImport()`, `TraceWiseFacade.previewImport()`,
-`ImportService.preview()`, `TransactionFormat.matches()`, `ImportService.importFile()`,
-`TransactionFormat.parse()`, `CurrencyConverter.toCad()`, `TransactionRepository.saveAll()`.
+**Also involved (not drawn):** `TransactionFormat` with `IbmCsvFormat` and `ScenarioCsvFormat` (one
+file format each, a Strategy), and `CurrencyConverter`.
 
-**Execution:** `onImport()` calls `previewImport()`, and `ImportService.preview()` asks each
-registered `TransactionFormat` whether it `matches()` the header. After the analyst confirms,
-`importFile()` parses each row with the selected format, converts it with `toCad()`, skips invalid
-or duplicate rows, and stores the rest with `saveAll()` in one database transaction. The summary is
-returned to the view and the import is logged.
+**Important methods:** `AlertsView.onImport()`, `TraceWiseFacade.previewImport()`,
+`ImportService.preview()`, `ImportService.detectFormat()`, `AlertsView.onConfirmImport()`,
+`ImportService.importFile()`, `ImportService.parseRow()`, `ImportService.rejectRow()`,
+`TransactionRepository.exists()`, `TransactionRepository.saveAll()`, `AuditLog.append()`.
+
+**Execution:** `onImport()` calls `previewImport()`, and `ImportService.preview()` calls
+`detectFormat()`, which asks each registered file format whether it recognises the header; if none
+does, the import is refused with the expected columns listed. After the analyst confirms with
+`onConfirmImport()`, `importFile()` calls `parseRow()` for each row (parse, validate, convert to CAD),
+checks the ID with `exists()`, and calls `rejectRow()` for an invalid or duplicate row. The remaining
+rows are stored with `saveAll()` in one database transaction, the import is logged with `append()`,
+and the summary is returned to the view.
 
 ### F02: Rule-Based Monitoring, Threshold Reporting and Alert Queue
 
 **Related Use Cases:** UC02 Run Monitoring and Review Alerts, UC03 Configure Monitoring Rules
 
-**Related Sequence Diagrams:** SD02, SD03
+**Related Sequence Diagram:** SD2
 
 **Classes involved:**
+* `AlertsView`, `AdminView`: start monitoring and show the queue; edit a rule.
 * `MonitoringService`: runs every enabled rule and turns matches into threshold reports or alerts.
 * `DetectionRule`: the common interface of all rules (Strategy).
 * `WindowedRule`: implements the shared scanning algorithm in `evaluate()` (Template Method).
-* `LargeCashRule`, `InternationalTransferRule`, `StructuringRule`, `PassThroughRule`, `FanInRule`,
-  `FanOutRule`: supply the rule-specific steps.
-* `RiskScorer`: computes each alert's risk score.
-* `RuleConfig`, `RuleConfigRepository`: hold, validate and store rule parameters.
-* `AlertRepository`, `ThresholdReportRepository`: store the results.
+* `StructuringRule` and the five other rules named in the figure 2 note: supply the rule-specific steps.
+* `Ledger`: supplies the accounts and transactions.
+* `AlertRepository`, `Alert`: store and represent alerts.
+* `AuditLog`: records each run and each rule change.
+
+**Also involved (not drawn):** `RiskScorer` (computes each alert's risk score), `RuleConfig` and
+`RuleConfigRepository` (rule parameters), `ThresholdReportRepository` (the Threshold Report Register).
 
 **Important methods:** `MonitoringService.run()`, `DetectionRule.evaluate()`,
-`WindowedRule.candidates()`, `WindowedRule.isMatch()`, `RiskScorer.score()`,
-`AlertRepository.hasOpenAlert()`, `MonitoringService.updateRule()`, `RuleConfig.validate()`,
-`DetectionRule.configure()`.
+`WindowedRule.candidates()`, `WindowedRule.isMatch()`, `DetectionRule.kind()`,
+`MonitoringService.recordThreshold()`, `AlertRepository.hasOpenAlert()`, `AlertRepository.save()`,
+`MonitoringService.listAlerts()`, `MonitoringService.updateRule()`, `DetectionRule.configure()`.
 
 **Execution:** `run()` calls `evaluate()` on each enabled rule. `WindowedRule.evaluate()` iterates
-over accounts and time windows, calling the subclass's `candidates()` and `isMatch()`. Threshold-rule
-matches become `ThresholdReport`s; suspicion-rule matches without an open alert are scored and saved
-as `Alert`s. For UC03, `updateRule()` validates the new `RuleConfig`, saves it, applies it with
-`configure()` and logs the change.
+over the `Ledger`'s accounts and time windows, calling the subclass's `candidates()` and `isMatch()`.
+Matches of a threshold rule are added to the Threshold Report Register with `recordThreshold()`;
+matches of a suspicion rule without an open alert (`hasOpenAlert()`) are scored and saved as `Alert`s.
+`listAlerts()` then returns the queue. For UC03, the Compliance Supervisor's change reaches
+`updateRule()`, which applies it with `configure()`; `configure()` validates the parameters and throws
+`InvalidConfigurationException` if they are invalid, in which case the previous configuration stays.
+A valid change is logged with the old and new values.
 
 ### F03: Autonomous Alert Investigation
 
 **Related Use Case:** UC04 Investigate Alert
 
-**Related Sequence Diagram:** SD04
+**Related Sequence Diagram:** SD3
 
 **Classes involved:**
 * `CaseView`: starts the investigation and displays each step live (an `AgentEventListener`).
-* `InvestigationService`: prepares the case, trace and task, runs the agent, and stores the result.
+* `InvestigationService`: prepares the case and trace, runs the agent, and stores the result.
+* `Case`: moves to Under Investigation through its `CaseState`.
 * `AgentRunner`: executes the agent loop, enforcing the turn and cost limits.
-* `InvestigationTask`: supplies the system prompt and allowed tools, and parses the finding.
 * `LLMClient`: sends each request to the model (through the LangChain4j adapter and retry decorator).
 * `ToolRegistry`, `AgentTool`: validate and execute the tools the agent requests.
-* `AgentTrace`: records every step and notifies listeners.
-* `Case`: moves to Under Investigation through its `CaseState`.
+* `AgentTrace`, `AgentEventListener`: record every step and notify the listeners (Observer).
 * `AgentFinding`: the structured result.
+* `AuditLog`: a second listener, recording every step.
+
+**Also involved (not drawn):** `InvestigationTask` (the system prompt, the allowed tools and the
+finding format).
 
 **Important methods:** `CaseView.onInvestigate()`, `InvestigationService.investigate()`,
-`Case.startInvestigation()`, `AgentRunner.run()`, `LLMClient.chat()`, `ToolRegistry.execute()`,
-`AgentTool.execute()`, `AgentTrace.record()`, `InvestigationTask.parseFinding()`.
+`Case.startInvestigation()`, `AgentTrace.addListener()`, `AgentRunner.run()`, `LLMClient.chat()`,
+`ToolRegistry.execute()`, `AgentTool.execute()`, `AgentTrace.record()`,
+`AgentEventListener.onStep()`, `AgentTrace.finish()`, `InvestigationService.parseFinding()`,
+`Case.addFinding()`, `AgentRunner.cancel()`.
 
-**Execution:** `investigate()` loads the alert, creates or loads the case, starts the investigation,
-creates an `AgentTrace` with the view and the audit log as listeners, and calls `AgentRunner.run()`.
-In each turn the runner calls `chat()`; for every tool call it calls `ToolRegistry.execute()`, which
-validates arguments before running the tool, and records the step, which updates the view. When the
-model gives its final answer, `parseFinding()` builds the `AgentFinding`, which is verified (F05) and
-saved with the case.
+**Execution:** `investigate()` starts the investigation on the case, creates an `AgentTrace` with the
+view and the audit log as listeners, and calls `AgentRunner.run()`. In each turn the runner calls
+`chat()`; if the model is still failing after two retries, the failure is recorded and the loop ends.
+For every tool call it calls `ToolRegistry.execute()`, which validates the arguments before running the
+tool, and records the step, which updates the view through `onStep()`. When the loop ends,
+`finish()` notifies the listeners. For a completed run, `parseFinding()` builds the `AgentFinding`,
+which is verified (F05) and added to the case. `cancel()` stops a running investigation.
 
 ### F04: Indicator Retrieval and Case Memory
 
 **Related Use Cases:** UC05 Retrieve Indicators and Similar Cases, UC16 Search Knowledge Base
 
-**Related Sequence Diagrams:** SD04, SD10
+**Related Sequence Diagrams:** SD3, SD9
 
 **Classes involved:**
-* `SearchIndicatorsTool`, `SimilarCasesTool`: the agent's retrieval tools.
-* `Retriever`: retrieval interface; `EmbeddingRetriever` implements it with the local bge-small-en-v1.5 model.
-* `CaseMemory`: stores closed cases and finds similar ones.
+* `SearchIndicatorsTool`: the agent's indicator-retrieval tool.
+* `Retriever`: the retrieval interface (Strategy).
+* `ToolRegistry`: runs the tool when the agent requests it.
 * `AdminView`, `TraceWiseFacade`: the analyst's direct search.
 
-**Important methods:** `Retriever.search()`, `EmbeddingRetriever.index()`, `CaseMemory.similar()`,
-`CaseMemory.remember()`, `TraceWiseFacade.searchKnowledge()`.
+**Also involved (not drawn):** `EmbeddingRetriever` (implements `Retriever` with the local
+bge-small-en-v1.5 model), `SimilarCasesTool` and `CaseMemory` (closed cases and similar-case search).
 
-**Execution:** At start-up the indicator corpus is indexed with `index()`. During an investigation the
-agent calls `SearchIndicatorsTool`, which calls `search()` and returns the top passages above the
-minimum score. When a case is closed, `CloseCaseCommand` adds it to `CaseMemory` through
-`remember()`. The analyst's search calls `searchKnowledge()`, which combines `search()` and
-`similar()`.
+**Important methods:** `SearchIndicatorsTool.execute()`, `Retriever.search()`,
+`AdminView.onSearchKnowledge()`, `TraceWiseFacade.searchKnowledge()`.
+
+**Execution:** At start-up the indicator corpus is embedded and indexed. During an investigation the
+agent calls the `search_indicators` tool; `ToolRegistry` runs `SearchIndicatorsTool.execute()`, which
+calls `search()` and returns the top passages above the minimum score. When a case is closed it is
+added to the case memory, which the similar-cases tool searches. The analyst's search calls
+`searchKnowledge()`, which calls `search()` on the same retriever.
 
 ### F05: Claim Verification
 
 **Related Use Case:** UC06 Verify Agent Claims
 
-**Related Sequence Diagrams:** SD04, SD07
+**Related Sequence Diagrams:** SD3, SD6
 
 **Classes involved:**
 * `ClaimVerifier`: checks each claim.
 * `Ledger`: the source of truth for transactions.
-* `AgentFinding`, `Claim`: the claims to check.
-* `VerificationReport`, `ClaimCheck`: the per-claim results.
+* `AgentFinding`: holds the claims to check and the attached results.
+* `InvestigationService`, `AssistantService`: call the verifier after the agent finishes.
 
-**Important methods:** `ClaimVerifier.verify()`, `Ledger.findTransaction()`, `AgentFinding.claims()`,
-`AgentFinding.attachVerification()`, `VerificationReport.rejected()`.
+**Also involved (not drawn):** `Claim`, `VerificationReport` and `ClaimCheck` (the claims and the
+per-claim results).
 
-**Execution:** After the agent produces a finding or answer, `verify()` looks up each cited
-transaction with `findTransaction()`, compares amount (within $0.01), date and account, and checks
-totals. The resulting `VerificationReport` is attached to the finding. `ReportService` later uses
-`rejected()` to block finalisation while any rejected claim remains.
+**Important methods:** `ClaimVerifier.verify()`, `AgentFinding.claims()`, `Ledger.findTransaction()`,
+`AgentFinding.attachVerification()`.
+
+**Execution:** After the agent produces a finding or an answer, `verify()` looks up each cited
+transaction with `findTransaction()`, compares the amount (within $0.01, the verifier's
+`toleranceCad`), date and account, and checks totals. The resulting verification report is attached
+to the finding with `attachVerification()`. `ReportService` later blocks finalisation while any
+rejected claim remains (F11).
 
 ### F06: Agent Actions and Approval Queue
 
 **Related Use Cases:** UC04 Investigate Alert (step 5), UC08 Review Agent Proposals
 
-**Related Sequence Diagram:** SD05
+**Related Sequence Diagram:** SD5
 
 **Classes involved:**
-* `ActionTool` and subclasses (`SetPriorityTool`, `ProposeCloseTool`, `ProposeEscalationTool`, ...): turn the agent's request into a command (Factory Method).
-* `ActionCommand` and implementations (`CloseCaseCommand`, `SetPriorityCommand`, ...): each action as an object (Command).
+* `ActionTool` and its subclass `ProposeCloseTool`: turn the agent's request into a command (Factory Method).
+* `ActionCommand` and its implementation `CloseCaseCommand`: each action as an object (Command).
 * `CommandDispatcher`: the invoker; validates, applies the policy, executes or queues.
 * `PermissionPolicy`: decides the tier, independent of the agent.
 * `ApprovalQueue`, `PendingAction`: hold proposals until a person decides.
@@ -1958,144 +1950,164 @@ totals. The resulting `VerificationReport` is attached to the finding. `ReportSe
 * `Case`: changes state when a proposal is queued, approved or rejected.
 * `AuditLog`: records every action and decision.
 
+**Also involved (not drawn):** the other action tools (`SetPriorityTool`, `ProposeEscalationTool`,
+...) and their commands (`SetPriorityCommand`, `EscalateCaseCommand`, ...).
+
 **Important methods:** `ActionTool.execute()`, `ActionTool.createCommand()`,
 `CommandDispatcher.submit()`, `ActionCommand.validate()`, `PermissionPolicy.tierFor()`,
-`ApprovalQueue.enqueue()`, `ApprovalQueue.approve()`, `ApprovalQueue.reject()`,
-`ActionCommand.execute()`.
+`ApprovalQueue.enqueue()`, `Case.submitForApproval()`, `ApprovalQueue.approve()`,
+`ActionCommand.execute()`, `PendingAction.markApproved()`, `PendingAction.markExpired()`,
+`ApprovalQueue.reject()`, `Case.returnToInvestigation()`.
 
 **Execution:** When the agent calls an action tool, `createCommand()` builds the command and
 `submit()` validates it and asks `tierFor()`. An autonomous command is executed immediately; an
-approval-tier command is placed in the queue with `enqueue()`, and the case moves to Pending
-Approval. When the analyst approves, `approve()` re-validates the command and executes it (or marks
-it expired if the case has changed); `reject()` returns the case to Under Investigation.
+approval-tier command is placed in the queue with `enqueue()`, and the case moves to Pending Approval
+with `submitForApproval()`. When the analyst approves, `approve()` re-validates the command and
+executes it, or marks the proposal expired if the case has changed. When the analyst rejects,
+`reject()` records the reason and `returnToInvestigation()` returns the case to Under Investigation.
+Every outcome is logged.
 
 ### F07: Autonomous Queue Triage
 
 **Related Use Case:** UC07 Triage Alert Queue
 
-**Related Sequence Diagram:** SD06
+**Related Sequence Diagram:** SD4
 
 **Classes involved:**
 * `AlertsView`: starts and stops triage and shows progress (an `AgentEventListener`).
 * `TriageService`: selects alerts, enforces limits, and builds the report.
 * `AlertRepository`: supplies open alerts in risk order.
 * `InvestigationService`: investigates each alert (F03).
-* `TriageReport`: the summary.
 
-**Important methods:** `TraceWiseFacade.triage()`, `TriageService.triage()`, `AlertRepository.find()`,
-`InvestigationService.investigate()`, `TriageService.stop()`.
+**Also involved (not drawn):** `TriageLimits` and `TriageReport` (the limits and the summary).
+
+**Important methods:** `AlertsView.onTriage()`, `TraceWiseFacade.triage()`, `TriageService.triage()`,
+`AlertRepository.find()`, `InvestigationService.investigate()`, `AlertsView.onStopTriage()`,
+`TraceWiseFacade.stopTriage()`, `TriageService.stop()`.
 
 **Execution:** `triage()` loads the open alerts, then calls `investigate()` for each one in risk
-order, passing the view as listener so progress appears live. A failed investigation is counted and
-skipped; the loop ends when the cost or count limit is reached or `stop()` has been called. The
-`TriageReport` is created, logged and returned.
+order, passing the view as listener so progress appears live. A failed investigation leaves its
+alert open and is counted. Pressing Stop calls `stop()`, which sets `stopRequested`; the loop ends at
+the next alert, or when the cost or count limit is reached, and the (possibly partial) triage report
+is returned.
 
 ### F08: Case Management and Audit Trail
 
 **Related Use Cases:** UC09 Manage Case, UC10 Reopen Case, UC11 Review Audit Trail
 
-**Related Sequence Diagrams:** SD09, SD10
+**Related Sequence Diagrams:** SD8, SD9
 
 **Classes involved:**
 * `CaseView`: shows a case and accepts notes and reopen requests.
 * `CaseService`: loads cases and creates commands for changes.
-* `Case`, `CaseState` and its five concrete states: the lifecycle (State).
-* `AddNoteCommand`, `ReopenCaseCommand`, `CommandDispatcher`: changes as audited commands.
-* `AuditLog`, `AuditRepository`: append-only record and its queries.
+* `CommandDispatcher`, `ActionCommand`: changes as audited commands.
+* `Case`, `CaseState`, `ClosedState` and the four states named in the figure 3 note: the lifecycle (State).
+* `AuditLog`: the append-only record and its queries.
 * `AdminView`: the audit-log screen.
 
-**Important methods:** `CaseService.getCase()`, `CaseService.addNote()`, `CaseService.reopen()`,
-`Case.reopen()`, `CaseState.reopen()`, `Case.changeState()`, `AuditLog.append()`, `AuditLog.query()`.
+**Also involved (not drawn):** `AddNoteCommand`, `ReopenCaseCommand`, `AuditRepository`.
+
+**Important methods:** `CaseService.getCase()`, `CaseView.onAddNote()`, `CaseService.addNote()`,
+`CaseService.reopen()`, `Case.reopen()`, `CaseState.reopen()`, `Case.changeState()`,
+`AuditLog.append()`, `AuditLog.query()`.
 
 **Execution:** `getCase()` loads the case for display. A note or reopen request becomes a command
 submitted to the dispatcher, so it is validated, executed and logged in one place. `Case.reopen()`
-delegates to its current state: only `ClosedState` allows it and changes the state to `OpenState`;
-every other state throws `IllegalTransitionException`. `AuditLog.query()` serves the audit screen.
+delegates to its current state: only `ClosedState` allows it and calls `changeState()` to move the
+case to `OpenState`; every other state throws `IllegalTransitionException`. `AuditLog.query()` serves
+the audit screen.
 
 ### F09: Money-Flow Network View
 
 **Related Use Case:** UC12 Explore Money-Flow Network
 
-**Related Sequence Diagram:** SD10
+**Related Sequence Diagram:** SD9
 
 **Classes involved:**
 * `NetworkView`: renders the graph and accepts the hop depth and date range.
-* `NetworkService`: builds the graph, capped at 50 counterparties.
+* `NetworkService`: builds the graph, capped at `maxNodes` (50) counterparties.
 * `Ledger`: supplies transactions per account.
 * `CaseRepository`, `AgentTrace`: supply the accounts the agent examined.
-* `MoneyFlowGraph`, `AccountNode`, `FlowEdge`: the graph structure.
+
+**Also involved (not drawn):** `MoneyFlowGraph`, `AccountNode`, `FlowEdge` (the graph structure).
 
 **Important methods:** `NetworkView.onChangeScope()`, `TraceWiseFacade.buildNetwork()`,
-`NetworkService.build()`, `Ledger.transactionsFor()`, `AgentTrace.examinedAccounts()`,
-`NetworkView.render()`.
+`NetworkService.build()`, `Ledger.transactionsFor()`, `CaseRepository.findById()`,
+`AgentTrace.examinedAccounts()`, `NetworkView.render()`.
 
 **Execution:** `build()` collects counterparties hop by hop with `transactionsFor()`, aggregates the
-transfers between each pair into `FlowEdge`s, marks alerted accounts, and marks the accounts returned
-by `examinedAccounts()` from the case's latest trace. If there are more than 50 counterparties, the
-largest by total are kept. The view renders the `MoneyFlowGraph`.
+transfers between each pair into edges, marks alerted accounts, and marks the accounts returned by
+`examinedAccounts()` from the case's latest trace. If there are more than `maxNodes` counterparties,
+the largest by total are kept. The view renders the graph with `render()`.
 
 ### F10: Natural-Language Analyst Assistant
 
 **Related Use Case:** UC13 Ask the Assistant
 
-**Related Sequence Diagram:** SD07
+**Related Sequence Diagram:** SD6
 
 **Classes involved:**
-* `AssistantView` (GUI) and `AskCli` (CLI): accept the question.
+* `AskCli`: accepts the question from the CLI.
 * `CliCommandBase`: fixes the CLI steps, including the JSON output (Template Method).
 * `AssistantService`: runs the assistant agent and keeps the conversation.
-* `AssistantTask`: the assistant's prompt, tools and answer parsing.
-* `ConversationMemory`: session history.
 * `AgentRunner`, `ClaimVerifier`: the shared agent loop and verification.
-* `AssistantAnswer`: the answer with its trace and verification report.
 
-**Important methods:** `AskCli.execute()`, `CliCommandBase.call()`, `CliCommandBase.print()`,
-`TraceWiseFacade.ask()`, `AssistantService.ask()`, `ConversationMemory.recent()`,
-`AgentRunner.run()`, `AssistantTask.parseAnswer()`, `ClaimVerifier.verify()`.
+**Also involved (not drawn):** `AssistantView` (the GUI chat panel), `AssistantTask` (the
+assistant's prompt, tools and answer format), `ConversationMemory` (session history),
+`AssistantAnswer` (the answer with its claims, trace and verification report).
 
-**Execution:** `ask()` reads recent history, creates an `AssistantTask` and an `AgentTrace`, and calls
-`run()`, the same loop as F03 with read-only tools. `parseAnswer()` builds the `AssistantAnswer`, whose
-claims are verified before it is stored in `ConversationMemory`. From the CLI, `call()` runs
+**Important methods:** `CliCommandBase.call()`, `AskCli.execute()`, `TraceWiseFacade.ask()`,
+`AssistantService.ask()`, `AgentRunner.run()`, `ClaimVerifier.verify()`, `CliCommandBase.print()`.
+
+**Execution:** `AssistantService.ask()` reads recent history, creates the assistant task and an
+`AgentTrace`, and calls `run()`, the same loop as F03 with read-only tools. The answer's claims are
+verified with `verify()` before it is stored in the conversation. From the CLI, `call()` runs
 `execute()` and then `print()`, which with `--json` outputs the answer, every tool call and the
-verification results; this is the interface the Stage 3 KUMA harness uses.
+verification results, with exit code 0 on success; this is the interface the Stage 3 KUMA harness
+uses.
 
 ### F11: Suspicious Transaction Report Drafting and Export
 
 **Related Use Cases:** UC14 Draft and Finalise STR, UC15 Export Report
 
-**Related Sequence Diagram:** SD08
+**Related Sequence Diagram:** SD7 (finalisation approval as in SD5)
 
 **Classes involved:**
 * `CaseView`: the Report tab.
-* `ReportService`: drafts, saves, requests finalisation and exports.
-* `StrReport`: the report.
+* `ReportService`: drafts, requests finalisation and exports.
+* `CaseRepository`: supplies the case with its verified finding.
 * `LLMClient`: writes the narrative.
-* `SaveReportDraftCommand`, `EscalateCaseCommand`, `CommandDispatcher`, `ApprovalQueue`: save and finalise through audited commands and approval.
-* `ReportExporter` (`HtmlReportExporter`, `JsonReportExporter`): one exporter per format (Strategy).
+* `CommandDispatcher`, `ApprovalQueue`: finalisation through an audited command and approval.
+* `AuditLog`: records the export.
 
-**Important methods:** `ReportService.draft()`, `LLMClient.chat()`, `ReportService.save()`,
-`ReportService.requestFinalisation()`, `CommandDispatcher.submit()`, `ReportExporter.export()`,
-`StrReport.lock()`.
+**Also involved (not drawn):** `StrReport` (the report), `SaveReportDraftCommand` and
+`EscalateCaseCommand`, and `ReportExporter` with `HtmlReportExporter` and `JsonReportExporter` (one
+exporter per format, a Strategy).
 
-**Execution:** `draft()` loads the case's verified finding, creates an `StrReport` with the
-transactions filled in, and asks the model for the narrative. `save()` stores edits through a
-`SaveReportDraftCommand`. `requestFinalisation()` refuses while any claim is rejected or a required
-field is empty; otherwise it submits an `EscalateCaseCommand`, which the policy routes to the
-approval queue. On approval the case is escalated and the report locked. `export()` calls each
-selected `ReportExporter`.
+**Important methods:** `CaseView.onDraftReport()`, `ReportService.draft()`,
+`CaseRepository.findById()`, `LLMClient.chat()`, `ReportService.requestFinalisation()`,
+`CommandDispatcher.submit()`, `CaseView.onExport()`, `ReportService.export()`, `AuditLog.append()`.
+
+**Execution:** `draft()` loads the case's verified finding with `findById()`, fills in the
+transactions, and asks the model for the narrative with `chat()`. Edits are saved through a command.
+`requestFinalisation()` refuses while any claim is rejected or a required field is empty; otherwise it
+submits an escalation command, which the policy routes to the approval queue. On approval the case is
+escalated and the report locked. Only a finalised report can be exported: `export()` writes each
+selected format and logs the export.
 
 ### F12: Agent Performance Dashboard
 
 **Related Use Case:** UC17 View Agent Performance
 
-**Related Sequence Diagram:** SD10
+**Related Sequence Diagram:** SD9
 
 **Classes involved:**
-* `AdminView`: the Performance screen.
+* `AdminView`: the Performance screen, used by the Compliance Supervisor.
 * `PerformanceService`: computes the metrics.
 * `CaseRepository`: supplies findings, verification reports, traces and approval outcomes.
 * `Ledger`: supplies the laundering labels.
-* `PerformanceMetrics`: the result.
+
+**Also involved (not drawn):** `PerformanceMetrics` (the result).
 
 **Important methods:** `AdminView.onShowMetrics()`, `TraceWiseFacade.computeMetrics()`,
 `PerformanceService.compute()`, `CaseRepository.findAll()`, `Ledger.findTransaction()`.
@@ -2106,6 +2118,7 @@ with its label, and computes precision, recall, verification rate, turns, cost, 
 override rate and per-rule precision, each with its sample size.
 
 ---
+
 
 ## Sources (accessed 2026-10-03)
 

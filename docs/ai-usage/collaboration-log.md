@@ -54,3 +54,32 @@ each diagram be checked individually before moving on.
 
 **Outcome:** One use-case diagram, a main class diagram plus eight detailed views, and ten sequence
 diagrams, all generated from PlantUML sources in `docs/stage1/diagrams/src/`.
+
+---
+
+## Entry 4: Redrawing the UML in UMLet (2026-10-05 to 2026-10-06)
+
+**Task:** Redraw all Stage 1 UML in UMLet, the tool the course requires, without changing the design.
+
+**Input/Instruction:** Told Claude Code that the diagrams must be made in UMLet, that the design and
+scope must not change (only how much of it is drawn), that the PlantUML drafts stay in the repository,
+and that every diagram must again be checked individually as a PNG against the Task 2 requirements.
+
+**AI Contribution:** Wrote Python generators that produce UMLet `.uxf` files (a 52-class model drawn
+as four class-diagram figures with grey reference boxes, the use-case diagram, and nine sequence
+diagrams), exported them with UMLet itself, and inspected each PNG. Added automated checks: no UMLet
+parse errors, every sequence-diagram message is a method of the receiving class on the class
+diagram, and every message inside a combined fragment stays within the fragment's lifelines. The
+visual review and the checks caught errors it then fixed: rule configuration initiated by the wrong
+actor, a triage stop drawn after the triage had finished, export drawn as unconditional although it
+is an extension, approve and reject drawn as if both happened, a tool call routed through a class
+with no association to the retriever, and fragment frames that did not cover the lifelines they
+contained. Updated the report's Task 2, 3 and 4 to use only names on the UMLet diagrams.
+
+**Human Contribution:** Brought the UMLet requirement from the course. Rejected an attempt to shrink
+the design itself to make the diagrams smaller ("we are just changing the UML, not the actual
+structure of the project"), chose the four-figure split, and required the per-diagram checks.
+
+**Outcome:** The report now shows only UMLet diagrams (`docs/stage1/umlet/`), and the PDF is
+regenerated with `docs/stage1/build_pdf.py`. The PlantUML drafts remain in `docs/stage1/diagrams/`.
+
