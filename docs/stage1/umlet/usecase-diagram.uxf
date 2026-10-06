@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1">
+<zoom_level>10</zoom_level>
+<element><id>Text</id><coordinates><x>20</x><y>10</y><w>900</w><h>40</h></coordinates><panel_attributes>*TraceWise: Use-Case Diagram*
+fontsize=18</panel_attributes><additional_attributes/></element>
+<element><id>UMLGeneric</id><coordinates><x>340</x><y>60</y><w>420</w><h>1486</h></coordinates><panel_attributes>TraceWise
+halign=center
+valign=top
+layer=-1</panel_attributes><additional_attributes/></element>
+<element><id>UMLUseCase</id><coordinates><x>420</x><y>110</y><w>260</w><h>60</h></coordinates><panel_attributes>UC03 Configure
+Monitoring Rules</panel_attributes><additional_attributes/></element>
+<element><id>UMLUseCase</id><coordinates><x>420</x><y>196</y><w>260</w><h>60</h></coordinates><panel_attributes>UC17 View Agent
+Performance</panel_attributes><additional_attributes/></element>
+<element><id>UMLUseCase</id><coordinates><x>420</x><y>282</y><w>260</w><h>46</h></coordinates><panel_attributes>UC11 Review Audit Trail</panel_attributes><additional_attributes/></element>
+<element><id>UMLUseCase</id><coordinates><x>420</x><y>354</y><w>260</w><h>60</h></coordinates><panel_attributes>UC12 Explore
+Money-Flow Network</panel_attributes><additional_attributes/></element>
+<element><id>UMLUseCase</id><coordinates><x>420</x><y>440</y><w>260</w><h>46</h></coordinates><panel_attributes>UC01 Import Transactions</panel_attributes><additional_attributes/></element>
+<element><id>UMLUseCase</id><coordinates><x>420</x><y>512</y><w>260</w><h>60</h></coordinates><panel_attributes>UC02 Run Monitoring
+and Review Alerts</panel_attributes><additional_attributes/></element>
+<element><id>UMLUseCase</id><coordinates><x>420</x><y>598</y><w>260</w><h>46</h></coordinates><panel_attributes>UC08 Review Agent Proposals</panel_attributes><additional_attributes/></element>
+<element><id>UMLUseCase</id><coordinates><x>420</x><y>670</y><w>260</w><h>100</h></coordinates><panel_attributes>UC09 Manage Case
+--
+extension points:
+case closed
+valign=top</panel_attributes><additional_attributes/></element>
+<element><id>UMLUseCase</id><coordinates><x>420</x><y>796</y><w>260</w><h>46</h></coordinates><panel_attributes>UC10 Reopen Case</panel_attributes><additional_attributes/></element>
+<element><id>UMLUseCase</id><coordinates><x>420</x><y>868</y><w>260</w><h>60</h></coordinates><panel_attributes>UC16 Search
+Knowledge Base</panel_attributes><additional_attributes/></element>
+<element><id>UMLUseCase</id><coordinates><x>420</x><y>954</y><w>260</w><h>60</h></coordinates><panel_attributes>UC05 Retrieve Indicators
+and Similar Cases</panel_attributes><additional_attributes/></element>
+<element><id>UMLUseCase</id><coordinates><x>420</x><y>1040</y><w>260</w><h>46</h></coordinates><panel_attributes>UC07 Triage Alert Queue</panel_attributes><additional_attributes/></element>
+<element><id>UMLUseCase</id><coordinates><x>420</x><y>1112</y><w>260</w><h>46</h></coordinates><panel_attributes>UC04 Investigate Alert</panel_attributes><additional_attributes/></element>
+<element><id>UMLUseCase</id><coordinates><x>420</x><y>1184</y><w>260</w><h>46</h></coordinates><panel_attributes>UC06 Verify Agent Claims</panel_attributes><additional_attributes/></element>
+<element><id>UMLUseCase</id><coordinates><x>420</x><y>1256</y><w>260</w><h>46</h></coordinates><panel_attributes>UC13 Ask the Assistant</panel_attributes><additional_attributes/></element>
+<element><id>UMLUseCase</id><coordinates><x>420</x><y>1328</y><w>260</w><h>100</h></coordinates><panel_attributes>UC14 Draft and Finalise
+Suspicious Transaction Report
+--
+extension points:
+report finalised
+valign=top</panel_attributes><additional_attributes/></element>
+<element><id>UMLUseCase</id><coordinates><x>420</x><y>1454</y><w>260</w><h>46</h></coordinates><panel_attributes>UC15 Export Report</panel_attributes><additional_attributes/></element>
+<element><id>UMLActor</id><coordinates><x>90</x><y>150</y><w>80</w><h>120</h></coordinates><panel_attributes>Compliance
+Supervisor</panel_attributes><additional_attributes/></element>
+<element><id>UMLActor</id><coordinates><x>90</x><y>760</y><w>80</w><h>120</h></coordinates><panel_attributes>AML Analyst</panel_attributes><additional_attributes/></element>
+<element><id>UMLActor</id><coordinates><x>1010</x><y>800</y><w>80</w><h>120</h></coordinates><panel_attributes>Automation
+Client</panel_attributes><additional_attributes/></element>
+<element><id>UMLActor</id><coordinates><x>1010</x><y>1180</y><w>80</w><h>120</h></coordinates><panel_attributes>LLM Service
+(Anthropic
+Claude API)</panel_attributes><additional_attributes/></element>
+<element><id>Relation</id><coordinates><x>160</x><y>130</y><w>280</w><h>80</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10.0;60.0;260.0;10.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>160</x><y>180</y><w>280</w><h>66</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10.0;10.0;260.0;46.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>160</x><y>295</y><w>280</w><h>525</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10.0;505.0;260.0;10.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>160</x><y>374</y><w>280</w><h>446</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10.0;426.0;260.0;10.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>160</x><y>453</y><w>280</w><h>367</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10.0;347.0;260.0;10.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>160</x><y>532</y><w>280</w><h>288</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10.0;268.0;260.0;10.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>160</x><y>611</y><w>280</w><h>209</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10.0;189.0;260.0;10.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>160</x><y>710</y><w>280</w><h>110</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10.0;90.0;260.0;10.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>160</x><y>790</y><w>280</w><h>128</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10.0;10.0;260.0;108.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>160</x><y>790</y><w>280</w><h>293</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10.0;10.0;260.0;273.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>160</x><y>790</y><w>280</w><h>365</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10.0;10.0;260.0;345.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>160</x><y>790</y><w>280</w><h>509</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10.0;10.0;260.0;489.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>160</x><y>790</y><w>280</w><h>608</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10.0;10.0;260.0;588.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>670</x><y>830</y><w>360</w><h>253</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10.0;233.0;340.0;10.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>670</x><y>830</y><w>360</w><h>325</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10.0;305.0;340.0;10.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>670</x><y>830</y><w>360</w><h>469</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10.0;449.0;340.0;10.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>670</x><y>1125</y><w>360</w><h>115</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10.0;10.0;340.0;95.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>670</x><y>1210</y><w>360</w><h>89</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10.0;69.0;340.0;10.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>670</x><y>1210</y><w>360</w><h>188</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10.0;168.0;340.0;10.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>120</x><y>260</y><w>30</w><h>520</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10.0;500.0;10.0;10.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>540</x><y>918</y><w>30</w><h>56</h></coordinates><panel_attributes>lt=.&gt;
+&lt;&lt;include&gt;&gt;</panel_attributes><additional_attributes>10.0;10.0;10.0;36.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>540</x><y>1076</y><w>30</w><h>56</h></coordinates><panel_attributes>lt=.&gt;
+&lt;&lt;include&gt;&gt;</panel_attributes><additional_attributes>10.0;10.0;10.0;36.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>540</x><y>1148</y><w>30</w><h>56</h></coordinates><panel_attributes>lt=.&gt;
+&lt;&lt;include&gt;&gt;</panel_attributes><additional_attributes>10.0;10.0;10.0;36.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>540</x><y>1220</y><w>30</w><h>56</h></coordinates><panel_attributes>lt=.&gt;
+&lt;&lt;include&gt;&gt;</panel_attributes><additional_attributes>10.0;36.0;10.0;10.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>670</x><y>974</y><w>70</w><h>181</h></coordinates><panel_attributes>lt=.&gt;
+&lt;&lt;include&gt;&gt;</panel_attributes><additional_attributes>10.0;161.0;50.0;161.0;50.0;10.0;10.0;10.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>540</x><y>760</y><w>30</w><h>56</h></coordinates><panel_attributes>lt=.&gt;
+&lt;&lt;extend&gt;&gt;</panel_attributes><additional_attributes>10.0;36.0;10.0;10.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>540</x><y>1418</y><w>30</w><h>56</h></coordinates><panel_attributes>lt=.&gt;
+&lt;&lt;extend&gt;&gt;</panel_attributes><additional_attributes>10.0;36.0;10.0;10.0</additional_attributes></element>
+</diagram>
