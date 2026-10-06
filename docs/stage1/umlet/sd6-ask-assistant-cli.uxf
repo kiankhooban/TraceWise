@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1"><zoom_level>10</zoom_level><element><id>UMLSequenceAllInOne</id><coordinates><x>10</x><y>10</y><w>1050</w><h>1398</h></coordinates><panel_attributes>title=SD6: Ask the Assistant through the CLI JSON mode (UC13; F10; Stage 3 KUMA entry point)
+obj=Automation Client~ac ACTOR
+obj=:AskCli~cli
+obj=:TraceWiseFacade~f
+obj=:AssistantService~as
+obj=:AgentRunner~r
+obj=:ClaimVerifier~cv
+ac-&gt;&gt;&gt;cli : tracewise ask "question" --json
+tick=
+cli-&gt;cli + : call() (template method)
+tick=
+tick=
+cli-&gt;cli + : execute()
+tick=
+cli-&gt;&gt;&gt;f : ask(question, context)
+f-&gt;&gt;&gt;as : ask(question, context)
+as-&gt;&gt;&gt;r : run(task, trace)
+ref=as r :agent loop as in SD3
+r.&gt;as : outcome
+combinedFragment=alt~a1 as cv
+as:[outcome COMPLETED]
+tick=
+tick=
+as-&gt;as + : parse answer
+tick=
+as-&gt;&gt;&gt;cv : verify(answer.claims())
+cv.&gt;as : verificationReport
+as.&gt;f : answer with trace and verification
+..=a1
+as:[outcome FAILED]
+tick=
+as.&gt;f : error after retries
+--=a1
+f.&gt;cli : answer or error
+tick=
+cli-&gt;cli + : print(result) as JSON
+tick=
+cli.&gt;ac : JSON on stdout, exit code 0 or non-zero</panel_attributes><additional_attributes/></element></diagram>

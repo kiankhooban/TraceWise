@@ -8,7 +8,7 @@ bg=#FFFBE6</panel_attributes><additional_attributes/></element>
 <element><id>UMLPackage</id><coordinates><x>435</x><y>121</y><w>1341</w><h>984</h></coordinates><panel_attributes>Actions and approvals
 bg=#F7F9FC
 layer=-1</panel_attributes><additional_attributes/></element>
-<element><id>UMLPackage</id><coordinates><x>1538</x><y>1114</y><w>757</w><h>650</h></coordinates><panel_attributes>Domain and case lifecycle
+<element><id>UMLPackage</id><coordinates><x>1538</x><y>1114</y><w>757</w><h>660</h></coordinates><panel_attributes>Domain and case lifecycle
 bg=#F7F9FC
 layer=-1</panel_attributes><additional_attributes/></element>
 <element><id>UMLClass</id><coordinates><x>1306</x><y>748</y><w>290</w><h>160</h></coordinates><panel_attributes>&lt;&lt;interface&gt;&gt;
@@ -27,7 +27,7 @@ layer=-1</panel_attributes><additional_attributes/></element>
 --
 +validate(ctx: CommandContext)
 +execute(ctx: CommandContext)</panel_attributes><additional_attributes/></element>
-<element><id>UMLClass</id><coordinates><x>488</x><y>172</y><w>690</w><h>100</h></coordinates><panel_attributes>&lt;&lt;Command: invoker&gt;&gt;
+<element><id>UMLClass</id><coordinates><x>488</x><y>171</y><w>690</w><h>100</h></coordinates><panel_attributes>&lt;&lt;Command: invoker&gt;&gt;
 CommandDispatcher
 --
 
@@ -60,19 +60,20 @@ CommandDispatcher
 --
 +append(entry: AuditEntry)
 +query(filter: AuditFilter): List&lt;AuditEntry&gt;</panel_attributes><additional_attributes/></element>
-<element><id>UMLClass</id><coordinates><x>1644</x><y>1164</y><w>290</w><h>190</h></coordinates><panel_attributes>&lt;&lt;State: context&gt;&gt;
+<element><id>UMLClass</id><coordinates><x>1644</x><y>1164</y><w>290</w><h>200</h></coordinates><panel_attributes>&lt;&lt;State: context&gt;&gt;
 Case
 --
 -id: String
 --
 +startInvestigation()
 +submitForApproval()
++returnToInvestigation()
 +escalate()
 +close()
 +reopen(reason: String)
 +addFinding(finding: AgentFinding)
 ~changeState(next: CaseState)</panel_attributes><additional_attributes/></element>
-<element><id>UMLClass</id><coordinates><x>1989</x><y>1426</y><w>280</w><h>140</h></coordinates><panel_attributes>&lt;&lt;State&gt;&gt;
+<element><id>UMLClass</id><coordinates><x>1989</x><y>1436</y><w>280</w><h>140</h></coordinates><panel_attributes>&lt;&lt;State&gt;&gt;
 /CaseState/
 --
 
@@ -81,13 +82,13 @@ Case
 +close(c: Case)
 +reopen(c: Case, reason: String)
 /+status(): CaseStatus/</panel_attributes><additional_attributes/></element>
-<element><id>UMLClass</id><coordinates><x>1989</x><y>1638</y><w>280</w><h>100</h></coordinates><panel_attributes>ClosedState
+<element><id>UMLClass</id><coordinates><x>1989</x><y>1648</y><w>280</w><h>100</h></coordinates><panel_attributes>ClosedState
 --
 
 --
 +reopen(c: Case, reason: String)
 +status(): CaseStatus</panel_attributes><additional_attributes/></element>
-<element><id>UMLClass</id><coordinates><x>1564</x><y>1431</y><w>400</w><h>130</h></coordinates><panel_attributes>AgentFinding
+<element><id>UMLClass</id><coordinates><x>1564</x><y>1441</y><w>400</w><h>130</h></coordinates><panel_attributes>AgentFinding
 --
 -verdict: Verdict
 -confidence: double
@@ -110,59 +111,59 @@ bg=#E4E4E4</panel_attributes><additional_attributes/></element>
 bg=#E4E4E4</panel_attributes><additional_attributes/></element>
 <element><id>UMLClass</id><coordinates><x>385</x><y>55</y><w>130</w><h>40</h></coordinates><panel_attributes>ReportService
 bg=#E4E4E4</panel_attributes><additional_attributes/></element>
-<element><id>UMLClass</id><coordinates><x>269</x><y>197</y><w>140</w><h>50</h></coordinates><panel_attributes>&lt;&lt;Facade&gt;&gt;
+<element><id>UMLClass</id><coordinates><x>269</x><y>196</y><w>140</w><h>50</h></coordinates><panel_attributes>&lt;&lt;Facade&gt;&gt;
 TraceWiseFacade
 bg=#E4E4E4</panel_attributes><additional_attributes/></element>
-<element><id>UMLNote</id><coordinates><x>1983</x><y>1222</y><w>286</w><h>74</h></coordinates><panel_attributes>Other concrete states: OpenState,
+<element><id>UMLNote</id><coordinates><x>1983</x><y>1227</y><w>286</w><h>74</h></coordinates><panel_attributes>Other concrete states: OpenState,
 UnderInvestigationState,
 PendingApprovalState,
 EscalatedState
 bg=#FFFBE6</panel_attributes><additional_attributes/></element>
-<element><id>Relation</id><coordinates><x>372</x><y>237</y><w>273</w><h>127</h></coordinates><panel_attributes>lt=-&gt;
+<element><id>Relation</id><coordinates><x>371</x><y>236</y><w>274</w><h>128</h></coordinates><panel_attributes>lt=-&gt;
 m1=1
-m2=1</panel_attributes><additional_attributes>10.4;10.0;33.2;23.1;45.6;29.3;58.0;35.0;104.4;54.4;152.2;72.8;200.3;90.3;253.6;107.0</additional_attributes></element>
-<element><id>Relation</id><coordinates><x>341</x><y>237</y><w>238</w><h>344</h></coordinates><panel_attributes>lt=-&gt;
+m2=1</panel_attributes><additional_attributes>10.3;10.0;34.2;24.1;46.6;30.3;59.0;36.0;105.4;55.4;153.2;73.8;201.3;91.3;254.6;108.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>341</x><y>236</y><w>238</w><h>345</h></coordinates><panel_attributes>lt=-&gt;
 m1=1
-m2=1</panel_attributes><additional_attributes>10.8;10.0;33.9;54.9;46.2;80.9;58.0;107.0;70.8;144.4;77.8;175.1;87.4;204.2;108.0;237.0;130.9;262.1;156.7;285.0;184.2;305.5;218.2;324.0</additional_attributes></element>
+m2=1</panel_attributes><additional_attributes>10.6;10.0;33.9;55.9;46.2;81.9;58.0;108.0;70.8;145.4;77.8;176.1;87.4;205.2;108.0;238.0;130.9;263.1;156.7;286.0;184.2;306.5;218.2;325.0</additional_attributes></element>
 <element><id>Relation</id><coordinates><x>334</x><y>419</y><w>242</w><h>162</h></coordinates><panel_attributes>lt=-&gt;
 m1=1
 m2=1</panel_attributes><additional_attributes>10.9;10.0;39.0;32.5;54.9;44.1;71.0;55.0;108.0;78.2;146.3;100.8;184.3;122.1;222.1;142.0</additional_attributes></element>
 <element><id>Relation</id><coordinates><x>117</x><y>419</y><w>364</w><h>164</h></coordinates><panel_attributes>lt=-&gt;
 m1=1
 m2=1</panel_attributes><additional_attributes>10.5;10.0;42.4;33.2;62.0;44.8;82.0;55.0;146.5;82.4;213.5;106.8;280.4;128.3;344.0;144.3</additional_attributes></element>
-<element><id>Relation</id><coordinates><x>1832</x><y>1040</y><w>93</w><h>144</h></coordinates><panel_attributes>lt=.&gt;
-&lt;&lt;create&gt;&gt;</panel_attributes><additional_attributes>73.9;10.0;45.7;60.9;28.1;92.0;10.2;124.0</additional_attributes></element>
-<element><id>Relation</id><coordinates><x>749</x><y>85</y><w>75</w><h>107</h></coordinates><panel_attributes>lt=-&gt;
+<element><id>Relation</id><coordinates><x>1833</x><y>1040</y><w>93</w><h>144</h></coordinates><panel_attributes>lt=.&gt;
+&lt;&lt;create&gt;&gt;</panel_attributes><additional_attributes>73.1;10.0;45.6;60.7;28.4;91.9;10.9;124.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>749</x><y>85</y><w>75</w><h>106</h></coordinates><panel_attributes>lt=-&gt;
 m1=1
-m2=1</panel_attributes><additional_attributes>10.9;10.0;32.2;45.8;44.2;66.3;55.8;87.0</additional_attributes></element>
-<element><id>Relation</id><coordinates><x>492</x><y>85</y><w>231</w><h>107</h></coordinates><panel_attributes>lt=-&gt;
+m2=1</panel_attributes><additional_attributes>10.9;10.0;32.2;45.8;44.2;66.3;55.4;86.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>492</x><y>85</y><w>229</w><h>106</h></coordinates><panel_attributes>lt=-&gt;
 m1=1
-m2=1</panel_attributes><additional_attributes>10.3;10.0;104.2;46.0;158.2;66.4;211.6;87.0</additional_attributes></element>
+m2=1</panel_attributes><additional_attributes>10.3;10.0;104.2;46.0;158.2;66.4;209.7;86.0</additional_attributes></element>
 <element><id>Relation</id><coordinates><x>204</x><y>75</y><w>277</w><h>531</h></coordinates><panel_attributes>lt=-&gt;
 m1=1
-m2=1</panel_attributes><additional_attributes>181.0;10.4;105.5;22.5;74.0;33.2;54.0;46.5;23.8;117.9;10.3;221.3;14.9;325.5;39.0;399.0;83.0;444.9;136.8;479.3;196.4;503.8;257.0;511.6</additional_attributes></element>
-<element><id>Relation</id><coordinates><x>852</x><y>90</y><w>72</w><h>102</h></coordinates><panel_attributes>lt=-&gt;
+m2=1</panel_attributes><additional_attributes>181.0;10.4;105.5;22.5;74.0;33.2;54.0;46.4;23.8;117.8;10.3;221.3;14.9;325.5;39.0;399.0;83.0;444.9;136.8;479.3;196.4;503.8;257.0;511.6</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>853</x><y>90</y><w>71</w><h>101</h></coordinates><panel_attributes>lt=-&gt;
 m1=*
 m2=1
-dispatcher</panel_attributes><additional_attributes>52.0;10.0;32.9;44.2;21.8;63.0;10.6;82.0</additional_attributes></element>
+dispatcher</panel_attributes><additional_attributes>51.0;10.0;31.9;44.2;20.8;63.0;10.0;81.0</additional_attributes></element>
 <element><id>Relation</id><coordinates><x>343</x><y>838</y><w>998</w><h>204</h></coordinates><panel_attributes>lt=.&gt;
 &lt;&lt;create&gt;&gt;</panel_attributes><additional_attributes>10.8;10.0;42.6;42.1;63.9;57.6;87.0;70.0;259.0;114.6;502.0;147.9;760.0;170.9;978.0;184.1</additional_attributes></element>
 <element><id>Relation</id><coordinates><x>1441</x><y>898</y><w>30</w><h>102</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>10.0;10.0;10.0;47.0;10.0;64.9;10.0;82.0</additional_attributes></element>
-<element><id>Relation</id><coordinates><x>1168</x><y>244</y><w>623</w><h>524</h></coordinates><panel_attributes>lt=.&gt;
-&lt;&lt;use&gt;&gt;</panel_attributes><additional_attributes>10.0;10.2;365.0;43.4;498.7;69.7;568.0;100.0;603.8;202.3;565.3;311.5;483.3;415.8;378.3;504.0</additional_attributes></element>
-<element><id>Relation</id><coordinates><x>992</x><y>262</y><w>358</w><h>127</h></coordinates><panel_attributes>lt=-&gt;
+<element><id>Relation</id><coordinates><x>1168</x><y>243</y><w>623</w><h>525</h></coordinates><panel_attributes>lt=.&gt;
+&lt;&lt;use&gt;&gt;</panel_attributes><additional_attributes>10.0;10.7;365.0;44.4;498.7;70.7;568.0;101.0;603.8;203.3;565.3;312.5;483.3;416.8;378.3;505.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>990</x><y>261</y><w>360</w><h>128</h></coordinates><panel_attributes>lt=-&gt;
 m1=1
-m2=1</panel_attributes><additional_attributes>10.1;10.0;176.6;59.2;260.6;83.9;338.0;107.0</additional_attributes></element>
-<element><id>Relation</id><coordinates><x>823</x><y>262</y><w>30</w><h>102</h></coordinates><panel_attributes>lt=-&gt;
+m2=1</panel_attributes><additional_attributes>10.4;10.0;178.6;60.2;262.6;84.9;340.0;108.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>823</x><y>261</y><w>30</w><h>103</h></coordinates><panel_attributes>lt=-&gt;
 m1=1
-m2=1</panel_attributes><additional_attributes>10.6;10.0;11.0;45.3;11.0;63.6;10.8;82.0</additional_attributes></element>
-<element><id>Relation</id><coordinates><x>444</x><y>262</y><w>213</w><h>319</h></coordinates><panel_attributes>lt=-&gt;
+m2=1</panel_attributes><additional_attributes>10.6;10.0;11.0;46.3;11.0;64.6;10.8;83.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>444</x><y>261</y><w>215</w><h>320</h></coordinates><panel_attributes>lt=-&gt;
 m1=1
-m2=1</panel_attributes><additional_attributes>193.3;10.0;72.2;40.9;51.2;60.1;33.0;82.0;15.2;114.8;10.8;145.1;17.5;176.4;33.0;212.0;48.6;237.6;68.3;260.6;90.6;281.0;121.4;299.0</additional_attributes></element>
+m2=1</panel_attributes><additional_attributes>195.7;10.0;72.2;41.9;51.2;61.1;33.0;83.0;15.2;115.8;10.8;146.1;17.5;177.4;33.0;213.0;48.6;238.6;68.3;261.6;90.6;282.0;121.4;300.0</additional_attributes></element>
 <element><id>Relation</id><coordinates><x>972</x><y>464</y><w>195</w><h>102</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
 m1=1
 m2=0..*
-proposals</panel_attributes><additional_attributes>10.3;10.0;92.9;46.0;134.7;64.1;175.6;82.0</additional_attributes></element>
+proposals</panel_attributes><additional_attributes>10.3;10.0;92.9;46.0;134.7;64.0;175.6;82.0</additional_attributes></element>
 <element><id>Relation</id><coordinates><x>1332</x><y>666</y><w>81</w><h>102</h></coordinates><panel_attributes>lt=-&gt;
 m1=0..1
 m2=1
@@ -171,17 +172,17 @@ command</panel_attributes><additional_attributes>10.4;10.0;35.8;45.7;48.9;63.9;6
 m1=1
 m2=1</panel_attributes><additional_attributes>89.0;10.0;49.5;54.2;29.6;76.1;10.5;97.0</additional_attributes></element>
 <element><id>Relation</id><coordinates><x>1161</x><y>464</y><w>635</w><h>720</h></coordinates><panel_attributes>lt=.&gt;
-&lt;&lt;use&gt;&gt;</panel_attributes><additional_attributes>10.4;10.0;233.9;52.9;308.2;70.3;343.0;82.0;467.8;219.9;549.6;388.6;597.5;558.6;615.7;700.0</additional_attributes></element>
-<element><id>Relation</id><coordinates><x>1514</x><y>1070</y><w>154</w><h>114</h></coordinates><panel_attributes>lt=.&gt;
-&lt;&lt;use&gt;&gt;</panel_attributes><additional_attributes>10.4;10.0;70.1;50.6;102.4;72.3;134.4;94.0</additional_attributes></element>
-<element><id>Relation</id><coordinates><x>1760</x><y>1344</y><w>38</w><h>107</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+&lt;&lt;use&gt;&gt;</panel_attributes><additional_attributes>10.4;10.0;233.9;52.9;308.2;70.3;343.0;82.0;467.5;219.3;549.2;387.6;597.1;557.6;615.3;700.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>1512</x><y>1070</y><w>152</w><h>114</h></coordinates><panel_attributes>lt=.&gt;
+&lt;&lt;use&gt;&gt;</panel_attributes><additional_attributes>10.9;10.0;69.0;50.5;100.6;72.2;132.2;94.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>1760</x><y>1354</y><w>38</w><h>107</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
 m1=1
 m2=0..*
-findings</panel_attributes><additional_attributes>19.0;10.0;14.8;49.8;12.7;68.9;10.8;87.0</additional_attributes></element>
-<element><id>Relation</id><coordinates><x>1914</x><y>1344</y><w>134</w><h>102</h></coordinates><panel_attributes>lt=-&gt;
+findings</panel_attributes><additional_attributes>18.7;10.0;14.6;49.9;12.6;69.0;10.7;87.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>1919</x><y>1354</y><w>131</w><h>102</h></coordinates><panel_attributes>lt=-&gt;
 m1=1
 m2=1
-state</panel_attributes><additional_attributes>10.9;10.0;63.7;46.9;89.6;64.8;114.3;82.0</additional_attributes></element>
-<element><id>Relation</id><coordinates><x>2119</x><y>1556</y><w>30</w><h>102</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10.0;10.0;10.0;47.3;10.0;65.2;10.0;82.0</additional_attributes></element>
-<element><id>Relation</id><coordinates><x>2116</x><y>1286</y><w>32</w><h>160</h></coordinates><panel_attributes>lt=.</panel_attributes><additional_attributes>10.5;10.0;11.3;72.6;11.7;107.0;12.1;140.0</additional_attributes></element>
+state</panel_attributes><additional_attributes>10.1;10.0;62.0;47.1;87.3;64.9;111.4;82.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>2119</x><y>1566</y><w>30</w><h>102</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10.0;10.0;10.0;47.3;10.0;65.2;10.0;82.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>2116</x><y>1291</y><w>32</w><h>165</h></coordinates><panel_attributes>lt=.</panel_attributes><additional_attributes>10.5;10.0;11.2;75.0;11.7;110.8;12.1;145.0</additional_attributes></element>
 </diagram>

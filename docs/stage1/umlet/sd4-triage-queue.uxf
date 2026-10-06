@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1"><zoom_level>10</zoom_level><element><id>UMLSequenceAllInOne</id><coordinates><x>10</x><y>10</y><w>1050</w><h>1702</h></coordinates><panel_attributes>title=SD4: Triage Alert Queue (UC07; F07)
+obj=AML Analyst~a ACTOR
+obj=:AlertsView~v
+obj=:TraceWiseFacade~f
+obj=:TriageService~tg
+obj=:AlertRepository~ar
+obj=:InvestigationService~i
+a-&gt;&gt;&gt;v : onTriage(limits)
+v-&gt;&gt;&gt;f : triage(limits, listener)
+f-&gt;&gt;&gt;tg : triage(limits, listener)
+tg-&gt;&gt;&gt;ar : find(filter: open alerts by risk)
+ar.&gt;tg : alerts
+combinedFragment=break~b1 a tg
+a:[no open alerts]
+tick=
+tg.&gt;f : triageReport (nothing to triage)
+f.&gt;v : triageReport
+v.&gt;a : show "Nothing to triage"
+--=b1
+combinedFragment=loop~l1 tg i
+tg:[for each alert, while no limit reached and not stopped]
+tick=
+tg-&gt;&gt;&gt;i : investigate(alertId, listener)
+ref=tg i :see SD3 Investigate Alert
+i.&gt;tg : investigationResult
+combinedFragment=opt~o1 tg i
+tg:[investigation failed]
+tick=
+tick=
+tg-&gt;tg + : count as failed, alert stays open
+tick=
+--=o1
+combinedFragment=break~b2 tg i
+tg:[cost or alert-count limit reached]
+tick=
+tick=
+tg-&gt;tg + : stop cleanly
+tick=
+--=b2
+--=l1
+tg.&gt;f : triageReport
+f.&gt;v : triageReport
+v.&gt;a : show triage summary
+a-&gt;&gt;&gt;v : stop
+v-&gt;&gt;&gt;f : triage stop request
+f-&gt;&gt;&gt;tg : stop()</panel_attributes><additional_attributes/></element></diagram>

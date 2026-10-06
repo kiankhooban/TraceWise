@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1"><zoom_level>10</zoom_level><element><id>UMLSequenceAllInOne</id><coordinates><x>10</x><y>10</y><w>1575</w><h>1512</h></coordinates><panel_attributes>title=SD8: Manage and Reopen a Case (UC09, UC10; F08), showing the State pattern
+obj=AML Analyst~a ACTOR
+obj=:CaseView~v
+obj=:TraceWiseFacade~f
+obj=:CaseService~cs
+obj=:CommandDispatcher~d
+obj=cmd:ActionCommand~cmd
+obj=c:Case~c
+obj=s:ClosedState~s
+obj=:AuditLog~l
+a-&gt;&gt;&gt;v : showCase(caseId)
+v-&gt;&gt;&gt;f : getCase(caseId)
+f-&gt;&gt;&gt;cs : getCase(caseId)
+cs.&gt;f : case
+f.&gt;v : case
+a-&gt;&gt;&gt;v : add note
+v-&gt;&gt;&gt;f : addNote(caseId, text)
+f-&gt;&gt;&gt;cs : addNote(caseId, text)
+cs-&gt;&gt;&gt;d : submit(note command, analystActor, "")
+d-&gt;&gt;&gt;cmd : execute(ctx)
+d-&gt;&gt;&gt;l : append(entry)
+a-&gt;&gt;&gt;v : onReopen(reason)
+v-&gt;&gt;&gt;f : reopenCase(caseId, reason)
+f-&gt;&gt;&gt;cs : reopen(caseId, reason)
+cs-&gt;&gt;&gt;d : submit(reopen command, analystActor, reason)
+d-&gt;&gt;&gt;cmd : execute(ctx)
+cmd-&gt;&gt;&gt;c : reopen(reason)
+c-&gt;&gt;&gt;s : reopen(c, reason)
+combinedFragment=break~b1 a s
+a:[c is not in ClosedState]
+tick=
+s.&gt;c : IllegalTransitionException
+c.&gt;cmd : IllegalTransitionException
+d.&gt;cs : error
+cs.&gt;f : error
+f.&gt;v : error
+v.&gt;a : only a closed case can be reopened
+--=b1
+s-&gt;&gt;&gt;c : changeState(next: OpenState)
+d-&gt;&gt;&gt;l : append(entry: reopened with reason)
+d.&gt;cs : dispatchResult
+cs.&gt;f
+f.&gt;v
+v.&gt;a : case shown as Open</panel_attributes><additional_attributes/></element></diagram>

@@ -36,13 +36,20 @@ cls(UI, "CliCommandBase", ["<<Template Method>>", "/CliCommandBase/"], ["#json: 
 cls(UI, "AskCli", ["AskCli"], ["-question: String"], ["#execute(): Object"])
 
 cls(APP, "TraceWiseFacade", ["<<Facade>>", "TraceWiseFacade"], [], [
-    "+importTransactions(file: Path): ImportSummary", "+runMonitoring(): MonitoringSummary",
+    "+previewImport(file: Path): ImportPreview", "+importTransactions(file: Path): ImportSummary",
+    "+runMonitoring(): MonitoringSummary", "+listAlerts(filter: AlertFilter): List<Alert>",
     "+updateRule(ruleId: String, config: RuleConfig)",
     "+investigate(alertId: String, listener: AgentEventListener): InvestigationResult",
+    "+cancelInvestigation(alertId: String)",
     "+triage(limits: TriageLimits, listener: AgentEventListener): TriageReport",
     "+ask(question: String, context: AssistantContext): AssistantAnswer",
-    "+approve(pendingId: String, reviewer: Actor)", "+reopenCase(caseId: String, reason: String)",
-    "+draftReport(caseId: String): StrReport", "+buildNetwork(accountId: String, hops: int, range: DateRange, caseId: String): MoneyFlowGraph",
+    "+approve(pendingId: String, reviewer: Actor)", "+reject(pendingId: String, reviewer: Actor, reason: String)",
+    "+getCase(caseId: String): Case", "+addNote(caseId: String, text: String)", "+reopenCase(caseId: String, reason: String)",
+    "+draftReport(caseId: String): StrReport", "+requestFinalisation(caseId: String): PendingAction",
+    "+exportReport(caseId: String, formats: Set<ExportFormat>, dir: Path): List<Path>",
+    "+queryAudit(filter: AuditFilter): List<AuditEntry>",
+    "+buildNetwork(accountId: String, hops: int, range: DateRange, caseId: String): MoneyFlowGraph",
+    "+searchKnowledge(query: String): List<RetrievedPassage>",
     "+computeMetrics(filter: MetricsFilter): PerformanceMetrics", "..."])
 cls(APP, "ImportService", ["ImportService"], [], ["+preview(file: Path): ImportPreview", "+importFile(file: Path): ImportSummary"])
 cls(APP, "MonitoringService", ["MonitoringService"], [], ["+run(): MonitoringSummary", "+listAlerts(filter: AlertFilter): List<Alert>", "+updateRule(ruleId: String, config: RuleConfig)"])
@@ -82,7 +89,7 @@ cls(ACT, "ApprovalQueue", ["ApprovalQueue"], [], ["+enqueue(command: ActionComma
 cls(ACT, "PendingAction", ["PendingAction"], ["-id: String", "-status: ProposalStatus"], ["+markApproved(reviewer: Actor)", "+markRejected(reviewer: Actor, reason: String)", "+markExpired()"])
 cls(ACT, "AuditLog", ["AuditLog"], [], ["+append(entry: AuditEntry)", "+query(filter: AuditFilter): List<AuditEntry>"])
 
-cls(DOM, "Case", ["<<State: context>>", "Case"], ["-id: String"], ["+startInvestigation()", "+submitForApproval()", "+escalate()", "+close()", "+reopen(reason: String)", "+addFinding(finding: AgentFinding)", "~changeState(next: CaseState)"])
+cls(DOM, "Case", ["<<State: context>>", "Case"], ["-id: String"], ["+startInvestigation()", "+submitForApproval()", "+returnToInvestigation()", "+escalate()", "+close()", "+reopen(reason: String)", "+addFinding(finding: AgentFinding)", "~changeState(next: CaseState)"])
 cls(DOM, "CaseState", ["<<State>>", "/CaseState/"], [], ["+startInvestigation(c: Case)", "+close(c: Case)", "+reopen(c: Case, reason: String)", "/+status(): CaseStatus/"])
 cls(DOM, "ClosedState", ["ClosedState"], [], ["+reopen(c: Case, reason: String)", "+status(): CaseStatus"])
 cls(DOM, "Alert", ["Alert"], ["-id: String", "-ruleId: String", "-riskScore: int", "-status: AlertStatus"], [])

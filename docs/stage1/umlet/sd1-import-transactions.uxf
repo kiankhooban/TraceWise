@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1"><zoom_level>10</zoom_level><element><id>UMLSequenceAllInOne</id><coordinates><x>10</x><y>10</y><w>1050</w><h>1778</h></coordinates><panel_attributes>title=SD1: Import Transactions (UC01; F01)
+obj=AML Analyst~a ACTOR
+obj=:AlertsView~v
+obj=:TraceWiseFacade~f
+obj=:ImportService~i
+obj=:TransactionRepository~r
+obj=:AuditLog~l
+a-&gt;&gt;&gt;v : onImport(file)
+v-&gt;&gt;&gt;f : previewImport(file)
+f-&gt;&gt;&gt;i : preview(file)
+tick=
+i-&gt;i + : detect format from header
+tick=
+combinedFragment=break~b1 a i
+a:[no format matches]
+tick=
+i.&gt;f : error (expected columns listed)
+f.&gt;v : error
+v.&gt;a : import refused
+--=b1
+i.&gt;f : importPreview
+f.&gt;v : importPreview
+v.&gt;a : show preview
+a-&gt;&gt;&gt;v : confirm
+v-&gt;&gt;&gt;f : importTransactions(file)
+f-&gt;&gt;&gt;i : importFile(file)
+combinedFragment=loop~l1 i r
+i:[for each row]
+tick=
+tick=
+i-&gt;i + : parse, validate, convert to CAD
+tick=
+i-&gt;&gt;&gt;r : exists(id)
+r.&gt;i : true or false
+combinedFragment=opt~o1 i r
+i:[row invalid or duplicate ID]
+tick=
+tick=
+i-&gt;i + : record rejected row and reason
+tick=
+--=o1
+--=l1
+i-&gt;&gt;&gt;r : saveAll(transactions)
+r.&gt;i : saved in one database transaction
+i-&gt;&gt;&gt;l : append(entry)
+i.&gt;f : importSummary
+f.&gt;v : importSummary
+v.&gt;a : show import summary</panel_attributes><additional_attributes/></element></diagram>

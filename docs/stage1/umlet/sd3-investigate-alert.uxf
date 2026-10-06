@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1"><zoom_level>10</zoom_level><element><id>UMLSequenceAllInOne</id><coordinates><x>10</x><y>10</y><w>2100</w><h>3298</h></coordinates><panel_attributes>title=SD3: Investigate Alert (UC04, includes UC05 and UC06; F03, F04, F05)
+obj=AML Analyst~a ACTOR
+obj=:CaseView~v
+obj=:TraceWiseFacade~f
+obj=:InvestigationService~i
+obj=c:Case~c
+obj=trace:AgentTrace~t CREATED_LATER
+obj=:AgentRunner~r
+obj=:LLMClient~llm
+obj=:ToolRegistry~tr
+obj=:Retriever~ret
+obj=:ClaimVerifier~cv
+obj=:AuditLog~l
+a-&gt;&gt;&gt;v : onInvestigate(alertId)
+v-&gt;&gt;&gt;f : investigate(alertId, listener)
+f-&gt;&gt;&gt;i : investigate(alertId, listener)
+i-&gt;&gt;&gt;c : startInvestigation()
+i-&gt;&gt;&gt;t : create
+i-&gt;&gt;&gt;t : addListener(listener)
+i-&gt;&gt;&gt;t : addListener(auditLog)
+i-&gt;&gt;&gt;r : run(task, trace)
+combinedFragment=loop~l1 r ret
+r:[until final answer, turn limit (12) or cost limit]
+tick=
+r-&gt;&gt;&gt;llm : chat(request)
+llm.&gt;r : response
+combinedFragment=break~b1 r llm
+r:[LLM still failing after 2 retries]
+tick=
+tick=
+r-&gt;r + : outcome = FAILED
+tick=
+--=b1
+combinedFragment=loop~l2 r ret
+r:[for each tool call in the response]
+tick=
+r-&gt;&gt;&gt;tr : execute(call)
+combinedFragment=alt~a1 tr ret
+tr:[arguments valid]
+tick=
+tick=
+tr-&gt;tr + : run the requested AgentTool
+tick=
+combinedFragment=opt~o1 tr ret
+tr:[tool searches indicators (UC05)]
+tick=
+tr-&gt;&gt;&gt;ret : search(query, maxResults)
+ret.&gt;tr : passages
+--=o1
+..=a1
+tr:[arguments invalid]
+tick=
+tick=
+tr-&gt;tr + : reject, tool is not run
+tick=
+--=a1
+tr.&gt;r : toolResult (or validation error)
+r-&gt;&gt;&gt;t : record(step)
+t-&gt;&gt;&gt;v : onStep(step)
+t-&gt;&gt;&gt;l : onStep(step)
+--=l2
+--=l1
+r-&gt;&gt;&gt;t : finish(outcome)
+t-&gt;&gt;&gt;v : onFinished(outcome)
+t-&gt;&gt;&gt;l : onFinished(outcome)
+r.&gt;i : outcome
+combinedFragment=alt~a2 i cv
+i:[outcome COMPLETED or INCOMPLETE]
+tick=
+tick=
+i-&gt;i + : parse finding f
+tick=
+i-&gt;&gt;&gt;cv : verify(f.claims())
+tick=
+cv-&gt;cv + : check each claim against the Ledger
+tick=
+cv.&gt;i : verificationReport
+i-&gt;&gt;&gt;c : addFinding(f)
+..=a2
+i:[outcome FAILED or CANCELLED]
+tick=
+tick=
+i-&gt;i + : no finding, alert can be investigated again
+tick=
+--=a2
+i.&gt;f : investigationResult
+f.&gt;v : investigationResult
+tick=
+v-&gt;v + : showCase(caseId)
+tick=
+a-&gt;&gt;&gt;v : onCancel(alertId)
+v-&gt;&gt;&gt;f : cancelInvestigation(alertId)
+f-&gt;&gt;&gt;i : cancel(alertId)
+i-&gt;&gt;&gt;r : cancel()</panel_attributes><additional_attributes/></element></diagram>

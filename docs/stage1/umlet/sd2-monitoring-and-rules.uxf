@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1"><zoom_level>10</zoom_level><element><id>UMLSequenceAllInOne</id><coordinates><x>10</x><y>10</y><w>1575</w><h>2690</h></coordinates><panel_attributes>title=SD2: Run Monitoring and Configure Rules (UC02, UC03; F02)
+obj=AML Analyst~a ACTOR
+obj=:AlertsView~v
+obj=:AdminView~ad
+obj=:TraceWiseFacade~f
+obj=:MonitoringService~m
+obj=rule:WindowedRule~w
+obj=:Ledger~g
+obj=:AlertRepository~ar
+obj=:AuditLog~l
+a-&gt;&gt;&gt;v : onRunMonitoring()
+v-&gt;&gt;&gt;f : runMonitoring()
+f-&gt;&gt;&gt;m : run()
+combinedFragment=loop~l1 m ar
+m:[for each enabled DetectionRule]
+tick=
+m-&gt;&gt;&gt;w : evaluate(ledger)
+w-&gt;&gt;&gt;g : accounts()
+g.&gt;w : accounts
+tick=
+w-&gt;w + : candidates(ledger, account)
+tick=
+tick=
+w-&gt;w + : isMatch(window) for each window()
+tick=
+w.&gt;m : matches
+combinedFragment=alt~a1 m ar
+m:[kind() is THRESHOLD]
+tick=
+tick=
+m-&gt;m + : add to Threshold Report Register
+tick=
+..=a1
+m:[kind() is SUSPICION]
+tick=
+m-&gt;&gt;&gt;ar : hasOpenAlert(match)
+ar.&gt;m : openAlertExists
+combinedFragment=opt~o1 m ar
+m:[no open alert exists]
+tick=
+m-&gt;&gt;&gt;ar : save(alert)
+--=o1
+--=a1
+--=l1
+m-&gt;&gt;&gt;l : append(entry)
+m.&gt;f : monitoringSummary
+f.&gt;v : monitoringSummary
+v-&gt;&gt;&gt;f : listAlerts(filter)
+f-&gt;&gt;&gt;m : listAlerts(filter)
+m-&gt;&gt;&gt;ar : find(filter)
+ar.&gt;m : alerts
+m.&gt;f : alerts
+f.&gt;v : alerts
+v.&gt;a : show summary and alert queue
+a-&gt;&gt;&gt;ad : onSaveRule(ruleId, config)
+ad-&gt;&gt;&gt;f : updateRule(ruleId, config)
+f-&gt;&gt;&gt;m : updateRule(ruleId, config)
+tick=
+m-&gt;m + : config.validate()
+tick=
+combinedFragment=alt~a2 ad l
+ad:[configuration valid]
+tick=
+m-&gt;&gt;&gt;w : configure(config)
+m-&gt;&gt;&gt;l : append(entry with old and new values)
+m.&gt;f
+f.&gt;ad
+ad.&gt;a : rule updated
+..=a2
+ad:[configuration invalid]
+tick=
+m.&gt;f : InvalidConfigurationException
+f.&gt;ad : error
+ad.&gt;a : show reason, previous configuration stays
+--=a2</panel_attributes><additional_attributes/></element></diagram>
