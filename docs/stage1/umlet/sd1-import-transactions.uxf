@@ -10,7 +10,7 @@ a-&gt;&gt;&gt;v : onImport(file)
 v-&gt;&gt;&gt;f : previewImport(file)
 f-&gt;&gt;&gt;i : preview(file)
 tick=
-i-&gt;i + : detect format from header
+i-&gt;i + : detectFormat(header)
 tick=
 combinedFragment=break~b1 a i
 a:[no format matches]
@@ -22,14 +22,14 @@ v.&gt;a : import refused
 i.&gt;f : importPreview
 f.&gt;v : importPreview
 v.&gt;a : show preview
-a-&gt;&gt;&gt;v : confirm
+a-&gt;&gt;&gt;v : onConfirmImport()
 v-&gt;&gt;&gt;f : importTransactions(file)
 f-&gt;&gt;&gt;i : importFile(file)
 combinedFragment=loop~l1 i r
 i:[for each row]
 tick=
 tick=
-i-&gt;i + : parse, validate, convert to CAD
+i-&gt;i + : parseRow(row)
 tick=
 i-&gt;&gt;&gt;r : exists(id)
 r.&gt;i : true or false
@@ -37,7 +37,7 @@ combinedFragment=opt~o1 i r
 i:[row invalid or duplicate ID]
 tick=
 tick=
-i-&gt;i + : record rejected row and reason
+i-&gt;i + : rejectRow(rowNumber, reason)
 tick=
 --=o1
 --=l1

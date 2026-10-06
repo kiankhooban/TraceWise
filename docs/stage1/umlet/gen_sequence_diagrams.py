@@ -22,7 +22,7 @@ obj=:AuditLog~l
 a->>>v : onImport(file)
 v->>>f : previewImport(file)
 f->>>i : preview(file)
-i->i + : detect format from header
+i->i + : detectFormat(header)
 combinedFragment=break~b1 a i; i:[no format matches]
 i.>f : error (expected columns listed)
 f.>v : error
@@ -31,15 +31,15 @@ v.>a : import refused
 i.>f : importPreview
 f.>v : importPreview
 v.>a : show preview
-a->>>v : confirm
+a->>>v : onConfirmImport()
 v->>>f : importTransactions(file)
 f->>>i : importFile(file)
 combinedFragment=loop~l1 i r; i:[for each row]
-i->i + : parse, validate, convert to CAD
+i->i + : parseRow(row)
 i->>>r : exists(id)
 r.>i : true or false
 combinedFragment=opt~o1 i r; i:[row invalid or duplicate ID]
-i->i + : record rejected row and reason
+i->i + : rejectRow(rowNumber, reason)
 --=o1
 --=l1
 i->>>r : saveAll(transactions)
@@ -53,6 +53,7 @@ v.>a : show import summary
 SD["sd2-monitoring-and-rules"] = """title=SD2: Run Monitoring and Configure Rules (UC02, UC03; F02)
 obj=AML Analyst~a ACTOR
 obj=:AlertsView~v
+obj=Compliance Supervisor~s ACTOR
 obj=:AdminView~ad
 obj=:TraceWiseFacade~f
 obj=:MonitoringService~m
@@ -63,7 +64,7 @@ obj=:AuditLog~l
 a->>>v : onRunMonitoring()
 v->>>f : runMonitoring()
 f->>>m : run()
-combinedFragment=loop~l1 m ar; m:[for each enabled DetectionRule]
+combinedFragment=loop~l1 m ar; m:[for each enabled rule]
 m->>>w : evaluate(ledger)
 w->>>g : accounts()
 g.>w : accounts
@@ -71,7 +72,7 @@ w->w + : candidates(ledger, account)
 w->w + : isMatch(window) for each window()
 w.>m : matches
 combinedFragment=alt~a1 m ar; m:[kind() is THRESHOLD]
-m->m + : add to Threshold Report Register
+m->m + : recordThreshold(match)
 ..=a1; m:[kind() is SUSPICION]
 m->>>ar : hasOpenAlert(match)
 ar.>m : openAlertExists
@@ -90,20 +91,21 @@ ar.>m : alerts
 m.>f : alerts
 f.>v : alerts
 v.>a : show summary and alert queue
-a->>>ad : onSaveRule(ruleId, config)
+s->>>ad : onSaveRule(ruleId, config)
 ad->>>f : updateRule(ruleId, config)
 f->>>m : updateRule(ruleId, config)
-m->m + : config.validate()
-combinedFragment=alt~a2 ad l; m:[configuration valid]
 m->>>w : configure(config)
+combinedFragment=alt~a2 s l; m:[configuration valid]
+w.>m
 m->>>l : append(entry with old and new values)
 m.>f
 f.>ad
-ad.>a : rule updated
+ad.>s : rule updated
 ..=a2; m:[configuration invalid]
+w.>m : InvalidConfigurationException
 m.>f : InvalidConfigurationException
 f.>ad : error
-ad.>a : show reason; previous configuration stays
+ad.>s : show reason; previous configuration stays
 --=a2
 """
 
@@ -117,6 +119,7 @@ obj=trace:AgentTrace~t CREATED_LATER
 obj=:AgentRunner~r
 obj=:LLMClient~llm
 obj=:ToolRegistry~tr
+obj=tool:SearchIndicatorsTool~tool
 obj=:Retriever~ret
 obj=:ClaimVerifier~cv
 obj=:AuditLog~l
@@ -128,24 +131,26 @@ i->>>t : create
 i->>>t : addListener(listener)
 i->>>t : addListener(auditLog)
 i->>>r : run(task, trace)
-combinedFragment=loop~l1 r ret; r:[until final answer, turn limit (12) or cost limit]
+combinedFragment=loop~l1 v l; r:[until final answer, turn limit (12) or cost limit]
 r->>>llm : chat(request)
 llm.>r : response
-combinedFragment=break~b1 r llm; r:[LLM still failing after 2 retries]
-r->r + : outcome = FAILED
+combinedFragment=break~b1 t llm; r:[LLM still failing after 2 retries]
+r->>>t : record(step: LLM failure, outcome FAILED)
 --=b1
-combinedFragment=loop~l2 r ret; r:[for each tool call in the response]
+combinedFragment=loop~l2 v l; r:[for each tool call in the response]
 r->>>tr : execute(call)
-combinedFragment=alt~a1 tr ret; tr:[arguments valid]
-tr->tr + : run the requested AgentTool
-combinedFragment=opt~o1 tr ret; tr:[tool searches indicators (UC05)]
-tr->>>ret : search(query, maxResults)
-ret.>tr : passages
---=o1
-..=a1; tr:[arguments invalid]
-tr->tr + : reject; tool is not run
+combinedFragment=alt~a1 r ret; r:[arguments valid, tool is search_indicators (UC05)]
+tr->>>tool : execute(args)
+tool->>>ret : search(query, maxResults)
+ret.>tool : passages
+tool.>tr : toolResult
+tr.>r : toolResult
+..=a1; r:[arguments valid, tool is an ActionTool]
+ref=tr ret :see SD5 Agent Action and Approval
+tr.>r : toolResult (action executed or queued)
+..=a1; r:[arguments invalid]
+tr.>r : validation error, tool is not run
 --=a1
-tr.>r : toolResult (or validation error)
 r->>>t : record(step)
 t->>>v : onStep(step)
 t->>>l : onStep(step)
@@ -155,16 +160,13 @@ r->>>t : finish(outcome)
 t->>>v : onFinished(outcome)
 t->>>l : onFinished(outcome)
 r.>i : outcome
-combinedFragment=alt~a2 i cv; i:[outcome COMPLETED or INCOMPLETE]
-i->i + : parse finding f
-i->>>cv : verify(f.claims())
-cv->cv + : check each claim against the Ledger
-cv.>i : verificationReport
-i->>>c : addFinding(f)
-..=a2; i:[outcome FAILED or CANCELLED]
-i->i + : no finding; alert can be investigated again
---=a2
-i.>f : investigationResult
+combinedFragment=opt~o2 i cv; i:[outcome COMPLETED or INCOMPLETE]
+i->i + : parseFinding(outcome): finding
+i->>>cv : verify(finding.claims())
+cv.>i : verificationReport (each claim checked against the Ledger)
+i->>>c : addFinding(finding)
+--=o2
+i.>f : investigationResult (no finding if FAILED or CANCELLED)
 f.>v : investigationResult
 v->v + : showCase(caseId)
 a->>>v : onCancel(alertId)
@@ -190,23 +192,24 @@ tg.>f : triageReport (nothing to triage)
 f.>v : triageReport
 v.>a : show "Nothing to triage"
 --=b1
-combinedFragment=loop~l1 tg i; tg:[for each alert, while no limit reached and not stopped]
+combinedFragment=loop~l1 a i; tg:[for each alert in risk order]
 tg->>>i : investigate(alertId, listener)
 ref=tg i :see SD3 Investigate Alert
-i.>tg : investigationResult
-combinedFragment=opt~o1 tg i; tg:[investigation failed]
-tg->tg + : count as failed; alert stays open
+i.>tg : investigationResult (a FAILED result leaves the alert open)
+combinedFragment=opt~o1 a i; a:[Analyst presses Stop]
+a->>>v : onStopTriage()
+v->>>f : stopTriage()
+f->>>tg : stop()
 --=o1
-combinedFragment=break~b2 tg i; tg:[cost or alert-count limit reached]
-tg->tg + : stop cleanly
+combinedFragment=break~b2 a i; tg:[stopRequested, or cost or alert-count limit reached]
+tg.>f : partial triageReport
+f.>v : triageReport
+v.>a : show partial triage summary
 --=b2
 --=l1
 tg.>f : triageReport
 f.>v : triageReport
 v.>a : show triage summary
-a->>>v : stop
-v->>>f : triage stop request
-f->>>tg : stop()
 """
 
 SD["sd5-action-and-approval"] = """title=SD5: Agent Action and Approval (UC04 step 5, UC08; F06)
@@ -229,7 +232,7 @@ pt->>>d : submit(cmd, agentActor, justification)
 d->>>cmd : validate(ctx)
 d->>>pp : tierFor(cmd, agentActor)
 pp.>d : REQUIRES_APPROVAL
-combinedFragment=alt~a1 d l; d:[tier is AUTONOMOUS]
+combinedFragment=alt~a1 cmd l; d:[tier is AUTONOMOUS]
 d->>>cmd : execute(ctx)
 d->>>l : append(entry: executed by agent)
 ..=a1; d:[tier is REQUIRES_APPROVAL]
@@ -241,14 +244,14 @@ d->>>l : append(entry: proposed by agent)
 --=a1
 d.>pt : dispatchResult
 pt.>tr : toolResult (proposal queued)
+combinedFragment=alt~a3 a l; a:[Analyst approves]
 a->>>av : onApprove(pendingId)
 av->>>f : approve(pendingId, analystActor)
 f->>>q : approve(pendingId, analystActor)
 q->>>cmd : validate(ctx)
-combinedFragment=alt~a2 q l; q:[case state still allows the action]
+combinedFragment=alt~a2 cmd l; q:[case state still allows the action]
 q->>>cmd : execute(ctx)
 cmd->>>c : close()
-c->c + : CaseState.close(c) changes state to ClosedState
 q->>>p : markApproved(analystActor)
 q->>>l : append(entry: approved and executed)
 ..=a2; q:[case has changed since the proposal]
@@ -257,13 +260,17 @@ q->>>l : append(entry: proposal expired)
 --=a2
 q.>f
 f.>av
-av->av + : refresh()
+..=a3; a:[Analyst rejects]
 a->>>av : onReject(pendingId, reason)
 av->>>f : reject(pendingId, analystActor, reason)
 f->>>q : reject(pendingId, analystActor, reason)
 q->>>p : markRejected(analystActor, reason)
 q->>>c : returnToInvestigation()
 q->>>l : append(entry: rejected with reason)
+q.>f
+f.>av
+--=a3
+av->av + : refresh()
 """
 
 SD["sd6-ask-assistant-cli"] = """title=SD6: Ask the Assistant through the CLI JSON mode (UC13; F10; Stage 3 KUMA entry point)
@@ -273,24 +280,22 @@ obj=:TraceWiseFacade~f
 obj=:AssistantService~as
 obj=:AgentRunner~r
 obj=:ClaimVerifier~cv
-ac->>>cli : tracewise ask "question" --json
-cli->cli + : call() (template method)
+ac->>>cli : call() from tracewise ask --json
 cli->cli + : execute()
 cli->>>f : ask(question, context)
 f->>>as : ask(question, context)
 as->>>r : run(task, trace)
 ref=as r :agent loop as in SD3
 r.>as : outcome
-combinedFragment=alt~a1 as cv; as:[outcome COMPLETED]
-as->as + : parse answer
-as->>>cv : verify(answer.claims())
+combinedFragment=alt~a1 f cv; as:[outcome COMPLETED]
+as->>>cv : verify(claims)
 cv.>as : verificationReport
-as.>f : answer with trace and verification
+as.>f : answer with claims, trace and verificationReport
 ..=a1; as:[outcome FAILED]
 as.>f : error after retries
 --=a1
 f.>cli : answer or error
-cli->cli + : print(result) as JSON
+cli->cli + : print(result)
 cli.>ac : JSON on stdout; exit code 0 or non-zero
 """
 
@@ -303,7 +308,7 @@ obj=:CaseRepository~cr
 obj=:LLMClient~llm
 obj=:CommandDispatcher~d
 obj=:AuditLog~l
-a->>>v : open Report tab
+a->>>v : onDraftReport()
 v->>>f : draftReport(caseId)
 f->>>rs : draft(caseId)
 rs->>>cr : findById(caseId)
@@ -327,14 +332,15 @@ rs.>f : pendingAction
 f.>v : pendingAction
 v.>a : awaiting approval
 --=a1
+combinedFragment=opt~o1 a l; a:[report finalised after approval (extension point of UC14)]
 a->>>v : onExport(formats, dir)
 v->>>f : exportReport(caseId, formats, dir)
 f->>>rs : export(caseId, formats, dir)
-rs->rs + : write HTML and JSON files
 rs->>>l : append(entry: report exported)
-rs.>f : paths
+rs.>f : paths of the HTML and JSON files
 f.>v : paths
 v.>a : show file paths
+--=o1
 """
 
 SD["sd8-manage-reopen-case"] = """title=SD8: Manage and Reopen a Case (UC09, UC10; F08), showing the State pattern
@@ -352,7 +358,7 @@ v->>>f : getCase(caseId)
 f->>>cs : getCase(caseId)
 cs.>f : case
 f.>v : case
-a->>>v : add note
+a->>>v : onAddNote(text)
 v->>>f : addNote(caseId, text)
 f->>>cs : addNote(caseId, text)
 cs->>>d : submit(note command, analystActor, "")
@@ -382,8 +388,9 @@ v.>a : case shown as Open
 """
 
 SD["sd9-read-only-views"] = """title=SD9: Read-Only Views (UC11, UC12, UC16 including UC05, UC17; F08, F09, F04, F12)
-obj=AML Analyst or Supervisor~u ACTOR
+obj=AML Analyst~u ACTOR
 obj=:AdminView~ad
+obj=Compliance Supervisor~s ACTOR
 obj=:NetworkView~nv
 obj=:TraceWiseFacade~f
 obj=:AuditLog~l
@@ -397,6 +404,7 @@ ad->>>f : queryAudit(filter)
 f->>>l : query(filter)
 l.>f : entries
 f.>ad : entries
+ad.>u : show audit entries
 u->>>nv : onChangeScope(hops, range)
 nv->>>f : buildNetwork(accountId, hops, range, caseId)
 f->>>ns : build(accountId, hops, range, caseId)
@@ -405,11 +413,8 @@ ns->>>g : transactionsFor(accountId, range)
 g.>ns : transactions
 --=l1
 ns->>>cr : findById(caseId)
-cr.>ns : case (latest trace gives examinedAccounts())
-combinedFragment=opt~o1 ns cr; ns:[more than 50 counterparties]
-ns->ns + : keep the 50 largest
---=o1
-ns.>f : moneyFlowGraph
+cr.>ns : case (accounts the agent examined)
+ns.>f : moneyFlowGraph (at most maxNodes counterparties)
 f.>nv : moneyFlowGraph
 nv->nv + : render(graph)
 u->>>ad : onSearchKnowledge(query)
@@ -417,7 +422,8 @@ ad->>>f : searchKnowledge(query)
 f->>>ret : search(query, maxResults)
 ret.>f : passages
 f.>ad : passages
-u->>>ad : onShowMetrics(filter)
+ad.>u : show passages
+s->>>ad : onShowMetrics(filter)
 ad->>>f : computeMetrics(filter)
 f->>>ps : compute(filter)
 ps->>>cr : findAll()
@@ -428,6 +434,7 @@ g.>ps : transaction
 --=l2
 ps.>f : performanceMetrics
 f.>ad : performanceMetrics
+ad.>s : show metrics dashboard
 """
 
 import re

@@ -14,7 +14,7 @@ v-&gt;&gt;&gt;f : getCase(caseId)
 f-&gt;&gt;&gt;cs : getCase(caseId)
 cs.&gt;f : case
 f.&gt;v : case
-a-&gt;&gt;&gt;v : add note
+a-&gt;&gt;&gt;v : onAddNote(text)
 v-&gt;&gt;&gt;f : addNote(caseId, text)
 f-&gt;&gt;&gt;cs : addNote(caseId, text)
 cs-&gt;&gt;&gt;d : submit(note command, analystActor, "")

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<diagram program="umlet" version="15.1"><zoom_level>10</zoom_level><element><id>UMLSequenceAllInOne</id><coordinates><x>10</x><y>10</y><w>1400</w><h>1664</h></coordinates><panel_attributes>title=SD7: Draft, Finalise and Export a Suspicious Transaction Report (UC14, UC15; F11)
+<diagram program="umlet" version="15.1"><zoom_level>10</zoom_level><element><id>UMLSequenceAllInOne</id><coordinates><x>10</x><y>10</y><w>1400</w><h>1702</h></coordinates><panel_attributes>title=SD7: Draft, Finalise and Export a Suspicious Transaction Report (UC14, UC15; F11)
 obj=AML Analyst~a ACTOR
 obj=:CaseView~v
 obj=:TraceWiseFacade~f
@@ -8,7 +8,7 @@ obj=:CaseRepository~cr
 obj=:LLMClient~llm
 obj=:CommandDispatcher~d
 obj=:AuditLog~l
-a-&gt;&gt;&gt;v : open Report tab
+a-&gt;&gt;&gt;v : onDraftReport()
 v-&gt;&gt;&gt;f : draftReport(caseId)
 f-&gt;&gt;&gt;rs : draft(caseId)
 rs-&gt;&gt;&gt;cr : findById(caseId)
@@ -36,13 +36,14 @@ rs.&gt;f : pendingAction
 f.&gt;v : pendingAction
 v.&gt;a : awaiting approval
 --=a1
+combinedFragment=opt~o1 a l
+a:[report finalised after approval (extension point of UC14)]
+tick=
 a-&gt;&gt;&gt;v : onExport(formats, dir)
 v-&gt;&gt;&gt;f : exportReport(caseId, formats, dir)
 f-&gt;&gt;&gt;rs : export(caseId, formats, dir)
-tick=
-rs-&gt;rs + : write HTML and JSON files
-tick=
 rs-&gt;&gt;&gt;l : append(entry: report exported)
-rs.&gt;f : paths
+rs.&gt;f : paths of the HTML and JSON files
 f.&gt;v : paths
-v.&gt;a : show file paths</panel_attributes><additional_attributes/></element></diagram>
+v.&gt;a : show file paths
+--=o1</panel_attributes><additional_attributes/></element></diagram>

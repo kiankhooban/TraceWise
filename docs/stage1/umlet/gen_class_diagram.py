@@ -27,8 +27,8 @@ def cls(pkg, name, header, attrs=(), methods=()):
 UI, APP, RULES, AGENT, LLM, ACT, DOM, PER = ("Presentation (GUI and CLI)", "Application", "Monitoring rules",
     "Agent", "LLM access", "Actions and approvals", "Domain and case lifecycle", "Persistence")
 
-cls(UI, "AlertsView", ["<<boundary>>", "AlertsView"], [], ["+onImport(file: Path)", "+onRunMonitoring()", "+onFilter(filter: AlertFilter)", "+onTriage(limits: TriageLimits)"])
-cls(UI, "CaseView", ["<<boundary>>", "CaseView"], [], ["+showCase(caseId: String)", "+onInvestigate(alertId: String)", "+onCancel(alertId: String)", "+onReopen(reason: String)", "+onRequestFinalisation()", "+onExport(formats: Set<ExportFormat>, dir: Path)"])
+cls(UI, "AlertsView", ["<<boundary>>", "AlertsView"], [], ["+onImport(file: Path)", "+onRunMonitoring()", "+onFilter(filter: AlertFilter)", "+onConfirmImport()", "+onTriage(limits: TriageLimits)", "+onStopTriage()"])
+cls(UI, "CaseView", ["<<boundary>>", "CaseView"], [], ["+showCase(caseId: String)", "+onInvestigate(alertId: String)", "+onCancel(alertId: String)", "+onAddNote(text: String)", "+onReopen(reason: String)", "+onDraftReport()", "+onRequestFinalisation()", "+onExport(formats: Set<ExportFormat>, dir: Path)"])
 cls(UI, "NetworkView", ["<<boundary>>", "NetworkView"], [], ["+render(graph: MoneyFlowGraph)", "+onChangeScope(hops: int, range: DateRange)"])
 cls(UI, "ApprovalsView", ["<<boundary>>", "ApprovalsView"], [], ["+refresh()", "+onApprove(pendingId: String)", "+onReject(pendingId: String, reason: String)"])
 cls(UI, "AdminView", ["<<boundary>>", "AdminView"], [], ["+onSaveRule(ruleId: String, config: RuleConfig)", "+onShowMetrics(filter: MetricsFilter)", "+onSearchAudit(filter: AuditFilter)", "+onSearchKnowledge(query: String)"])
@@ -42,6 +42,7 @@ cls(APP, "TraceWiseFacade", ["<<Facade>>", "TraceWiseFacade"], [], [
     "+investigate(alertId: String, listener: AgentEventListener): InvestigationResult",
     "+cancelInvestigation(alertId: String)",
     "+triage(limits: TriageLimits, listener: AgentEventListener): TriageReport",
+    "+stopTriage()",
     "+ask(question: String, context: AssistantContext): AssistantAnswer",
     "+approve(pendingId: String, reviewer: Actor)", "+reject(pendingId: String, reviewer: Actor, reason: String)",
     "+getCase(caseId: String): Case", "+addNote(caseId: String, text: String)", "+reopenCase(caseId: String, reason: String)",
@@ -51,9 +52,9 @@ cls(APP, "TraceWiseFacade", ["<<Facade>>", "TraceWiseFacade"], [], [
     "+buildNetwork(accountId: String, hops: int, range: DateRange, caseId: String): MoneyFlowGraph",
     "+searchKnowledge(query: String): List<RetrievedPassage>",
     "+computeMetrics(filter: MetricsFilter): PerformanceMetrics", "..."])
-cls(APP, "ImportService", ["ImportService"], [], ["+preview(file: Path): ImportPreview", "+importFile(file: Path): ImportSummary"])
-cls(APP, "MonitoringService", ["MonitoringService"], [], ["+run(): MonitoringSummary", "+listAlerts(filter: AlertFilter): List<Alert>", "+updateRule(ruleId: String, config: RuleConfig)"])
-cls(APP, "InvestigationService", ["InvestigationService"], [], ["+investigate(alertId: String, listener: AgentEventListener): InvestigationResult", "+cancel(alertId: String)"])
+cls(APP, "ImportService", ["ImportService"], [], ["+preview(file: Path): ImportPreview", "+importFile(file: Path): ImportSummary", "-detectFormat(header: String): ImportFormat", "-parseRow(row: String[]): Transaction", "-rejectRow(rowNumber: int, reason: String)"])
+cls(APP, "MonitoringService", ["MonitoringService"], [], ["+run(): MonitoringSummary", "+listAlerts(filter: AlertFilter): List<Alert>", "+updateRule(ruleId: String, config: RuleConfig)", "-recordThreshold(match: RuleMatch)"])
+cls(APP, "InvestigationService", ["InvestigationService"], [], ["+investigate(alertId: String, listener: AgentEventListener): InvestigationResult", "+cancel(alertId: String)", "-parseFinding(outcome: AgentOutcome): AgentFinding"])
 cls(APP, "TriageService", ["TriageService"], ["-stopRequested: boolean"], ["+triage(limits: TriageLimits, listener: AgentEventListener): TriageReport", "+stop()"])
 cls(APP, "AssistantService", ["AssistantService"], [], ["+ask(question: String, context: AssistantContext): AssistantAnswer"])
 cls(APP, "CaseService", ["CaseService"], [], ["+getCase(caseId: String): Case", "+addNote(caseId: String, text: String)", "+reopen(caseId: String, reason: String)"])
@@ -74,6 +75,7 @@ cls(AGENT, "ActionTool", ["<<Factory Method>>", "/ActionTool/"], [], ["+execute(
 cls(AGENT, "ProposeCloseTool", ["ProposeCloseTool"], [], ["#createCommand(args: ToolArguments): ActionCommand"])
 cls(AGENT, "ClaimVerifier", ["ClaimVerifier"], ["-toleranceCad: BigDecimal = 0.01"], ["+verify(claims: List<Claim>): VerificationReport"])
 cls(AGENT, "Retriever", ["<<interface>>", "/Retriever/"], [], ["/+search(query: String, maxResults: int): List<RetrievedPassage>/"])
+cls(AGENT, "SearchIndicatorsTool", ["SearchIndicatorsTool"], ["-maxResults: int = 5"], ["+name(): String", "+schema(): ToolSchema", "+execute(args: ToolArguments): ToolResult"])
 
 cls(LLM, "LLMClient", ["<<interface>>", "/LLMClient/"], [], ["/+chat(request: LLMRequest): LLMResponse/", "/+modelId(): String/"])
 cls(LLM, "LangChain4jClient", ["<<Adapter>>", "/LangChain4jClient/"], [], ["+chat(request: LLMRequest): LLMResponse", "+modelId(): String"])
@@ -140,7 +142,7 @@ r("assoc", "PerformanceService", "CaseRepository", "1", "1"); r("assoc", "Perfor
 r("assoc", "AgentRunner", "LLMClient", "1", "1"); r("assoc", "AgentRunner", "ToolRegistry", "1", "1"); r("dep", "AgentRunner", "AgentTrace", label="<<use>>")
 r("assoc", "AgentTrace", "AgentEventListener", "1", "0..*", "listeners"); r("real", "AuditLog", "AgentEventListener")
 r("aggr", "ToolRegistry", "AgentTool", "1", "1..*", "tools")
-r("real", "ActionTool", "AgentTool"); r("gen", "ProposeCloseTool", "ActionTool")
+r("real", "ActionTool", "AgentTool"); r("real", "SearchIndicatorsTool", "AgentTool"); r("assoc", "SearchIndicatorsTool", "Retriever", "*", "1"); r("gen", "ProposeCloseTool", "ActionTool")
 r("assoc", "ActionTool", "CommandDispatcher", "*", "1", "dispatcher"); r("dep", "ProposeCloseTool", "CloseCaseCommand", label="<<create>>")
 r("assoc", "ClaimVerifier", "Ledger", "1", "1")
 r("real", "LangChain4jClient", "LLMClient"); r("assoc", "LangChain4jClient", "ChatModel", "1", "1", "adaptee")
@@ -169,7 +171,7 @@ FIGURES = {
          "PendingAction", "AuditLog", "Case", "CaseState", "ClosedState", "AgentFinding"]),
     4: ("Agent, Tools and LLM Access",
         ["AgentRunner", "AgentTrace", "AgentEventListener", "ToolRegistry", "AgentTool", "ActionTool",
-         "ProposeCloseTool", "ClaimVerifier", "Retriever", "LLMClient", "LangChain4jClient", "ChatModel",
+         "ProposeCloseTool", "SearchIndicatorsTool", "ClaimVerifier", "Retriever", "LLMClient", "LangChain4jClient", "ChatModel",
          "LLMClientDecorator", "RetryingLLMClient"]),
 }
 HOME = {c: f for f, (_, cs) in FIGURES.items() for c in cs}

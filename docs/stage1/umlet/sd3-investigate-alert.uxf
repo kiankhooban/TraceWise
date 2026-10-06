@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<diagram program="umlet" version="15.1"><zoom_level>10</zoom_level><element><id>UMLSequenceAllInOne</id><coordinates><x>10</x><y>10</y><w>2100</w><h>3298</h></coordinates><panel_attributes>title=SD3: Investigate Alert (UC04, includes UC05 and UC06; F03, F04, F05)
+<diagram program="umlet" version="15.1"><zoom_level>10</zoom_level><element><id>UMLSequenceAllInOne</id><coordinates><x>10</x><y>10</y><w>2275</w><h>2804</h></coordinates><panel_attributes>title=SD3: Investigate Alert (UC04, includes UC05 and UC06; F03, F04, F05)
 obj=AML Analyst~a ACTOR
 obj=:CaseView~v
 obj=:TraceWiseFacade~f
@@ -9,6 +9,7 @@ obj=trace:AgentTrace~t CREATED_LATER
 obj=:AgentRunner~r
 obj=:LLMClient~llm
 obj=:ToolRegistry~tr
+obj=tool:SearchIndicatorsTool~tool
 obj=:Retriever~ret
 obj=:ClaimVerifier~cv
 obj=:AuditLog~l
@@ -20,42 +21,38 @@ i-&gt;&gt;&gt;t : create
 i-&gt;&gt;&gt;t : addListener(listener)
 i-&gt;&gt;&gt;t : addListener(auditLog)
 i-&gt;&gt;&gt;r : run(task, trace)
-combinedFragment=loop~l1 r ret
-r:[until final answer, turn limit (12) or cost limit]
+combinedFragment=loop~l1 v l
+v:[until final answer, turn limit (12) or cost limit]
 tick=
 r-&gt;&gt;&gt;llm : chat(request)
 llm.&gt;r : response
-combinedFragment=break~b1 r llm
-r:[LLM still failing after 2 retries]
+combinedFragment=break~b1 t llm
+t:[LLM still failing after 2 retries]
 tick=
-tick=
-r-&gt;r + : outcome = FAILED
-tick=
+r-&gt;&gt;&gt;t : record(step: LLM failure, outcome FAILED)
 --=b1
-combinedFragment=loop~l2 r ret
-r:[for each tool call in the response]
+combinedFragment=loop~l2 v l
+v:[for each tool call in the response]
 tick=
 r-&gt;&gt;&gt;tr : execute(call)
-combinedFragment=alt~a1 tr ret
-tr:[arguments valid]
+combinedFragment=alt~a1 r ret
+r:[arguments valid, tool is search_indicators (UC05)]
 tick=
-tick=
-tr-&gt;tr + : run the requested AgentTool
-tick=
-combinedFragment=opt~o1 tr ret
-tr:[tool searches indicators (UC05)]
-tick=
-tr-&gt;&gt;&gt;ret : search(query, maxResults)
-ret.&gt;tr : passages
---=o1
+tr-&gt;&gt;&gt;tool : execute(args)
+tool-&gt;&gt;&gt;ret : search(query, maxResults)
+ret.&gt;tool : passages
+tool.&gt;tr : toolResult
+tr.&gt;r : toolResult
 ..=a1
-tr:[arguments invalid]
+r:[arguments valid, tool is an ActionTool]
 tick=
+ref=tr ret :see SD5 Agent Action and Approval
+tr.&gt;r : toolResult (action executed or queued)
+..=a1
+r:[arguments invalid]
 tick=
-tr-&gt;tr + : reject, tool is not run
-tick=
+tr.&gt;r : validation error, tool is not run
 --=a1
-tr.&gt;r : toolResult (or validation error)
 r-&gt;&gt;&gt;t : record(step)
 t-&gt;&gt;&gt;v : onStep(step)
 t-&gt;&gt;&gt;l : onStep(step)
@@ -65,26 +62,17 @@ r-&gt;&gt;&gt;t : finish(outcome)
 t-&gt;&gt;&gt;v : onFinished(outcome)
 t-&gt;&gt;&gt;l : onFinished(outcome)
 r.&gt;i : outcome
-combinedFragment=alt~a2 i cv
+combinedFragment=opt~o2 i cv
 i:[outcome COMPLETED or INCOMPLETE]
 tick=
 tick=
-i-&gt;i + : parse finding f
+i-&gt;i + : parseFinding(outcome): finding
 tick=
-i-&gt;&gt;&gt;cv : verify(f.claims())
-tick=
-cv-&gt;cv + : check each claim against the Ledger
-tick=
-cv.&gt;i : verificationReport
-i-&gt;&gt;&gt;c : addFinding(f)
-..=a2
-i:[outcome FAILED or CANCELLED]
-tick=
-tick=
-i-&gt;i + : no finding, alert can be investigated again
-tick=
---=a2
-i.&gt;f : investigationResult
+i-&gt;&gt;&gt;cv : verify(finding.claims())
+cv.&gt;i : verificationReport (each claim checked against the Ledger)
+i-&gt;&gt;&gt;c : addFinding(finding)
+--=o2
+i.&gt;f : investigationResult (no finding if FAILED or CANCELLED)
 f.&gt;v : investigationResult
 tick=
 v-&gt;v + : showCase(caseId)

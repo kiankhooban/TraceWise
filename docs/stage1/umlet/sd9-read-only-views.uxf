@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<diagram program="umlet" version="15.1"><zoom_level>10</zoom_level><element><id>UMLSequenceAllInOne</id><coordinates><x>10</x><y>10</y><w>1750</w><h>1968</h></coordinates><panel_attributes>title=SD9: Read-Only Views (UC11, UC12, UC16 including UC05, UC17; F08, F09, F04, F12)
-obj=AML Analyst or Supervisor~u ACTOR
+<diagram program="umlet" version="15.1"><zoom_level>10</zoom_level><element><id>UMLSequenceAllInOne</id><coordinates><x>10</x><y>10</y><w>1925</w><h>1816</h></coordinates><panel_attributes>title=SD9: Read-Only Views (UC11, UC12, UC16 including UC05, UC17; F08, F09, F04, F12)
+obj=AML Analyst~u ACTOR
 obj=:AdminView~ad
+obj=Compliance Supervisor~s ACTOR
 obj=:NetworkView~nv
 obj=:TraceWiseFacade~f
 obj=:AuditLog~l
@@ -15,6 +16,7 @@ ad-&gt;&gt;&gt;f : queryAudit(filter)
 f-&gt;&gt;&gt;l : query(filter)
 l.&gt;f : entries
 f.&gt;ad : entries
+ad.&gt;u : show audit entries
 u-&gt;&gt;&gt;nv : onChangeScope(hops, range)
 nv-&gt;&gt;&gt;f : buildNetwork(accountId, hops, range, caseId)
 f-&gt;&gt;&gt;ns : build(accountId, hops, range, caseId)
@@ -25,15 +27,8 @@ ns-&gt;&gt;&gt;g : transactionsFor(accountId, range)
 g.&gt;ns : transactions
 --=l1
 ns-&gt;&gt;&gt;cr : findById(caseId)
-cr.&gt;ns : case (latest trace gives examinedAccounts())
-combinedFragment=opt~o1 ns cr
-ns:[more than 50 counterparties]
-tick=
-tick=
-ns-&gt;ns + : keep the 50 largest
-tick=
---=o1
-ns.&gt;f : moneyFlowGraph
+cr.&gt;ns : case (accounts the agent examined)
+ns.&gt;f : moneyFlowGraph (at most maxNodes counterparties)
 f.&gt;nv : moneyFlowGraph
 tick=
 nv-&gt;nv + : render(graph)
@@ -43,7 +38,8 @@ ad-&gt;&gt;&gt;f : searchKnowledge(query)
 f-&gt;&gt;&gt;ret : search(query, maxResults)
 ret.&gt;f : passages
 f.&gt;ad : passages
-u-&gt;&gt;&gt;ad : onShowMetrics(filter)
+ad.&gt;u : show passages
+s-&gt;&gt;&gt;ad : onShowMetrics(filter)
 ad-&gt;&gt;&gt;f : computeMetrics(filter)
 f-&gt;&gt;&gt;ps : compute(filter)
 ps-&gt;&gt;&gt;cr : findAll()
@@ -55,4 +51,5 @@ ps-&gt;&gt;&gt;g : findTransaction(id)
 g.&gt;ps : transaction
 --=l2
 ps.&gt;f : performanceMetrics
-f.&gt;ad : performanceMetrics</panel_attributes><additional_attributes/></element></diagram>
+f.&gt;ad : performanceMetrics
+ad.&gt;s : show metrics dashboard</panel_attributes><additional_attributes/></element></diagram>
