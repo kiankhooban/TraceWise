@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1">
+<zoom_level>10</zoom_level>
+<element><id>Text</id><coordinates><x>20</x><y>0</y><w>1400</w><h>40</h></coordinates><panel_attributes>*TraceWise Class Diagram, Figure 1 of 4: Front Ends, Facade and Application Services*
+fontsize=18</panel_attributes><additional_attributes/></element>
+<element><id>UMLPackage</id><coordinates><x>28</x><y>58</y><w>1471</w><h>827</h></coordinates><panel_attributes>Presentation (GUI and CLI)
+bg=#F7F9FC
+layer=-1</panel_attributes><additional_attributes/></element>
+<element><id>UMLPackage</id><coordinates><x>982</x><y>893</y><w>2326</w><h>1048</h></coordinates><panel_attributes>Application
+bg=#F7F9FC
+layer=-1</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>600</x><y>719</y><w>270</w><h>140</h></coordinates><panel_attributes>&lt;&lt;boundary&gt;&gt;
+AlertsView
+--
+
+--
++onImport(file: Path)
++onRunMonitoring()
++onFilter(filter: AlertFilter)
++onTriage(limits: TriageLimits)</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>53</x><y>622</y><w>410</w><h>170</h></coordinates><panel_attributes>&lt;&lt;boundary&gt;&gt;
+CaseView
+--
+
+--
++showCase(caseId: String)
++onInvestigate(alertId: String)
++onCancel(alertId: String)
++onReopen(reason: String)
++onRequestFinalisation()
++onExport(formats: Set&lt;ExportFormat&gt;, dir: Path)</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>550</x><y>584</y><w>370</w><h>110</h></coordinates><panel_attributes>&lt;&lt;boundary&gt;&gt;
+NetworkView
+--
+
+--
++render(graph: MoneyFlowGraph)
++onChangeScope(hops: int, range: DateRange)</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>550</x><y>429</y><w>370</w><h>130</h></coordinates><panel_attributes>&lt;&lt;boundary&gt;&gt;
+ApprovalsView
+--
+
+--
++refresh()
++onApprove(pendingId: String)
++onReject(pendingId: String, reason: String)</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>535</x><y>264</y><w>400</w><h>140</h></coordinates><panel_attributes>&lt;&lt;boundary&gt;&gt;
+AdminView
+--
+
+--
++onSaveRule(ruleId: String, config: RuleConfig)
++onShowMetrics(filter: MetricsFilter)
++onSearchAudit(filter: AuditFilter)
++onSearchKnowledge(query: String)</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>635</x><y>109</y><w>200</w><h>130</h></coordinates><panel_attributes>&lt;&lt;Template Method&gt;&gt;
+/CliCommandBase/
+--
+#json: boolean
+--
++call(): Integer
+/#execute(): Object/
+#print(result: Object)</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>1303</x><y>134</y><w>170</w><h>80</h></coordinates><panel_attributes>AskCli
+--
+-question: String
+--
+#execute(): Object</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>1008</x><y>958</y><w>760</w><h>260</h></coordinates><panel_attributes>&lt;&lt;Facade&gt;&gt;
+TraceWiseFacade
+--
+
+--
++importTransactions(file: Path): ImportSummary
++runMonitoring(): MonitoringSummary
++updateRule(ruleId: String, config: RuleConfig)
++investigate(alertId: String, listener: AgentEventListener): InvestigationResult
++triage(limits: TriageLimits, listener: AgentEventListener): TriageReport
++ask(question: String, context: AssistantContext): AssistantAnswer
++approve(pendingId: String, reviewer: Actor)
++reopenCase(caseId: String, reason: String)
++draftReport(caseId: String): StrReport
++buildNetwork(accountId: String, hops: int, range: DateRange, caseId: String): MoneyFlowGraph
++computeMetrics(filter: MetricsFilter): PerformanceMetrics
+...</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>2030</x><y>1815</y><w>330</w><h>100</h></coordinates><panel_attributes>ImportService
+--
+
+--
++preview(file: Path): ImportPreview
++importFile(file: Path): ImportSummary</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>1995</x><y>1680</y><w>400</w><h>110</h></coordinates><panel_attributes>MonitoringService
+--
+
+--
++run(): MonitoringSummary
++listAlerts(filter: AlertFilter): List&lt;Alert&gt;
++updateRule(ruleId: String, config: RuleConfig)</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>2622</x><y>1566</y><w>660</w><h>100</h></coordinates><panel_attributes>InvestigationService
+--
+
+--
++investigate(alertId: String, listener: AgentEventListener): InvestigationResult
++cancel(alertId: String)</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>1895</x><y>1528</y><w>600</w><h>100</h></coordinates><panel_attributes>TriageService
+--
+-stopRequested: boolean
+--
++triage(limits: TriageLimits, listener: AgentEventListener): TriageReport
++stop()</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>1920</x><y>1423</y><w>550</w><h>80</h></coordinates><panel_attributes>AssistantService
+--
+
+--
++ask(question: String, context: AssistantContext): AssistantAnswer</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>2030</x><y>1288</y><w>330</w><h>110</h></coordinates><panel_attributes>CaseService
+--
+
+--
++getCase(caseId: String): Case
++addNote(caseId: String, text: String)
++reopen(caseId: String, reason: String)</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>1890</x><y>1153</y><w>610</w><h>110</h></coordinates><panel_attributes>ReportService
+--
+
+--
++draft(caseId: String): StrReport
++requestFinalisation(caseId: String): PendingAction
++export(caseId: String, formats: Set&lt;ExportFormat&gt;, dir: Path): List&lt;Path&gt;</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>1840</x><y>1048</y><w>710</w><h>80</h></coordinates><panel_attributes>NetworkService
+--
+-maxNodes: int = 50
+--
++build(accountId: String, hops: int, range: DateRange, caseId: String): MoneyFlowGraph</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>1980</x><y>943</y><w>430</w><h>80</h></coordinates><panel_attributes>PerformanceService
+--
+
+--
++compute(filter: MetricsFilter): PerformanceMetrics</panel_attributes><additional_attributes/></element>
+<element><id>Relation</id><coordinates><x>860</x><y>840</y><w>264</w><h>138</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.0;10.6;122.3;61.8;182.5;89.5;244.6;118.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>382</x><y>782</y><w>646</w><h>248</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.3;10.0;77.1;52.2;115.4;71.7;154.0;89.0;269.7;132.9;389.7;171.6;509.7;205.2;626.0;228.8</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>900</x><y>684</y><w>191</w><h>294</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.4;10.0;28.9;15.8;32.5;19.3;36.0;23.0;59.8;68.7;60.5;113.7;60.4;159.4;82.0;207.0;98.0;225.2;115.2;242.4;133.7;258.5;171.5;274.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>908</x><y>549</y><w>179</w><h>429</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.2;10.0;20.9;13.8;24.5;17.8;28.0;22.0;61.0;103.1;52.8;180.6;43.7;258.8;74.0;342.0;88.5;360.3;104.3;377.4;121.4;393.5;159.6;409.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>905</x><y>394</y><w>180</w><h>584</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.7;10.0;26.3;16.1;28.7;19.0;31.0;22.0;74.5;143.6;56.0;258.0;36.5;373.2;77.0;497.0;90.9;515.3;106.2;532.5;122.7;548.6;160.8;564.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>453</x><y>655</y><w>117</w><h>42</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m1=1
+m2=1</panel_attributes><additional_attributes>10.0;22.9;54.7;16.5;76.4;13.4;97.0;10.5</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>825</x><y>189</y><w>259</w><h>789</h></coordinates><panel_attributes>lt=-&gt;
+m1=*
+m2=1
+facade</panel_attributes><additional_attributes>10.0;10.0;66.2;24.1;90.7;41.3;111.0;63.0;142.6;194.7;135.7;381.3;128.0;568.5;157.0;702.0;170.6;720.4;185.6;737.6;201.8;753.7;239.8;769.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>825</x><y>164</y><w>498</w><h>30</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10.0;10.0;247.4;10.0;372.1;10.0;478.0;10.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>1436</x><y>1208</y><w>614</w><h>670</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.2;10.0;145.0;311.1;260.1;466.9;404.0;595.0;448.1;619.2;495.8;636.8;545.1;648.8;594.0;650.7</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>1458</x><y>1208</y><w>557</w><h>525</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.2;10.0;152.5;240.9;258.8;356.8;382.0;453.0;418.2;472.5;456.8;488.3;496.6;500.7;537.0;505.2</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>1456</x><y>1208</y><w>1186</w><h>470</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.2;10.0;148.3;239.5;256.3;349.2;384.0;433.0;492.9;449.0;687.6;450.7;926.0;443.0;1166.0;428.2</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>1493</x><y>1208</y><w>422</w><h>346</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.1;10.0;150.6;168.7;244.9;244.5;347.0;307.0;360.2;313.4;373.8;319.3;387.7;324.8;402.0;326.9</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>1536</x><y>1208</y><w>404</w><h>245</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>11.0;10.0;139.6;115.2;220.3;163.3;304.0;203.0;323.3;210.3;343.2;216.9;363.5;222.8;384.0;225.1</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>1676</x><y>1208</y><w>374</w><h>129</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.8;10.0;82.4;41.2;123.4;55.2;164.0;68.0;210.9;81.0;259.1;92.5;307.2;102.6;354.0;109.7</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>1758</x><y>1134</y><w>152</w><h>48</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.0;10.5;71.4;19.7;101.8;24.2;132.0;28.7</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>1758</x><y>1078</y><w>102</w><h>30</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.0;10.0;46.0;10.0;63.9;10.0;82.0;10.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>1758</x><y>1000</y><w>242</w><h>58</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.0;38.5;118.8;24.4;171.5;17.5;222.0;10.9</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>2485</x><y>1583</y><w>157</w><h>36</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.0;10.1;73.5;13.2;105.2;14.8;137.0;16.4</additional_attributes></element>
+</diagram>

@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1">
+<zoom_level>10</zoom_level>
+<element><id>Text</id><coordinates><x>20</x><y>0</y><w>1400</w><h>40</h></coordinates><panel_attributes>*TraceWise Class Diagram, Figure 3 of 4: Actions, Approvals, Case Lifecycle and Audit*
+fontsize=18</panel_attributes><additional_attributes/></element>
+<element><id>UMLNote</id><coordinates><x>20</x><y>30</y><w>560</w><h>20</h></coordinates><panel_attributes>Grey boxes are classes shown in full in another figure.
+bg=#FFFBE6</panel_attributes><additional_attributes/></element>
+<element><id>UMLPackage</id><coordinates><x>435</x><y>121</y><w>1341</w><h>984</h></coordinates><panel_attributes>Actions and approvals
+bg=#F7F9FC
+layer=-1</panel_attributes><additional_attributes/></element>
+<element><id>UMLPackage</id><coordinates><x>1538</x><y>1114</y><w>757</w><h>650</h></coordinates><panel_attributes>Domain and case lifecycle
+bg=#F7F9FC
+layer=-1</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>1306</x><y>748</y><w>290</w><h>160</h></coordinates><panel_attributes>&lt;&lt;interface&gt;&gt;
+&lt;&lt;Command&gt;&gt;
+/ActionCommand/
+--
+
+--
+/+validate(ctx: CommandContext)/
+/+execute(ctx: CommandContext)/
+/+describe(): String/
+/+targetCaseId(): Optional&lt;String&gt;/</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>1321</x><y>980</y><w>260</w><h>100</h></coordinates><panel_attributes>CloseCaseCommand
+--
+-caseId: String
+--
++validate(ctx: CommandContext)
++execute(ctx: CommandContext)</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>488</x><y>172</y><w>690</w><h>100</h></coordinates><panel_attributes>&lt;&lt;Command: invoker&gt;&gt;
+CommandDispatcher
+--
+
+--
++submit(command: ActionCommand, actor: Actor, justification: String): DispatchResult</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>1204</x><y>369</y><w>520</w><h>80</h></coordinates><panel_attributes>PermissionPolicy
+--
+
+--
++tierFor(command: ActionCommand, actor: Actor): PermissionTier</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>488</x><y>344</y><w>690</w><h>130</h></coordinates><panel_attributes>ApprovalQueue
+--
+
+--
++enqueue(command: ActionCommand, actor: Actor, justification: String): PendingAction
++approve(pendingId: String, reviewer: Actor)
++reject(pendingId: String, reviewer: Actor, reason: String)
++pending(): List&lt;PendingAction&gt;</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>1101</x><y>546</y><w>390</w><h>130</h></coordinates><panel_attributes>PendingAction
+--
+-id: String
+-status: ProposalStatus
+--
++markApproved(reviewer: Actor)
++markRejected(reviewer: Actor, reason: String)
++markExpired()</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>461</x><y>561</y><w>380</w><h>100</h></coordinates><panel_attributes>AuditLog
+--
+
+--
++append(entry: AuditEntry)
++query(filter: AuditFilter): List&lt;AuditEntry&gt;</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>1644</x><y>1164</y><w>290</w><h>190</h></coordinates><panel_attributes>&lt;&lt;State: context&gt;&gt;
+Case
+--
+-id: String
+--
++startInvestigation()
++submitForApproval()
++escalate()
++close()
++reopen(reason: String)
++addFinding(finding: AgentFinding)
+~changeState(next: CaseState)</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>1989</x><y>1426</y><w>280</w><h>140</h></coordinates><panel_attributes>&lt;&lt;State&gt;&gt;
+/CaseState/
+--
+
+--
++startInvestigation(c: Case)
++close(c: Case)
++reopen(c: Case, reason: String)
+/+status(): CaseStatus/</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>1989</x><y>1638</y><w>280</w><h>100</h></coordinates><panel_attributes>ClosedState
+--
+
+--
++reopen(c: Case, reason: String)
++status(): CaseStatus</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>1564</x><y>1431</y><w>400</w><h>130</h></coordinates><panel_attributes>AgentFinding
+--
+-verdict: Verdict
+-confidence: double
+-narrative: String
+--
++claims(): List&lt;Claim&gt;
++attachVerification(report: VerificationReport)</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>833</x><y>50</y><w>170</w><h>50</h></coordinates><panel_attributes>&lt;&lt;Factory Method&gt;&gt;
+/ActionTool/
+bg=#E4E4E4</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>688</x><y>55</y><w>120</w><h>40</h></coordinates><panel_attributes>CaseService
+bg=#E4E4E4</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>255</x><y>389</y><w>130</w><h>40</h></coordinates><panel_attributes>ImportService
+bg=#E4E4E4</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>1827</x><y>1010</y><w>180</w><h>40</h></coordinates><panel_attributes>InvestigationService
+bg=#E4E4E4</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>20</x><y>389</y><w>160</w><h>40</h></coordinates><panel_attributes>MonitoringService
+bg=#E4E4E4</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>259</x><y>808</y><w>150</w><h>40</h></coordinates><panel_attributes>ProposeCloseTool
+bg=#E4E4E4</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>385</x><y>55</y><w>130</w><h>40</h></coordinates><panel_attributes>ReportService
+bg=#E4E4E4</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>269</x><y>197</y><w>140</w><h>50</h></coordinates><panel_attributes>&lt;&lt;Facade&gt;&gt;
+TraceWiseFacade
+bg=#E4E4E4</panel_attributes><additional_attributes/></element>
+<element><id>UMLNote</id><coordinates><x>1983</x><y>1222</y><w>286</w><h>74</h></coordinates><panel_attributes>Other concrete states: OpenState,
+UnderInvestigationState,
+PendingApprovalState,
+EscalatedState
+bg=#FFFBE6</panel_attributes><additional_attributes/></element>
+<element><id>Relation</id><coordinates><x>372</x><y>237</y><w>273</w><h>127</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.4;10.0;33.2;23.1;45.6;29.3;58.0;35.0;104.4;54.4;152.2;72.8;200.3;90.3;253.6;107.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>341</x><y>237</y><w>238</w><h>344</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.8;10.0;33.9;54.9;46.2;80.9;58.0;107.0;70.8;144.4;77.8;175.1;87.4;204.2;108.0;237.0;130.9;262.1;156.7;285.0;184.2;305.5;218.2;324.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>334</x><y>419</y><w>242</w><h>162</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.9;10.0;39.0;32.5;54.9;44.1;71.0;55.0;108.0;78.2;146.3;100.8;184.3;122.1;222.1;142.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>117</x><y>419</y><w>364</w><h>164</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.5;10.0;42.4;33.2;62.0;44.8;82.0;55.0;146.5;82.4;213.5;106.8;280.4;128.3;344.0;144.3</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>1832</x><y>1040</y><w>93</w><h>144</h></coordinates><panel_attributes>lt=.&gt;
+&lt;&lt;create&gt;&gt;</panel_attributes><additional_attributes>73.9;10.0;45.7;60.9;28.1;92.0;10.2;124.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>749</x><y>85</y><w>75</w><h>107</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.9;10.0;32.2;45.8;44.2;66.3;55.8;87.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>492</x><y>85</y><w>231</w><h>107</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.3;10.0;104.2;46.0;158.2;66.4;211.6;87.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>204</x><y>75</y><w>277</w><h>531</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>181.0;10.4;105.5;22.5;74.0;33.2;54.0;46.5;23.8;117.9;10.3;221.3;14.9;325.5;39.0;399.0;83.0;444.9;136.8;479.3;196.4;503.8;257.0;511.6</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>852</x><y>90</y><w>72</w><h>102</h></coordinates><panel_attributes>lt=-&gt;
+m1=*
+m2=1
+dispatcher</panel_attributes><additional_attributes>52.0;10.0;32.9;44.2;21.8;63.0;10.6;82.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>343</x><y>838</y><w>998</w><h>204</h></coordinates><panel_attributes>lt=.&gt;
+&lt;&lt;create&gt;&gt;</panel_attributes><additional_attributes>10.8;10.0;42.6;42.1;63.9;57.6;87.0;70.0;259.0;114.6;502.0;147.9;760.0;170.9;978.0;184.1</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>1441</x><y>898</y><w>30</w><h>102</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>10.0;10.0;10.0;47.0;10.0;64.9;10.0;82.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>1168</x><y>244</y><w>623</w><h>524</h></coordinates><panel_attributes>lt=.&gt;
+&lt;&lt;use&gt;&gt;</panel_attributes><additional_attributes>10.0;10.2;365.0;43.4;498.7;69.7;568.0;100.0;603.8;202.3;565.3;311.5;483.3;415.8;378.3;504.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>992</x><y>262</y><w>358</w><h>127</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.1;10.0;176.6;59.2;260.6;83.9;338.0;107.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>823</x><y>262</y><w>30</w><h>102</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.6;10.0;11.0;45.3;11.0;63.6;10.8;82.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>444</x><y>262</y><w>213</w><h>319</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>193.3;10.0;72.2;40.9;51.2;60.1;33.0;82.0;15.2;114.8;10.8;145.1;17.5;176.4;33.0;212.0;48.6;237.6;68.3;260.6;90.6;281.0;121.4;299.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>972</x><y>464</y><w>195</w><h>102</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m1=1
+m2=0..*
+proposals</panel_attributes><additional_attributes>10.3;10.0;92.9;46.0;134.7;64.1;175.6;82.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>1332</x><y>666</y><w>81</w><h>102</h></coordinates><panel_attributes>lt=-&gt;
+m1=0..1
+m2=1
+command</panel_attributes><additional_attributes>10.4;10.0;35.8;45.7;48.9;63.9;61.9;82.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>686</x><y>464</y><w>108</w><h>117</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>89.0;10.0;49.5;54.2;29.6;76.1;10.5;97.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>1161</x><y>464</y><w>635</w><h>720</h></coordinates><panel_attributes>lt=.&gt;
+&lt;&lt;use&gt;&gt;</panel_attributes><additional_attributes>10.4;10.0;233.9;52.9;308.2;70.3;343.0;82.0;467.8;219.9;549.6;388.6;597.5;558.6;615.7;700.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>1514</x><y>1070</y><w>154</w><h>114</h></coordinates><panel_attributes>lt=.&gt;
+&lt;&lt;use&gt;&gt;</panel_attributes><additional_attributes>10.4;10.0;70.1;50.6;102.4;72.3;134.4;94.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>1760</x><y>1344</y><w>38</w><h>107</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m1=1
+m2=0..*
+findings</panel_attributes><additional_attributes>19.0;10.0;14.8;49.8;12.7;68.9;10.8;87.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>1914</x><y>1344</y><w>134</w><h>102</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1
+state</panel_attributes><additional_attributes>10.9;10.0;63.7;46.9;89.6;64.8;114.3;82.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>2119</x><y>1556</y><w>30</w><h>102</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10.0;10.0;10.0;47.3;10.0;65.2;10.0;82.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>2116</x><y>1286</y><w>32</w><h>160</h></coordinates><panel_attributes>lt=.</panel_attributes><additional_attributes>10.5;10.0;11.3;72.6;11.7;107.0;12.1;140.0</additional_attributes></element>
+</diagram>

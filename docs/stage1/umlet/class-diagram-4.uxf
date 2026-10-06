@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1">
+<zoom_level>10</zoom_level>
+<element><id>Text</id><coordinates><x>20</x><y>0</y><w>1400</w><h>40</h></coordinates><panel_attributes>*TraceWise Class Diagram, Figure 4 of 4: Agent, Tools and LLM Access*
+fontsize=18</panel_attributes><additional_attributes/></element>
+<element><id>UMLNote</id><coordinates><x>20</x><y>30</y><w>560</w><h>20</h></coordinates><panel_attributes>Grey boxes are classes shown in full in another figure.
+bg=#FFFBE6</panel_attributes><additional_attributes/></element>
+<element><id>UMLPackage</id><coordinates><x>456</x><y>121</y><w>1481</w><h>924</h></coordinates><panel_attributes>Agent
+bg=#F7F9FC
+layer=-1</panel_attributes><additional_attributes/></element>
+<element><id>UMLPackage</id><coordinates><x>1946</x><y>308</y><w>757</w><h>585</h></coordinates><panel_attributes>LLM access
+bg=#F7F9FC
+layer=-1</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>482</x><y>171</y><w>450</w><h>100</h></coordinates><panel_attributes>AgentRunner
+--
+
+--
++run(task: AgentTask, trace: AgentTrace): AgentOutcome
++cancel()</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>482</x><y>343</y><w>360</w><h>140</h></coordinates><panel_attributes>&lt;&lt;Observer: subject&gt;&gt;
+AgentTrace
+--
+-usage: TokenUsage
+--
++record(step: TraceStep)
++finish(outcome: AgentOutcome)
++addListener(listener: AgentEventListener)
++examinedAccounts(): Set&lt;String&gt;</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>482</x><y>555</y><w>290</w><h>130</h></coordinates><panel_attributes>&lt;&lt;interface&gt;&gt;
+&lt;&lt;Observer&gt;&gt;
+/AgentEventListener/
+--
+
+--
+/+onStep(step: TraceStep)/
+/+onFinished(outcome: AgentOutcome)/</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>867</x><y>358</y><w>390</w><h>110</h></coordinates><panel_attributes>ToolRegistry
+--
+
+--
++register(tool: AgentTool)
++schemas(names: Set&lt;String&gt;): List&lt;ToolSchema&gt;
++execute(call: ToolCall): ToolResult</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>887</x><y>555</y><w>350</w><h>130</h></coordinates><panel_attributes>&lt;&lt;interface&gt;&gt;
+/AgentTool/
+--
+
+--
+/+name(): String/
+/+schema(): ToolSchema/
+/+execute(args: ToolArguments): ToolResult/</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>852</x><y>758</y><w>420</w><h>110</h></coordinates><panel_attributes>&lt;&lt;Factory Method&gt;&gt;
+/ActionTool/
+--
+
+--
++execute(args: ToolArguments): ToolResult
+/#createCommand(args: ToolArguments): ActionCommand/</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>852</x><y>940</y><w>420</w><h>80</h></coordinates><panel_attributes>ProposeCloseTool
+--
+
+--
+#createCommand(args: ToolArguments): ActionCommand</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>957</x><y>181</y><w>410</w><h>80</h></coordinates><panel_attributes>ClaimVerifier
+--
+-toleranceCad: BigDecimal = 0.01
+--
++verify(claims: List&lt;Claim&gt;): VerificationReport</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>1392</x><y>171</y><w>520</w><h>100</h></coordinates><panel_attributes>&lt;&lt;interface&gt;&gt;
+/Retriever/
+--
+
+--
+/+search(query: String, maxResults: int): List&lt;RetrievedPassage&gt;/</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>2159</x><y>358</y><w>330</w><h>110</h></coordinates><panel_attributes>&lt;&lt;interface&gt;&gt;
+/LLMClient/
+--
+
+--
+/+chat(request: LLMRequest): LLMResponse/
+/+modelId(): String/</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>1982</x><y>565</y><w>330</w><h>110</h></coordinates><panel_attributes>&lt;&lt;Adapter&gt;&gt;
+/LangChain4jClient/
+--
+
+--
++chat(request: LLMRequest): LLMResponse
++modelId(): String</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>1972</x><y>758</y><w>350</w><h>110</h></coordinates><panel_attributes>&lt;&lt;interface&gt;&gt;
+&lt;&lt;LangChain4j library&gt;&gt;
+/ChatModel/
+--
+
+--
+/+chat(request: ChatRequest): ChatResponse/</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>2337</x><y>565</y><w>330</w><h>110</h></coordinates><panel_attributes>&lt;&lt;Decorator&gt;&gt;
+/LLMClientDecorator/
+--
+
+--
++chat(request: LLMRequest): LLMResponse
++modelId(): String</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>2347</x><y>773</y><w>330</w><h>80</h></coordinates><panel_attributes>RetryingLLMClient
+--
+-maxRetries: int = 2
+--
++chat(request: LLMRequest): LLMResponse</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>20</x><y>788</y><w>120</w><h>50</h></coordinates><panel_attributes>&lt;&lt;boundary&gt;&gt;
+AlertsView
+bg=#E4E4E4</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>955</x><y>55</y><w>150</w><h>40</h></coordinates><panel_attributes>AssistantService
+bg=#E4E4E4</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>165</x><y>793</y><w>120</w><h>40</h></coordinates><panel_attributes>AuditLog
+bg=#E4E4E4</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>310</x><y>788</y><w>120</w><h>50</h></coordinates><panel_attributes>&lt;&lt;boundary&gt;&gt;
+CaseView
+bg=#E4E4E4</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>617</x><y>55</y><w>180</w><h>40</h></coordinates><panel_attributes>InvestigationService
+bg=#E4E4E4</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>2259</x><y>201</y><w>130</w><h>40</h></coordinates><panel_attributes>ReportService
+bg=#E4E4E4</panel_attributes><additional_attributes/></element>
+<element><id>UMLClass</id><coordinates><x>1582</x><y>50</y><w>140</w><h>50</h></coordinates><panel_attributes>&lt;&lt;Facade&gt;&gt;
+TraceWiseFacade
+bg=#E4E4E4</panel_attributes><additional_attributes/></element>
+<element><id>Relation</id><coordinates><x>393</x><y>675</y><w>167</w><h>133</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>147.5;10.0;73.6;65.5;39.2;91.0;10.1;113.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>98</x><y>644</y><w>404</w><h>164</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>384.0;10.0;221.9;48.1;136.2;78.0;54.0;114.0;42.2;120.5;30.6;127.9;19.6;135.7;10.3;144.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>1642</x><y>90</y><w>30</w><h>101</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1
+knowledge</panel_attributes><additional_attributes>10.0;10.0;10.0;44.2;10.0;63.1;10.0;81.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>697</x><y>85</y><w>30</w><h>106</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.0;10.0;10.0;45.9;10.0;66.4;10.0;86.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>787</x><y>79</y><w>317</w><h>122</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.0;10.8;83.1;22.8;121.1;31.8;158.0;42.5;195.3;55.6;232.5;70.8;268.2;86.8;297.6;102.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>432</x><y>75</y><w>205</w><h>288</h></coordinates><panel_attributes>lt=.&gt;
+&lt;&lt;create&gt;&gt;</panel_attributes><additional_attributes>185.0;10.2;96.3;20.2;60.5;31.5;38.0;46.5;15.8;83.4;10.7;118.7;19.3;155.5;38.0;197.0;50.2;217.4;65.1;236.1;82.0;253.3;107.7;268.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>808</x><y>85</y><w>198</w><h>106</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>178.2;10.0;99.5;46.0;54.0;66.4;10.4;86.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>1037</x><y>85</y><w>108</w><h>116</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.9;10.0;47.8;51.2;69.0;74.5;88.6;96.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>2314</x><y>231</y><w>30</w><h>147</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.0;10.0;10.0;65.0;10.0;96.9;10.0;127.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>922</x><y>259</y><w>1257</w><h>121</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.0;10.8;16.7;12.2;19.9;12.6;23.0;13.0;303.4;31.6;523.3;25.8;742.7;22.8;1022.0;49.5;1076.4;59.2;1131.5;71.4;1185.5;85.1;1237.0;101.5</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>788</x><y>261</y><w>191</w><h>117</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1</panel_attributes><additional_attributes>10.5;10.0;91.4;54.2;132.8;76.4;171.3;97.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>668</x><y>261</y><w>47</w><h>102</h></coordinates><panel_attributes>lt=.&gt;
+&lt;&lt;use&gt;&gt;</panel_attributes><additional_attributes>27.4;10.0;19.0;46.4;14.7;64.7;10.6;82.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>628</x><y>473</y><w>42</w><h>102</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=0..*
+listeners</panel_attributes><additional_attributes>22.3;10.0;16.1;47.1;13.0;65.1;10.1;82.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>238</x><y>665</y><w>264</w><h>148</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>244.0;10.8;151.0;46.6;104.1;69.0;59.0;93.0;45.8;101.1;32.9;109.9;20.7;119.0;10.2;128.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>1052</x><y>458</y><w>30</w><h>117</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;-
+m1=1
+m2=1..*
+tools</panel_attributes><additional_attributes>10.0;10.0;10.0;54.0;10.0;76.1;10.0;97.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>1052</x><y>675</y><w>30</w><h>103</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>10.0;10.0;10.0;47.3;10.0;65.3;10.0;83.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>1052</x><y>858</y><w>30</w><h>102</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10.0;10.0;10.0;46.8;10.0;64.9;10.0;82.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>2184</x><y>458</y><w>113</w><h>127</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>93.4;10.0;51.5;59.5;30.1;84.3;10.5;107.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>2137</x><y>665</y><w>30</w><h>113</h></coordinates><panel_attributes>lt=-&gt;
+m1=1
+m2=1
+adaptee</panel_attributes><additional_attributes>10.0;10.0;10.0;52.0;10.0;72.7;10.0;93.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>2355</x><y>458</y><w>112</w><h>127</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>10.9;10.0;48.7;59.5;70.4;84.3;92.8;107.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>2366</x><y>458</y><w>113</w><h>127</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;-&gt;
+m1=0..1
+m2=1
+inner</panel_attributes><additional_attributes>93.3;107.0;56.4;59.5;34.7;34.8;10.9;10.0</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>2494</x><y>665</y><w>35</w><h>128</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10.9;10.0;13.5;60.6;14.8;85.2;15.9;108.0</additional_attributes></element>
+</diagram>

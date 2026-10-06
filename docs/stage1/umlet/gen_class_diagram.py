@@ -14,7 +14,7 @@ import subprocess
 from xml.sax.saxutils import escape
 
 HERE = pathlib.Path(__file__).parent
-CHAR_W, LINE_H, PAD_W, PAD_H = 7.3, 15, 24, 14
+CHAR_W, LINE_H, PAD_W, PAD_H = 7.9, 15, 26, 14
 
 # ---------------------------------------------------------------------------------------------------
 # Classes: name -> (package, header lines, attribute lines, method lines)
@@ -149,143 +149,168 @@ r("assoc", "Case", "CaseState", "1", "1", "state"); r("gen", "ClosedState", "Cas
 r("assoc", "Alert", "Transaction", "*", "1..*", "triggeredBy"); r("gen", "TransactionRepository", "Ledger")
 
 # ---------------------------------------------------------------------------------------------------
-def lines_of(name):
-    _, header, attrs, methods = C[name]
-    return header, attrs, methods
+FIGURES = {
+    1: ("Front Ends, Facade and Application Services",
+        ["AlertsView", "CaseView", "NetworkView", "ApprovalsView", "AdminView", "CliCommandBase", "AskCli",
+         "TraceWiseFacade", "ImportService", "MonitoringService", "InvestigationService", "TriageService",
+         "AssistantService", "CaseService", "ReportService", "NetworkService", "PerformanceService"]),
+    2: ("Monitoring Rules, Domain Data and Persistence",
+        ["DetectionRule", "WindowedRule", "StructuringRule", "Alert", "Transaction", "Ledger",
+         "TransactionRepository", "CaseRepository", "AlertRepository"]),
+    3: ("Actions, Approvals, Case Lifecycle and Audit",
+        ["ActionCommand", "CloseCaseCommand", "CommandDispatcher", "PermissionPolicy", "ApprovalQueue",
+         "PendingAction", "AuditLog", "Case", "CaseState", "ClosedState", "AgentFinding"]),
+    4: ("Agent, Tools and LLM Access",
+        ["AgentRunner", "AgentTrace", "AgentEventListener", "ToolRegistry", "AgentTool", "ActionTool",
+         "ProposeCloseTool", "ClaimVerifier", "Retriever", "LLMClient", "LangChain4jClient", "ChatModel",
+         "LLMClientDecorator", "RetryingLLMClient"]),
+}
+HOME = {c: f for f, (_, cs) in FIGURES.items() for c in cs}
+assert set(HOME) == set(C), set(C) ^ set(HOME)
+NOTE_HOME = {"NoteRules": 2, "NoteStates": 3}
 
-def size_of(name):
-    header, attrs, methods = lines_of(name)
+def rel_figure(kind, a, b):
+    return HOME[b]  # drawn where the target (or the parent, for gen/real) lives
+
+def is_interface(name):
+    return "<<interface>>" in C[name][1]
+
+def lines_of(name, ref=False):
+    _, header, attrs, methods = C[name]
+    if ref and not is_interface(name):
+        return header, [], []
+    return header, ([] if ref else attrs), methods
+
+def size_of(name, ref=False):
+    header, attrs, methods = lines_of(name, ref)
     texts = header + attrs + methods
     w = max(len(t.strip("/_")) for t in texts) * CHAR_W + PAD_W
-    h = (len(header) + max(len(attrs), 1) + max(len(methods), 1)) * LINE_H + PAD_H + 8
+    if ref and not is_interface(name):
+        h = len(header) * LINE_H + PAD_H + 6
+    else:
+        h = (len(header) + max(len(attrs), 1) + max(len(methods), 1)) * LINE_H + PAD_H + 22
     return int(round(max(w, 120) / 10.0) * 10), int(round(h / 10.0) * 10)
 
 def note_size(text):
     ls = text.split("\n")
     return int(max(len(l) for l in ls) * CHAR_W + PAD_W), int(len(ls) * LINE_H + PAD_H)
 
-def layout():
-    dot = ["digraph G {", "rankdir=TB; splines=spline; nodesep=0.45; ranksep=0.75; newrank=true;",
+def generate(fig):
+    title, homes = FIGURES[fig]
+    rels = [x for x in R if rel_figure(x[0], x[1], x[2]) == fig]
+    refs = sorted({n for _, a, b, *_ in rels for n in (a, b)} - set(homes))
+    notes = {k: v for k, v in NOTES.items() if NOTE_HOME[k] == fig}
+    def dims(n):
+        if n in notes:
+            return note_size(notes[n][1])
+        return size_of(n, ref=n in refs)
+    rankdir = "LR" if fig == 1 else "TB"
+    dot = ["digraph G {", f"rankdir={rankdir}; splines=spline; nodesep=0.35; ranksep=1.0; newrank=true;",
            "node [shape=box, fixedsize=true]; edge [arrowhead=none];"]
     pkgs = {}
-    for n, (pkg, *_ ) in C.items():
-        pkgs.setdefault(pkg, []).append(n)
-    for k, (pkg, _, _) in NOTES.items():
-        pkgs[pkg].append(k)
+    for n in homes:
+        pkgs.setdefault(C[n][0], []).append(n)
+    for k, (pkg, _, _) in notes.items():
+        pkgs.setdefault(pkg, []).append(k)
     for i, (pkg, members) in enumerate(pkgs.items()):
-        dot.append(f'subgraph cluster_{i} {{ label="{pkg}"; margin=28;')
+        dot.append(f'subgraph cluster_{i} {{ label="{pkg}"; margin=26;')
         for m in members:
-            w, h = size_of(m) if m in C else note_size(NOTES[m][1])
+            w, h = dims(m)
             dot.append(f'"{m}" [width={w/72:.3f}, height={h/72:.3f}];')
         dot.append("}")
-    for kind, a, b, *_ in R:
-        # Hierarchy edges are laid out parent above child.
-        if kind in ("gen", "real"):
-            dot.append(f'"{b}" -> "{a}";')
-        else:
-            dot.append(f'"{a}" -> "{b}";')
-    for k, (_, _, target) in NOTES.items():
+    for m in refs:
+        w, h = dims(m)
+        dot.append(f'"{m}" [width={w/72:.3f}, height={h/72:.3f}];')
+    for kind, a, b, *_ in rels:
+        dot.append(f'"{b}" -> "{a}";' if kind in ("gen", "real") else f'"{a}" -> "{b}";')
+    for k, (_, _, target) in notes.items():
         dot.append(f'"{k}" -> "{target}" [style=dashed];')
     dot.append("}")
-    out = subprocess.run(["dot", "-Tjson"], input="\n".join(dot), capture_output=True, text=True, check=True)
-    return json.loads(out.stdout)
-
-def main():
-    g = layout()
-    H = float(g["bb"].split(",")[3])
-    pos = {}
-    for o in g.get("objects", []):
-        if "pos" in o and "name" in o and not o["name"].startswith("cluster"):
-            x, y = map(float, o["pos"].split(","))
-            pos[o["name"]] = (x, H - y)
-    els = []
-    def box(name):
-        w, h = size_of(name) if name in C else note_size(NOTES[name][1])
-        cx, cy = pos[name]
-        return int(cx - w / 2) + 20, int(cy - h / 2) + 20, w, h
-    # packages
-    for o in g.get("objects", []):
-        if o.get("name", "").startswith("cluster"):
-            x1, y1, x2, y2 = map(float, o["bb"].split(","))
-            els.append(("UMLPackage", int(x1) + 20, int(H - y2) + 20, int(x2 - x1), int(y2 - y1), o["label"] + "\nbg=#F7F9FC"))
-    for name in C:
-        x, y, w, h = box(name)
-        header, attrs, methods = lines_of(name)
-        text = "\n".join(header) + "\n--\n" + ("\n".join(attrs) if attrs else "") + "\n--\n" + "\n".join(methods)
-        els.append(("UMLClass", x, y, w, h, text))
-    for k, (_, text, _) in NOTES.items():
-        x, y, w, h = box(k)
-        els.append(("UMLNote", x, y, w, h, text + "\nbg=#FFFBE6"))
-    # relations: endpoints on box borders, routed through graphviz edge points
+    g = json.loads(subprocess.run(["dot", "-Tjson"], input="\n".join(dot), capture_output=True, text=True, check=True).stdout)
+    H = float(g["bb"].split(",")[3]); OFF = 50
+    pos = {o["name"]: (float(o["pos"].split(",")[0]), H - float(o["pos"].split(",")[1]))
+           for o in g.get("objects", []) if "pos" in o and not o["name"].startswith("cluster")}
+    def box(n):
+        w, h = dims(n); cx, cy = pos[n]
+        return int(cx - w / 2) + 20, int(cy - h / 2) + OFF, w, h
+    def border_point(n, tx, ty):
+        x, y, w, h = box(n); cx, cy = x + w / 2, y + h / 2
+        dx, dy = tx - cx, ty - cy
+        if abs(dx) < 1e-6 and abs(dy) < 1e-6:
+            return cx, cy
+        s = min((w / 2) / abs(dx) if dx else 1e9, (h / 2) / abs(dy) if dy else 1e9)
+        return cx + dx * s, cy + dy * s
     edges = {}
     for e in g.get("edges", []):
         edges.setdefault((g["objects"][e["tail"]]["name"], g["objects"][e["head"]]["name"]), []).append(e)
-    rels = []
-    def border_point(name, tx, ty):
-        x, y, w, h = box(name)
-        cx, cy = x + w / 2, y + h / 2
-        dx, dy = tx - cx, ty - cy
-        if dx == 0 and dy == 0:
-            return cx, cy
-        sx = (w / 2) / abs(dx) if dx else 1e9
-        sy = (h / 2) / abs(dy) if dy else 1e9
-        s = min(sx, sy)
-        return cx + dx * s, cy + dy * s
     def route(a, b):
-        es = edges.get((a, b)) or edges.get((b, a))
-        mids = []
+        es = edges.get((a, b)) or edges.get((b, a)); mids = []
         if es:
             e = es.pop(0)
-            pts = [tuple(map(float, p.split(","))) for p in e.get("pos", "").replace("e,", "").replace("s,", "").split() if "," in p]
-            pts = [(px + 20, H - py + 20) for px, py in pts]
+            pts = [tuple(map(float, q.split(","))) for q in e.get("pos", "").replace("e,", "").replace("s,", "").split() if "," in q]
+            pts = [(px + 20, H - py + OFF) for px, py in pts]
             if (g["objects"][e["tail"]]["name"], g["objects"][e["head"]]["name"]) != (a, b):
                 pts = pts[::-1]
             curve = []
             for i in range(0, len(pts) - 3, 3):
                 p0, c1, c2, p3 = pts[i], pts[i + 1], pts[i + 2], pts[i + 3]
-                for t in (0.25, 0.5, 0.75, 1.0):
-                    u = 1 - t
-                    curve.append((u**3 * p0[0] + 3 * u * u * t * c1[0] + 3 * u * t * t * c2[0] + t**3 * p3[0],
-                                  u**3 * p0[1] + 3 * u * u * t * c1[1] + 3 * u * t * t * c2[1] + t**3 * p3[1]))
-            mids = curve[:-1]
-        ax, ay = box(a)[0] + box(a)[2] / 2, box(a)[1] + box(a)[3] / 2
-        bx, by = box(b)[0] + box(b)[2] / 2, box(b)[1] + box(b)[3] / 2
-        first = mids[0] if mids else (bx, by)
-        last = mids[-1] if mids else (ax, ay)
-        return [border_point(a, *first)] + mids + [border_point(b, *last)]
-    for kind, a, b, ma, mb, label in R:
-        if kind in ("gen", "real"):
-            pts = route(b, a)  # start at the parent, where the triangle is drawn
-            lt = "<<-" if kind == "gen" else "<<."
-            attrs = [f"lt={lt}"]
-        elif kind in ("comp", "aggr", "aggrnav"):
-            pts = route(a, b)  # start at the whole, where the diamond is drawn
-            lt = {"comp": "<<<<<-", "aggr": "<<<<-", "aggrnav": "<<<<->"}[kind]
-            attrs = [f"lt={lt}", f"m1={ma}", f"m2={mb}"] + ([label] if label else [])
-        elif kind == "assoc":
-            pts = route(a, b)
-            attrs = ["lt=->", f"m1={ma}", f"m2={mb}"] + ([label] if label else [])
-        else:  # dep
-            pts = route(a, b)
-            attrs = ["lt=.>"] + ([label] if label else [])
-        rels.append((pts, "\n".join(attrs)))
-    for k, (_, _, target) in NOTES.items():
-        rels.append((route(k, target), "lt=."))
+                for tt in (0.25, 0.5, 0.75, 1.0):
+                    u = 1 - tt
+                    curve.append((u**3*p0[0] + 3*u*u*tt*c1[0] + 3*u*tt*tt*c2[0] + tt**3*p3[0],
+                                  u**3*p0[1] + 3*u*u*tt*c1[1] + 3*u*tt*tt*c2[1] + tt**3*p3[1]))
+            mids = curve[1:-1]
+        ca = (box(a)[0] + box(a)[2] / 2, box(a)[1] + box(a)[3] / 2)
+        cb = (box(b)[0] + box(b)[2] / 2, box(b)[1] + box(b)[3] / 2)
+        return [border_point(a, *(mids[0] if mids else cb))] + mids + [border_point(b, *(mids[-1] if mids else ca))]
     xml = ['<?xml version="1.0" encoding="UTF-8" standalone="no"?>', '<diagram program="umlet" version="15.1">', "<zoom_level>10</zoom_level>"]
-    xml.append(f'<element><id>Text</id><coordinates><x>20</x><y>0</y><w>1200</w><h>30</h></coordinates><panel_attributes>{escape("*TraceWise: Class Diagram (major classes and interfaces)*")}\nfontsize=18</panel_attributes><additional_attributes/></element>')
-    for kind, x, y, w, h, text in els:
-        xml.append(f"<element><id>{kind}</id><coordinates><x>{x}</x><y>{y + 20}</y><w>{w}</w><h>{h}</h></coordinates>"
+    def el(kind, x, y, w, h, text):
+        xml.append(f"<element><id>{kind}</id><coordinates><x>{x}</x><y>{y}</y><w>{w}</w><h>{h}</h></coordinates>"
                    f"<panel_attributes>{escape(text)}</panel_attributes><additional_attributes/></element>")
-    for pts, attrs in rels:
-        xs = [p[0] for p in pts]; ys = [p[1] + 20 for p in pts]
+    el("Text", 20, 0, 1400, 40, f"*TraceWise Class Diagram, Figure {fig} of 4: {title}*\nfontsize=18")
+    el("UMLNote", 20, 30, 560, 20, "Grey boxes are classes shown in full in another figure.\nbg=#FFFBE6") if refs else None
+    for o in g.get("objects", []):
+        if o.get("name", "").startswith("cluster"):
+            x1, y1, x2, y2 = map(float, o["bb"].split(","))
+            el("UMLPackage", int(x1) + 20, int(H - y2) + OFF, int(x2 - x1), int(y2 - y1), o["label"] + "\nbg=#F7F9FC\nlayer=-1")
+    for n in homes + refs:
+        x, y, w, h = box(n)
+        header, attrs, methods = lines_of(n, ref=n in refs)
+        if n in refs and not is_interface(n):
+            text = "\n".join(header)
+        else:
+            text = "\n".join(header) + "\n--\n" + "\n".join(attrs) + "\n--\n" + "\n".join(methods)
+        if n in refs:
+            text += "\nbg=#E4E4E4"
+        el("UMLClass", x, y, w, h, text)
+    for k, (_, text, _) in notes.items():
+        x, y, w, h = box(k)
+        el("UMLNote", x, y, w, h, text + "\nbg=#FFFBE6")
+    def relation(pts, attrs):
+        xs = [q[0] for q in pts]; ys = [q[1] for q in pts]
         ox, oy = int(min(xs)) - 10, int(min(ys)) - 10
         w, h = int(max(xs) - ox) + 20, int(max(ys) - oy) + 20
-        rel_pts = ";".join(f"{px - ox:.1f};{py - oy:.1f}" for px, py in zip(xs, ys))
+        rp = ";".join(f"{px - ox:.1f};{py - oy:.1f}" for px, py in zip(xs, ys))
         xml.append(f"<element><id>Relation</id><coordinates><x>{ox}</x><y>{oy}</y><w>{w}</w><h>{h}</h></coordinates>"
-                   f"<panel_attributes>{escape(attrs)}</panel_attributes><additional_attributes>{rel_pts}</additional_attributes></element>")
+                   f"<panel_attributes>{escape(attrs)}</panel_attributes><additional_attributes>{rp}</additional_attributes></element>")
+    for kind, a, b, ma, mb, label in rels:
+        if kind in ("gen", "real"):
+            relation(route(b, a), "lt=<<-" if kind == "gen" else "lt=<<.")
+        elif kind in ("comp", "aggr", "aggrnav"):
+            lt = {"comp": "<<<<<-", "aggr": "<<<<-", "aggrnav": "<<<<->"}[kind]
+            relation(route(a, b), "\n".join([f"lt={lt}", f"m1={ma}", f"m2={mb}"] + ([label] if label else [])))
+        elif kind == "assoc":
+            relation(route(a, b), "\n".join(["lt=->", f"m1={ma}", f"m2={mb}"] + ([label] if label else [])))
+        else:
+            relation(route(a, b), "\n".join(["lt=.>"] + ([label] if label else [])))
+    for k, (_, _, target) in notes.items():
+        relation(route(k, target), "lt=.")
     xml.append("</diagram>")
-    (HERE / "class-diagram.uxf").write_text("\n".join(xml))
-    print(f"classes: {len(C)}, relationships: {len(R)}")
+    out = HERE / f"class-diagram-{fig}.uxf"
+    out.write_text("\n".join(xml))
+    print(f"figure {fig}: {len(homes)} classes, {len(refs)} reference boxes, {len(rels)} relationships")
 
 if __name__ == "__main__":
-    main()
+    covered = sum(1 for x in R if rel_figure(*x[:3]) in FIGURES)
+    assert covered == len(R)
+    for f in FIGURES:
+        generate(f)
