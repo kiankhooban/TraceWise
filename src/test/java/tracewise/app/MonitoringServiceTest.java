@@ -168,4 +168,14 @@ class MonitoringServiceTest {
         monitoring.updateRule("R6", new RuleConfig(false, new FanOutRule().config().parameters()));
         assertFalse(monitoring.run().alertsByRule().containsKey("R6"));
     }
+
+    @Test
+    void onlyASupervisorCanChangeRules() {
+        var asAnalyst = new MonitoringService(transactions, allRules(), new SqliteAlertRepository(db),
+                new SqliteThresholdReportRepository(db), new SqliteRuleConfigRepository(db), new RiskScorer(), audit,
+                new Actor("kian", ActorType.ANALYST));
+        var e = assertThrows(IllegalStateException.class,
+                () -> asAnalyst.updateRule("R5", new FanInRule().config()));
+        assertEquals("only a Compliance Supervisor can change monitoring rules", e.getMessage());
+    }
 }

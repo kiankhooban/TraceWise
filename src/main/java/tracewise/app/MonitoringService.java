@@ -13,6 +13,7 @@ import tracewise.audit.AuditEntry;
 import tracewise.audit.AuditLog;
 import tracewise.domain.Account;
 import tracewise.domain.Actor;
+import tracewise.domain.ActorType;
 import tracewise.domain.Alert;
 import tracewise.domain.AlertStatus;
 import tracewise.domain.ThresholdReport;
@@ -120,6 +121,9 @@ public class MonitoringService {
 
     /** Validates and applies the change; an invalid configuration throws and the previous one stays. */
     public void updateRule(String ruleId, RuleConfig config) {
+        if (actor.type() != ActorType.SUPERVISOR) {
+            throw new IllegalStateException("only a Compliance Supervisor can change monitoring rules");
+        }
         DetectionRule rule = rules.stream().filter(r -> r.id().equals(ruleId)).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("no rule with id " + ruleId));
         RuleConfig before = rule.config();
