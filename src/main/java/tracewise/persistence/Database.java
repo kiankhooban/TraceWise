@@ -28,7 +28,8 @@ public class Database implements AutoCloseable {
             try (Statement s = db.connection.createStatement()) {
                 s.execute("PRAGMA journal_mode=WAL");
                 s.execute("PRAGMA foreign_keys=ON");
-                for (String ddl : schema().split(";")) {
+                // statements end with ";" at a line end followed by the next CREATE, so trigger bodies stay whole
+                for (String ddl : schema().split(";\\s*\\n(?=CREATE|\\z)")) {
                     if (!ddl.isBlank()) {
                         s.execute(ddl);
                     }
