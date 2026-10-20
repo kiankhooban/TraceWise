@@ -28,6 +28,13 @@
   </dependencyManagement>
 
   <dependencies>
+    <!-- LangChain4j logs through SLF4J; without a provider every run prints a warning. -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-nop</artifactId>
+      <version>2.0.18</version>
+      <scope>runtime</scope>
+    </dependency>
     <dependency>
       <groupId>org.xerial</groupId>
       <artifactId>sqlite-jdbc</artifactId>

@@ -24,7 +24,7 @@ public class InvestigateCli extends CliCommandBase {
         AgentEventListener steps = json ? null : new AgentEventListener() {
             @Override
             public void onStep(TraceStep s) {
-                out().printf("  [turn %d] %s %s -> %s (%d ms)%n", s.turn(), s.toolName(), s.arguments(),
+                out().printf("  [turn %d] %s %s -> %s (%d ms)%n", s.turn(), s.toolName(), s.arguments().replaceAll("\\s*\\n\\s*", " "),
                         s.error() ? "ERROR: " + s.result() : "ok", s.durationMs());
             }
 
