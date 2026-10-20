@@ -15,23 +15,28 @@ import tracewise.domain.Transaction;
 import tracewise.persistence.Ledger;
 
 /** Test double: a ledger over a list, with helpers that build transactions hours after a fixed start. */
-class InMemoryLedger implements Ledger {
+public class InMemoryLedger implements Ledger {
 
-    static final Instant T0 = Instant.parse("2026-09-01T00:00:00Z");
+    public static final Instant T0 = Instant.parse("2026-09-01T00:00:00Z");
     private final List<Transaction> transactions = new ArrayList<>();
     private int next;
 
-    InMemoryLedger add(String from, String to, String cad, PaymentChannel channel, String country, double hours) {
+    public InMemoryLedger add(String from, String to, String cad, PaymentChannel channel, String country, double hours) {
         transactions.add(new Transaction("t" + (++next), T0.plus(Duration.ofMinutes((long) (hours * 60))), from, to,
                 new BigDecimal(cad), new BigDecimal(cad), "CAD", channel, country, null));
         return this;
     }
 
-    InMemoryLedger deposit(String account, String cad, double hours) {
+    public InMemoryLedger add(Transaction t) {
+        transactions.add(t);
+        return this;
+    }
+
+    public InMemoryLedger deposit(String account, String cad, double hours) {
         return add(Transaction.CASH, account, cad, PaymentChannel.CASH, "CA", hours);
     }
 
-    InMemoryLedger wire(String from, String to, String cad, double hours) {
+    public InMemoryLedger wire(String from, String to, String cad, double hours) {
         return add(from, to, cad, PaymentChannel.WIRE, "CA", hours);
     }
 
