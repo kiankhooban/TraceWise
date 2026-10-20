@@ -63,6 +63,8 @@ Source: `Project-Stage2-Instruction.pdf` (course handout, read 2026-10-20). Impl
 - 2026-10-20 (F07): proposals from runs without a finding expire and re-runs see earlier decisions
   (design change 18); triage with alert and cost limits, stop, failure handling and summary, `triage`
   CLI (design change 19). A full triage of the sample alerts replays offline. 178 tests.
+- 2026-10-20 (review 3): triage re-checks each alert, stops after 3 failures in a row, counts actions
+  from every run (design change 20). 181 tests. Period 1 commits pushed: well over 5.
 
 ## Tooling (installed 2026-10-20)
 - `jdtls-lsp` plugin with `jdtls` 1.63.0 (Homebrew): Java diagnostics and navigation.

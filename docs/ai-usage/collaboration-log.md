@@ -217,4 +217,9 @@ triage of the sample alerts runs offline.
 
 **Human Contribution:** Kept the order: finish open items before new features.
 
-**Outcome:** 178 tests pass. `tracewise triage` works; the period 1 plan is complete.
+**Outcome:** 178 tests pass. `tracewise triage` works; the period 1 plan is complete. A third
+`deep-code-review` (nine reviewers plus Codex, each finding validated) then found that triage could
+investigate an alert the agent had just linked into another case (four reviewers agreed), left actions
+from failed runs out of the summary (five agreed), and would keep calling an unreachable model for
+every alert. All three were fixed test-first; four other findings were rejected by their validators
+with reasons recorded. 181 tests pass.

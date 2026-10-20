@@ -1,6 +1,6 @@
 # Stage 2 handoff (for the next Claude session or after /compact)
 
-Last updated 2026-10-20 after F07. Read this, then `CLAUDE.md` (repo root) and
+Last updated 2026-10-20 after F07 and its review. Read this, then `CLAUDE.md` (repo root) and
 `docs/stage2/PLAN.md`. The session that wrote this ran from `~/Brain`, so the TraceWise `CLAUDE.md`
 is NOT loaded automatically there: read it explicitly.
 
@@ -13,7 +13,7 @@ is NOT loaded automatically there: read it explicitly.
   listens); `ClaimVerifier` (F05); `Case` with the State pattern and `SqliteCaseRepository`;
   `InvestigationService` and `tracewise investigate <alertId> [--json]` (F03).
 - Live check (Haiku 5.5, sample data): all 4 alerts COMPLETED, ESCALATE, every claim confirmed, CAD 0.012.
-- 178 tests pass, 1 skipped (the opt-in live test). Design changes 1 to 19 logged.
+- 181 tests pass, 1 skipped (the opt-in live test). Design changes 1 to 20 logged.
 - Patterns in code: Facade, Strategy, Template Method, Adapter, Decorator, Factory Method (client
   factory), Observer, State, Command (F06). All nine designed patterns are now in code.
 - F06 done: actions with permission tiers, approval queue, `approvals` CLI, agent actions scoped to its case.
