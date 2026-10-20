@@ -38,7 +38,10 @@ Stage 2 (implementation) runs 2026-10-20 to 2026-11-10. Plan and status: `docs/s
 ## Records the Stage 2 report needs (keep them current)
 - `docs/ai-usage/collaboration-log.md`: add an entry for each representative interaction.
 - `docs/ai-usage/ai-tools.md`: tools, models, and token and money cost. Cost sources: ponytail's
-  ledger `~/.config/ponytail/band/`, and the `session-report` plugin.
+  ledger `~/.config/ponytail/band/`, and the `session-report` plugin. Kian is on Claude Max, so
+  development cost is reported as tokens plus the subscription for the Stage 2 period (any
+  API-equivalent dollar figure is labelled an estimate). The app's own LLM calls use Kian's API key
+  and are reported separately, from the Anthropic Console and the app's trace token counts.
 - `docs/stage2/design-changes.md` and the feature-to-implementation mapping in `docs/stage2/PLAN.md`.
 
 ## Style
