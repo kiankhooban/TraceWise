@@ -55,6 +55,11 @@ public class PassThroughRule extends WindowedRule {
     }
 
     @Override
+    protected BigDecimal total(Account account, List<Transaction> window) {
+        return Rules.total(window.stream().filter(t -> t.receiverAccountId().equals(account.id())).toList());
+    }
+
+    @Override
     protected Duration window() {
         return Duration.ofHours(parameter("window_hours").longValueExact());
     }

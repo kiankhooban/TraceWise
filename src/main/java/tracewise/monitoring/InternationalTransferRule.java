@@ -41,10 +41,15 @@ public class InternationalTransferRule extends WindowedRule {
 
     @Override
     protected boolean isMatch(Account account, List<Transaction> window) {
-        BigDecimal threshold = parameter("threshold");
+        return total(account, window).compareTo(parameter("threshold")) >= 0;
+    }
+
+    /** The larger of the incoming and outgoing totals: the direction that reaches the threshold. */
+    @Override
+    protected BigDecimal total(Account account, List<Transaction> window) {
         BigDecimal in = Rules.total(window.stream().filter(t -> t.receiverAccountId().equals(account.id())).toList());
         BigDecimal out = Rules.total(window.stream().filter(t -> t.senderAccountId().equals(account.id())).toList());
-        return in.compareTo(threshold) >= 0 || out.compareTo(threshold) >= 0;
+        return in.max(out);
     }
 
     @Override

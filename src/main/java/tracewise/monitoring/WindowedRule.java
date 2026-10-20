@@ -37,7 +37,7 @@ public abstract class WindowedRule implements DetectionRule {
                 }
                 List<Transaction> window = candidates.subList(i, j);
                 if (isMatch(account, window)) {
-                    matches.add(new RuleMatch(id(), kind(), account.id(), List.copyOf(window), Rules.total(window),
+                    matches.add(new RuleMatch(id(), kind(), account.id(), List.copyOf(window), total(account, window),
                             start, end));
                     i = j; // the matched transactions are reported once, not again in an overlapping window
                 } else {
@@ -75,6 +75,11 @@ public abstract class WindowedRule implements DetectionRule {
 
     protected BigDecimal parameter(String name) {
         return config.parameter(name);
+    }
+
+    /** The amount a match reports; rules whose windows mix money in and out override this. */
+    protected BigDecimal total(Account account, List<Transaction> window) {
+        return Rules.total(window);
     }
 
     /** Rule-specific constraints beyond "all parameters positive"; throw InvalidConfigurationException. */

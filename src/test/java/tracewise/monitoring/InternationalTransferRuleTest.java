@@ -35,4 +35,12 @@ class InternationalTransferRuleTest {
         assertTrue(rule.evaluate(new InMemoryLedger().wire("B", "A", "15000", 1)
                 .add("CASH", "A", "15000", PaymentChannel.CASH, "US", 2)).isEmpty());
     }
+
+    @Test
+    void theTotalIsTheDirectionThatReachedTheThreshold() {
+        var matches = rule.evaluate(new InMemoryLedger()
+                .add("EXT-US-1", "A", "11000", PaymentChannel.WIRE, "US", 1)
+                .add("A", "EXT-US-2", "3000", PaymentChannel.WIRE, "US", 2));
+        assertEquals(new java.math.BigDecimal("11000"), matches.get(0).totalCad());
+    }
 }

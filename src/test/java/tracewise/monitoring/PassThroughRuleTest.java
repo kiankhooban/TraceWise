@@ -12,7 +12,9 @@ class PassThroughRuleTest {
 
     @Test
     void mostOfALargeIncomingAmountSentOnWithinADayMatches() {
-        assertEquals(1, rule.evaluate(new InMemoryLedger().wire("EXT-P", "P", "48000", 0).wire("P", "EXT-Q", "45500", 5)).size());
+        var matches = rule.evaluate(new InMemoryLedger().wire("EXT-P", "P", "48000", 0).wire("P", "EXT-Q", "45500", 5));
+        assertEquals(1, matches.size());
+        assertEquals(new BigDecimal("48000"), matches.get(0).totalCad(), "the amount passed through, not in plus out");
     }
 
     @Test
