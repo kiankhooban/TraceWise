@@ -7,6 +7,9 @@ import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import tracewise.agent.AgentOutcome;
+import tracewise.agent.OutcomeStatus;
+import tracewise.agent.TraceStep;
 import tracewise.domain.Actor;
 import tracewise.domain.ActorType;
 import tracewise.persistence.Database;
@@ -42,6 +45,22 @@ class AuditLogTest {
             assertThrows(java.sql.SQLException.class, () -> c.createStatement().execute("DELETE FROM audit_log"));
             assertThrows(java.sql.SQLException.class,
                     () -> c.createStatement().execute("UPDATE audit_log SET outcome = 'FAILED'"));
+        }
+    }
+
+    @Test
+    void agentStepsAndOutcomesAreAuditedAgainstTheirSubject() {
+        try (var db = Database.open(dir.resolve("a.db"))) {
+            var log = new AuditLog(new SqliteAuditRepository(db));
+            log.onStep(new TraceStep("ALR-00001", 1, "account_history", "{\"account_id\":\"C1\"}", "3 rows", false, 12));
+            log.onStep(new TraceStep("ALR-00001", 2, "account_history", "{}", "missing account_id", true, 0));
+            log.onFinished(new AgentOutcome("ALR-00001", OutcomeStatus.COMPLETED, "VERDICT: ESCALATE"));
+
+            var entries = log.query(new AuditFilter(null, "ALR-00001"));
+            assertEquals(List.of("AGENT_STEP", "AGENT_STEP", "AGENT_FINISHED"), entries.stream().map(AuditEntry::eventType).toList());
+            assertEquals(List.of("OK", "ERROR", "COMPLETED"), entries.stream().map(AuditEntry::outcome).toList());
+            assertEquals(ActorType.AGENT, entries.get(0).actor().type());
+            assertEquals("account_history {\"account_id\":\"C1\"}", entries.get(0).details());
         }
     }
 }
