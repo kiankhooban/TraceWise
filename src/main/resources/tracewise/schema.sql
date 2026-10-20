@@ -34,3 +34,37 @@ CREATE TRIGGER IF NOT EXISTS audit_log_no_delete BEFORE DELETE ON audit_log
 BEGIN
     SELECT RAISE(ABORT, 'audit log is append-only');
 END;
+CREATE TABLE IF NOT EXISTS alerts (
+    seq INTEGER PRIMARY KEY AUTOINCREMENT,
+    rule_id TEXT NOT NULL,
+    account_id TEXT NOT NULL,
+    total_cad TEXT NOT NULL,
+    risk_score INTEGER NOT NULL,
+    priority INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS alert_transactions (
+    alert_seq INTEGER NOT NULL REFERENCES alerts (seq),
+    transaction_id TEXT NOT NULL REFERENCES transactions (id),
+    PRIMARY KEY (alert_seq, transaction_id)
+);
+CREATE INDEX IF NOT EXISTS alert_transactions_tx ON alert_transactions (transaction_id);
+CREATE TABLE IF NOT EXISTS threshold_reports (
+    id TEXT PRIMARY KEY,
+    rule_id TEXT NOT NULL,
+    account_id TEXT NOT NULL,
+    total_cad TEXT NOT NULL,
+    window_start INTEGER NOT NULL,
+    window_end INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS threshold_report_transactions (
+    report_id TEXT NOT NULL REFERENCES threshold_reports (id),
+    transaction_id TEXT NOT NULL REFERENCES transactions (id),
+    PRIMARY KEY (report_id, transaction_id)
+);
+CREATE TABLE IF NOT EXISTS rule_configs (
+    rule_id TEXT PRIMARY KEY,
+    enabled INTEGER NOT NULL,
+    parameters TEXT NOT NULL
+);
