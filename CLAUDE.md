@@ -34,6 +34,9 @@ Stage 2 (implementation) runs 2026-10-20 to 2026-11-10. Plan and status: `docs/s
 ## Secrets
 - The LLM key lives only in `.env` in the repo root (gitignored). `.env.example` holds placeholders.
 - Never print, log, commit or paste a key. Kian enters it himself.
+- Never `source` or `.` the `.env` file: a malformed line gets executed and the shell prints it,
+  key included (this happened on 2026-10-20 and the key had to be revoked). Read `.env` as text,
+  take only `ANTHROPIC_API_KEY`, and report problems by line number, never by content.
 
 ## Records the Stage 2 report needs (keep them current)
 - `docs/ai-usage/collaboration-log.md`: add an entry for each representative interaction.
