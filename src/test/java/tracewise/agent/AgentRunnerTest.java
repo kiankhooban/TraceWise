@@ -30,6 +30,8 @@ public class AgentRunnerTest {
     public static class ScriptedModel implements LLMClient {
         final Deque<Object> script = new ArrayDeque<>();
         public final List<LLMRequest> requests = new ArrayList<>();
+        /** Runs before every call, for example to cancel the run from "another thread". */
+        public Runnable beforeEachCall = () -> { };
 
         public ScriptedModel then(Object step) {
             script.add(step);
@@ -38,6 +40,7 @@ public class AgentRunnerTest {
 
         @Override
         public LLMResponse chat(LLMRequest request) {
+            beforeEachCall.run();
             requests.add(request);
             Object next = script.isEmpty() ? toolCall("{\"account_id\":\"C1\"}") : script.pop();
             if (next instanceof RuntimeException e) {
@@ -259,5 +262,17 @@ public class AgentRunnerTest {
         assertTrue(trace.steps().get(11).error());
         var results = model.requests.get(1).messages().stream().filter(m -> m instanceof LLMMessage.ToolResult).count();
         assertEquals(12, results);
+    }
+
+    @Test
+    void aCancelThatArrivesBeforeTheRunStartsIsHonouredOnce() {
+        var runner = runner();
+        runner.cancel();
+        assertEquals(OutcomeStatus.CANCELLED, runner.run(TASK, trace).status());
+        assertTrue(model.requests.isEmpty());
+
+        model.then(answer("VERDICT: DISMISS"));
+        var next = new AgentTrace("ALR-00002", PRICES, BigDecimal.ONE);
+        assertEquals(OutcomeStatus.COMPLETED, runner.run(TASK, next).status());
     }
 }

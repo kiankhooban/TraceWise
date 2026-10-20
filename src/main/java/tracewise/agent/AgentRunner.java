@@ -35,13 +35,20 @@ public class AgentRunner {
         this.limits = limits;
     }
 
-    /** Stops the current run after the step in progress. */
+    /** Stops the current run after the step in progress, or the next run if none is going yet. */
     public void cancel() {
         cancelled = true;
     }
 
     public AgentOutcome run(AgentTask task, AgentTrace trace) {
-        cancelled = false;
+        try {
+            return loop(task, trace);
+        } finally {
+            cancelled = false; // cleared when a run ends, so a cancel sent just before the run starts is not lost
+        }
+    }
+
+    private AgentOutcome loop(AgentTask task, AgentTrace trace) {
         List<ToolSchema> schemas = tools.schemas(task.toolNames());
         var messages = new ArrayList<LLMMessage>(List.of(new LLMMessage.User(task.initialMessage())));
         boolean corrected = false;

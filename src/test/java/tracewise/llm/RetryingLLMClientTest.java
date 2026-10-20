@@ -81,4 +81,12 @@ class RetryingLLMClientTest {
             Thread.interrupted();
         }
     }
+
+    @Test
+    void waitsTheBaseDelayThenTwiceAsLong() {
+        var inner = new ScriptedClient(transientFailure(), transientFailure(), OK);
+        var waits = new java.util.ArrayList<Duration>();
+        assertEquals(OK, new RetryingLLMClient(inner, Duration.ofSeconds(2), waits::add).chat(HELLO));
+        assertEquals(List.of(Duration.ofSeconds(2), Duration.ofSeconds(4)), waits);
+    }
 }

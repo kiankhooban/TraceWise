@@ -206,4 +206,25 @@ class InvestigationServiceTest {
         assertThrows(IllegalStateException.class, () -> service().investigate(structuring.id(), null));
         assertTrue(model.requests.isEmpty());
     }
+
+    @Test
+    void cancellingTheRunningAlertStopsItAfterTheCurrentStep() {
+        var service = service();
+        model.beforeEachCall = () -> service.cancel(structuring.id());
+        model.then(AgentRunnerTest.toolCall("account_history", historyCall())).then(AgentRunnerTest.answer(finding()));
+        var result = service.investigate(structuring.id(), null);
+
+        assertEquals(OutcomeStatus.CANCELLED, result.status());
+        assertNull(result.finding());
+        assertEquals(1, model.requests.size());
+        assertEquals("CANCELLED", audit.query(new AuditFilter("INVESTIGATION_FINISHED", structuring.id())).get(0).outcome());
+    }
+
+    @Test
+    void cancellingADifferentAlertLeavesTheRunGoing() {
+        var service = service();
+        model.beforeEachCall = () -> service.cancel("ALR-99999");
+        model.then(AgentRunnerTest.toolCall("account_history", historyCall())).then(AgentRunnerTest.answer(finding()));
+        assertEquals(OutcomeStatus.COMPLETED, service.investigate(structuring.id(), null).status());
+    }
 }
