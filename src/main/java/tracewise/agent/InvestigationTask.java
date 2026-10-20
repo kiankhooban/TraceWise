@@ -61,7 +61,8 @@ public class InvestigationTask implements AgentTask {
             }
             ```
             confidence is between 0 and 1. totals lists every sum stated in the narrative with the \
-            transactions that make it up; use [] if there are none.""";
+            transactions that add up to it, each id once. Only plain sums belong there: state differences, \
+            averages and the absence of activity in the narrative instead. Use [] if there are none.""";
 
     private final Alert alert;
 

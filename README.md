@@ -57,7 +57,15 @@ Model options (each also has an environment variable):
 ```
 
 `--llm replay` answers only requests that were recorded, so it reproduces a recorded run on the
-same data. Each investigation prints its token usage and cost in CAD.
+same data. `data/replays` holds recorded investigations of the four sample alerts (Claude Haiku 5.5),
+so on a fresh database built from `data/samples/scenarios.csv` they replay without a key:
+
+```bash
+./tracewise import data/samples/scenarios.csv && ./tracewise monitor run
+./tracewise --llm replay --model claude-haiku-5-5 investigate ALR-00001
+```
+
+Each investigation prints its token usage and cost in CAD.
 
 ### Sample data
 
