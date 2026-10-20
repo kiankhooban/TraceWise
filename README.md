@@ -16,7 +16,7 @@ ledger before a human analyst approves or dismisses the case.
 | Stage | Content | Status |
 |---|---|---|
 | Stage 1: Design | [Design report](docs/stage1/Stage1-Design-Report.md) ([PDF](docs/stage1/Stage1-Design-Report.pdf)) (UMLet diagrams in [`docs/stage1/umlet`](docs/stage1/umlet)) | Complete (100/100) |
-| Stage 2: Implementation | [Plan and feature status](docs/stage2/PLAN.md), [design changes](docs/stage2/design-changes.md) | In progress: F01 and F02 working from the CLI |
+| Stage 2: Implementation | [Plan and feature status](docs/stage2/PLAN.md), [design changes](docs/stage2/design-changes.md) | In progress: F01, F02, F03 and F05 working from the CLI |
 | Stage 3: Testing | JUnit tests, KUMA agent behaviour tests | Not started |
 
 ## Quick start
@@ -31,6 +31,7 @@ Prerequisites: Java 21 (JDK). Maven is not needed: the repository includes the M
 ./tracewise threshold-reports list              # the Threshold Report Register
 ./tracewise rules list
 ./tracewise --role supervisor rules set R3 --set window_days=10
+./tracewise investigate ALR-00001               # the agent investigates an alert (needs an API key)
 ```
 
 Every command accepts `--json` for machine-readable output. The database is `tracewise.db` in the
@@ -46,6 +47,17 @@ cp .env.example .env      # .env is gitignored
 ```
 
 Never commit `.env` or paste a key into code, reports, screenshots or videos.
+
+Model options (each also has an environment variable):
+
+```bash
+./tracewise --model claude-haiku-5-5 investigate ALR-00001       # cheaper model (default: claude-sonnet-5-5)
+./tracewise --record investigate ALR-00001                       # also save the answers to data/replays
+./tracewise --llm replay investigate ALR-00001                   # replay saved answers: no key, no cost
+```
+
+`--llm replay` answers only requests that were recorded, so it reproduces a recorded run on the
+same data. Each investigation prints its token usage and cost in CAD.
 
 ### Sample data
 
@@ -65,7 +77,8 @@ SQLite, JUnit, Maven.
 ## Repository layout
 
 ```
-src/main/java/tracewise/   application code (ui, app, ingest, monitoring, domain, persistence, audit, tools)
+src/main/java/tracewise/   application code (ui, app, ingest, monitoring, agent, llm, verification, cases,
+                           domain, persistence, audit, tools)
 src/test/java/tracewise/   JUnit tests
 data/samples/              synthetic sample data
 docs/

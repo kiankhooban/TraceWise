@@ -29,12 +29,12 @@ Source: `Project-Stage2-Instruction.pdf` (course handout, read 2026-10-20). Impl
 |---|---|---|---|
 | F01 Transaction Data Import | Working (CLI); GUI pending | `ingest/*`, `app/ImportService`, `persistence/SqliteTransactionRepository`, `ui/cli/ImportCli` | |
 | F02 Rule-Based Monitoring, Threshold Reporting and Alert Queue | Working (CLI); GUI pending | `monitoring/*` (six rules, `WindowedRule`, `RiskScorer`), `app/MonitoringService`, alert, register and rule-config repositories, `ui/cli/{Monitor,Alerts,ThresholdReports,Rules}Cli` | |
-| F03 Autonomous Alert Investigation | Not started | | |
+| F03 Autonomous Alert Investigation | Working (CLI); GUI pending; retrieval tools come with F04 | `agent/*` (`AgentRunner`, `AgentTrace`, `InvestigationTask`), `agent/tools/*` (`ToolRegistry`, read tools), `llm/*` (retry, record, replay decorators, factory), `app/InvestigationService`, `ui/cli/InvestigateCli` | |
 | F04 Indicator Retrieval and Case Memory | Not started | | |
-| F05 Claim Verification | Not started | | |
+| F05 Claim Verification | Working (CLI, inside `investigate`) | `verification/*` (`ClaimVerifier`, `VerificationReport`), `agent/Claim`, `agent/TotalClaim` | |
 | F06 Agent Actions and Approval Queue | Not started | | |
 | F07 Autonomous Queue Triage | Not started | | |
-| F08 Case Management and Audit Trail | Not started | | |
+| F08 Case Management and Audit Trail | Partly: case states (State pattern) and storage, agent steps audited; case and audit commands pending | `domain/Case`, `cases/state/*`, `persistence/SqliteCaseRepository`, `audit/AuditLog` | |
 | F09 Money-Flow Network View | Not started | | |
 | F10 Natural-Language Analyst Assistant | Not started | | |
 | F11 Suspicious Transaction Report Drafting and Export | Not started | | |
@@ -45,6 +45,11 @@ Source: `Project-Stage2-Instruction.pdf` (course handout, read 2026-10-20). Impl
   duplicates, rollback, audit), F02 (six rules, risk scoring, alert queue, Threshold Report
   Register, persisted rule configs with supervisor-only changes), CLI for both, scenario generator
   and sample data. 67 tests passing. 15 code commits in period 1.
+- 2026-10-20 (later): LLM retry, record and replay decorators and the client factory; tool registry
+  with argument validation; account history and counterparty tools; the agent loop with trace,
+  listeners, turn and cost limits; claim verification; cases with the State pattern; the
+  `investigate` command. Live check on the sample data with Haiku 5.5: all four alerts escalated,
+  every cited claim confirmed, CAD 0.012 in total. 134 tests passing. Design changes 7 to 13.
 
 ## Tooling (installed 2026-10-20)
 - `jdtls-lsp` plugin with `jdtls` 1.63.0 (Homebrew): Java diagnostics and navigation.

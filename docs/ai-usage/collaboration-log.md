@@ -111,3 +111,32 @@ that changes be justified in the change log.
 **Outcome:** F01 and F02 work end to end from the CLI on the committed sample data; design
 changes 1 to 5 are in `docs/stage2/design-changes.md`.
 
+
+---
+
+## Entry 6: The agent core and the first investigation (2026-10-20)
+
+**Task:** Build the agent behind F03 and the claim verifier (F05) from the Stage 1 classes and
+sequence diagram SD3, in the front-loaded period 1 plan.
+
+**Input/Instruction:** Asked Claude Code (Opus 5.5) to continue from the handoff document, test
+first, one commit per working unit, logging each deviation from the design.
+
+**AI Contribution:** Built the LLM decorators (retry, record, replay) and the factory, the tool
+registry that validates every call before it runs, two read tools, the agent loop with its trace,
+listeners and limits, the claim verifier, the case lifecycle (State pattern) and the `investigate`
+command. Found that LangChain4j already separates retryable from permanent API failures and mapped
+them instead of retrying everything. Caught that Jackson reads decimal amounts as `double` and
+fixed it before amounts reached the verifier, and made sure the IBM ground-truth laundering label
+never reaches the agent. A CLI test records an investigation and replays it through the real
+command, so the wiring is tested without spending. Recorded design changes 7 to 13. One
+reversal: it first moved the trace out of `AgentFinding`, then restored the original design when
+storing findings showed why the design had it there.
+
+**Human Contribution:** Set the priority (finish on time over spreading commits), required the
+design to stay the spec with every change justified, and kept the API key out of the AI's reach
+(it is read only by the application).
+
+**Outcome:** `tracewise investigate` works on the sample data with Claude Haiku 5.5: all four
+planted schemes were escalated and every cited claim was confirmed against the ledger, for CAD 0.012
+in total. 134 tests pass.
