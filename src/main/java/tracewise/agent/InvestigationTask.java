@@ -10,6 +10,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import tracewise.agent.tools.AccountHistoryTool;
+import tracewise.agent.tools.AddToWatchlistTool;
+import tracewise.agent.tools.CounterpartiesTool;
+import tracewise.agent.tools.CreateTaskTool;
+import tracewise.agent.tools.LinkAlertsTool;
+import tracewise.agent.tools.LinkedAlertsTool;
+import tracewise.agent.tools.ProposeCloseTool;
+import tracewise.agent.tools.ProposeEscalationTool;
+import tracewise.agent.tools.SetPriorityTool;
 import tracewise.domain.Alert;
 import tracewise.persistence.ExactJson;
 
@@ -106,8 +115,9 @@ public class InvestigationTask implements AgentTask {
 
     @Override
     public Set<String> toolNames() {
-        return Set.of("account_history", "counterparties", "linked_alerts", "set_priority", "link_alerts",
-                "add_to_watchlist", "create_task", "propose_close", "propose_escalation");
+        return Set.of(AccountHistoryTool.NAME, CounterpartiesTool.NAME, LinkedAlertsTool.NAME, SetPriorityTool.NAME,
+                LinkAlertsTool.NAME, AddToWatchlistTool.NAME, CreateTaskTool.NAME, ProposeCloseTool.NAME,
+                ProposeEscalationTool.NAME);
     }
 
     @Override

@@ -8,13 +8,15 @@ import tracewise.llm.ToolParameter;
 
 public class SetPriorityTool extends ActionTool {
 
+    public static final String NAME = "set_priority";
+
     public SetPriorityTool(CommandDispatcher dispatcher, ActionScope scope) {
         super(dispatcher, scope);
     }
 
     @Override
     public String name() {
-        return "set_priority";
+        return NAME;
     }
 
     @Override

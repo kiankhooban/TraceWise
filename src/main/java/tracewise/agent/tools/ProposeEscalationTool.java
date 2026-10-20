@@ -8,13 +8,15 @@ import tracewise.llm.ToolParameter;
 
 public class ProposeEscalationTool extends ActionTool {
 
+    public static final String NAME = "propose_escalation";
+
     public ProposeEscalationTool(CommandDispatcher dispatcher, ActionScope scope) {
         super(dispatcher, scope);
     }
 
     @Override
     public String name() {
-        return "propose_escalation";
+        return NAME;
     }
 
     @Override

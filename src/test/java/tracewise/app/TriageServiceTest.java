@@ -149,4 +149,55 @@ class TriageServiceTest {
         var report = triage(new TriageLimits(50, new BigDecimal("5.00"), new AlertFilter("R5", null, null)), null);
         assertEquals(List.of("ALR-00003"), report.items().stream().map(TriageReport.Item::alertId).toList());
     }
+
+    static String linkFirstAlert(String caseId) {
+        return "{\"case_id\":\"" + caseId + "\",\"alert_ids\":\" ALR-00001, \",\"justification\":\"same scheme\"}";
+    }
+
+    @Test
+    void anAlertLinkedEarlierInTheRunIsNotInvestigatedAgain() {
+        model.then(AgentRunnerTest.toolCall("link_alerts", linkFirstAlert("CAS-00002")))
+                .then(AgentRunnerTest.answer(answer("ESCALATE")))
+                .then(AgentRunnerTest.answer(answer("ESCALATE"))).then(AgentRunnerTest.answer(answer("ESCALATE")));
+        var report = triage(TriageLimits.DEFAULT, null);
+
+        assertEquals(List.of("ALR-00002", "ALR-00004", "ALR-00003"),
+                report.items().stream().map(TriageReport.Item::alertId).toList());
+        assertEquals(1, report.alertsLinked());
+    }
+
+    @Test
+    void actionsFromARunThatFailedStillCountButItsProposalsDoNot() {
+        model.then(AgentRunnerTest.toolCall("link_alerts", linkFirstAlert("CAS-00002")))
+                .then(AgentRunnerTest.toolCall("set_priority", "{\"alert_id\":\"ALR-00002\",\"priority\":1,\"justification\":\"j\"}"))
+                .then(AgentRunnerTest.toolCall("propose_escalation", forCase("CAS-00002")))
+                .then(new LLMException("overloaded", true, null))
+                .then(AgentRunnerTest.answer(answer("ESCALATE"))).then(AgentRunnerTest.answer(answer("ESCALATE")));
+        var report = triage(TriageLimits.DEFAULT, null);
+
+        assertEquals(1, report.alertsLinked());
+        assertEquals(1, report.otherActions());
+        assertEquals(0, report.escalationsProposed(), "the failed run's proposal expired");
+        assertEquals(List.of("ALR-00002", "ALR-00004", "ALR-00003"),
+                report.items().stream().map(TriageReport.Item::alertId).toList(),
+                "ALR-00001 joined the failed case, which is not retried in the same triage");
+    }
+
+    @Test
+    void threeFailuresInARowStopTriage() {
+        var config = new AppConfig(dir.resolve("t.db"), "kian", ActorType.ANALYST,
+                ModelConfig.of("anthropic", "claude-haiku-5-5", false), dir.resolve("replays"), dir.resolve(".env"));
+        try (var f = TraceWiseBootstrap.create(config, () -> {
+            throw new IllegalStateException("ANTHROPIC_API_KEY is not set");
+        })) {
+            var report = f.triage(TriageLimits.DEFAULT, null);
+            assertEquals(TriageReport.EndReason.REPEATED_FAILURES, report.endReason());
+            assertEquals(3, report.processed());
+            assertEquals(3, report.failed());
+            assertTrue(report.failures().get(0).contains("ANTHROPIC_API_KEY"), report.failures().toString());
+            assertTrue(report.summary().contains("3 failures in a row"), report.summary());
+            assertEquals(4, f.listAlerts(new AlertFilter(null, AlertStatus.NEW, null)).size(),
+                    "the model could not be reached, so no alert or case was touched");
+        }
+    }
 }

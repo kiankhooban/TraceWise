@@ -12,6 +12,8 @@ import tracewise.persistence.Ledger;
 /** Read tool: an account's transactions in a date range, with money-in and money-out totals. */
 public class AccountHistoryTool implements AgentTool {
 
+    public static final String NAME = "account_history";
+
     static final int MAX_LISTED = 100;
 
     private final Ledger ledger;
@@ -22,7 +24,7 @@ public class AccountHistoryTool implements AgentTool {
 
     @Override
     public String name() {
-        return "account_history";
+        return NAME;
     }
 
     @Override

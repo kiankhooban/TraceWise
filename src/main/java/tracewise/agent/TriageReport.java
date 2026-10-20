@@ -9,7 +9,7 @@ public record TriageReport(EndReason endReason, List<Item> items, BigDecimal cos
         int escalationsProposed, int closesProposed, int alertsLinked, int otherActions) {
 
     public enum EndReason {
-        COMPLETED, STOPPED, ALERT_LIMIT, COST_LIMIT, NOTHING_TO_TRIAGE
+        COMPLETED, STOPPED, ALERT_LIMIT, COST_LIMIT, REPEATED_FAILURES, NOTHING_TO_TRIAGE
     }
 
     /** verdict and verification are null when the investigation produced no finding; message says why. */
@@ -20,6 +20,9 @@ public record TriageReport(EndReason endReason, List<Item> items, BigDecimal cos
             return status != OutcomeStatus.COMPLETED && status != OutcomeStatus.INCOMPLETE;
         }
     }
+
+    /** Triage stops after this many alerts fail one after another, which usually means the model is unreachable. */
+    public static final int MAX_FAILURES_IN_A_ROW = 3;
 
     public TriageReport {
         items = List.copyOf(items);
@@ -46,6 +49,8 @@ public record TriageReport(EndReason endReason, List<Item> items, BigDecimal cos
             case STOPPED -> " Stopped by the analyst; the remaining alerts stay open.";
             case ALERT_LIMIT -> " Alert limit reached; the remaining alerts stay open.";
             case COST_LIMIT -> " Cost limit reached; the remaining alerts stay open.";
+            case REPEATED_FAILURES -> " Stopped after " + TriageReport.MAX_FAILURES_IN_A_ROW
+                    + " failures in a row; check the model connection. The remaining alerts stay open.";
             default -> "";
         };
         return "Processed " + processed() + " alerts (" + failed() + " failed). Linked " + alertsLinked

@@ -9,13 +9,15 @@ import tracewise.llm.ToolParameter;
 
 public class LinkAlertsTool extends ActionTool {
 
+    public static final String NAME = "link_alerts";
+
     public LinkAlertsTool(CommandDispatcher dispatcher, ActionScope scope) {
         super(dispatcher, scope);
     }
 
     @Override
     public String name() {
-        return "link_alerts";
+        return NAME;
     }
 
     @Override

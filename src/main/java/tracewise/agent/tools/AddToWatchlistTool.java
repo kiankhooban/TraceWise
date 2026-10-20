@@ -8,13 +8,15 @@ import tracewise.llm.ToolParameter;
 
 public class AddToWatchlistTool extends ActionTool {
 
+    public static final String NAME = "add_to_watchlist";
+
     public AddToWatchlistTool(CommandDispatcher dispatcher, ActionScope scope) {
         super(dispatcher, scope);
     }
 
     @Override
     public String name() {
-        return "add_to_watchlist";
+        return NAME;
     }
 
     @Override

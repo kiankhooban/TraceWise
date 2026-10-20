@@ -8,13 +8,15 @@ import tracewise.llm.ToolParameter;
 
 public class CreateTaskTool extends ActionTool {
 
+    public static final String NAME = "create_task";
+
     public CreateTaskTool(CommandDispatcher dispatcher, ActionScope scope) {
         super(dispatcher, scope);
     }
 
     @Override
     public String name() {
-        return "create_task";
+        return NAME;
     }
 
     @Override

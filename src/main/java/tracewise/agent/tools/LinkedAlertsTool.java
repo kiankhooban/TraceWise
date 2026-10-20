@@ -18,6 +18,8 @@ import tracewise.persistence.Ledger;
 /** Read tool: open alerts on an account and on everyone it exchanged money with, with their cases. */
 public class LinkedAlertsTool implements AgentTool {
 
+    public static final String NAME = "linked_alerts";
+
     private final Ledger ledger;
     private final AlertRepository alerts;
     private final CaseRepository cases;
@@ -30,7 +32,7 @@ public class LinkedAlertsTool implements AgentTool {
 
     @Override
     public String name() {
-        return "linked_alerts";
+        return NAME;
     }
 
     @Override

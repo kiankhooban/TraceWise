@@ -4,7 +4,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import tracewise.agent.AgentEventListener;
 import tracewise.agent.InvestigationResult;
 import tracewise.agent.OutcomeStatus;
@@ -12,12 +15,19 @@ import tracewise.agent.TraceStep;
 import tracewise.agent.TriageReport;
 import tracewise.agent.TriageReport.EndReason;
 import tracewise.agent.TriageReport.Item;
+import tracewise.agent.tools.AddToWatchlistTool;
+import tracewise.agent.tools.CreateTaskTool;
+import tracewise.agent.tools.LinkAlertsTool;
+import tracewise.agent.tools.ProposeCloseTool;
+import tracewise.agent.tools.ProposeEscalationTool;
+import tracewise.agent.tools.SetPriorityTool;
 import tracewise.audit.AuditEntry;
 import tracewise.audit.AuditLog;
 import tracewise.cases.state.CaseStatus;
 import tracewise.domain.Actor;
 import tracewise.domain.Alert;
 import tracewise.domain.AlertStatus;
+import tracewise.domain.Case;
 import tracewise.persistence.AlertRepository;
 import tracewise.persistence.CaseRepository;
 import tracewise.persistence.ExactJson;
@@ -50,13 +60,22 @@ public class TriageService {
         long start = System.nanoTime();
         List<Alert> open = alerts.find(limits.filter()).stream().filter(this::needsInvestigation).toList();
         var items = new ArrayList<Item>();
-        var steps = new ArrayList<TraceStep>();
+        var actions = new ArrayList<TraceStep>();
+        var proposals = new ArrayList<TraceStep>();
+        var triagedCases = new HashSet<String>();
         BigDecimal cost = BigDecimal.ZERO;
+        int failuresInARow = 0;
         EndReason end = open.isEmpty() ? EndReason.NOTHING_TO_TRIAGE : EndReason.COMPLETED;
-        for (Alert alert : open) {
+        for (Alert queued : open) {
             if (stopRequested) {
                 end = EndReason.STOPPED;
                 break;
+            }
+            // the queue was read at the start; earlier runs may have linked this alert into a case since
+            Alert alert = alerts.findById(queued.id()).orElse(queued);
+            Optional<String> caseId = cases.findByAlert(alert.id()).map(Case::id);
+            if (!needsInvestigation(alert) || caseId.filter(triagedCases::contains).isPresent()) {
+                continue;
             }
             if (items.size() >= limits.maxAlerts()) {
                 end = EndReason.ALERT_LIMIT;
@@ -66,23 +85,33 @@ public class TriageService {
                 end = EndReason.COST_LIMIT;
                 break;
             }
+            Item item;
             try {
                 InvestigationResult r = investigations.investigate(alert.id(), listener);
                 cost = cost.add(r.trace().costCad());
+                triagedCases.add(r.caseId());
+                actions.addAll(r.trace().steps()); // autonomous actions took effect whatever the outcome
                 if (r.finding() != null) {
-                    steps.addAll(r.trace().steps()); // a run without a finding had its proposals expired
+                    proposals.addAll(r.trace().steps()); // a run without a finding had its proposals expired
                 }
-                items.add(new Item(alert.id(), r.caseId(), r.status(),
-                        r.finding() == null ? null : r.finding().verdict(),
+                item = new Item(alert.id(), r.caseId(), r.status(), r.finding() == null ? null : r.finding().verdict(),
                         r.finding() == null ? null : r.finding().verification().summary(), r.message(),
-                        r.trace().costCad()));
+                        r.trace().costCad());
             } catch (RuntimeException e) {
-                items.add(new Item(alert.id(), null, OutcomeStatus.FAILED, null, null, e.getMessage(), BigDecimal.ZERO));
+                item = new Item(alert.id(), caseId.orElse(null), OutcomeStatus.FAILED, null, null, e.getMessage(),
+                        BigDecimal.ZERO);
+            }
+            items.add(item);
+            failuresInARow = item.status() == OutcomeStatus.FAILED ? failuresInARow + 1 : 0;
+            if (failuresInARow >= TriageReport.MAX_FAILURES_IN_A_ROW) {
+                end = EndReason.REPEATED_FAILURES;
+                break;
             }
         }
         var report = new TriageReport(end, items, cost, (System.nanoTime() - start) / 1_000_000,
-                count(steps, "propose_escalation"), count(steps, "propose_close"), linkedAlerts(steps),
-                count(steps, "set_priority") + count(steps, "add_to_watchlist") + count(steps, "create_task"));
+                count(proposals, ProposeEscalationTool.NAME), count(proposals, ProposeCloseTool.NAME), linkedAlerts(actions),
+                count(actions, SetPriorityTool.NAME) + count(actions, AddToWatchlistTool.NAME)
+                        + count(actions, CreateTaskTool.NAME));
         audit.append(new AuditEntry(Instant.now(), user, "TRIAGE_FINISHED", "alert queue", report.summary(), end.name()));
         return report;
     }
@@ -106,17 +135,19 @@ public class TriageService {
         return (int) steps.stream().filter(s -> !s.error() && s.toolName().equals(tool)).count();
     }
 
+    /** Distinct alerts linked by successful link_alerts calls, read the way the tool reads its argument. */
     private static int linkedAlerts(List<TraceStep> steps) {
-        int linked = 0;
+        var linked = new HashSet<String>();
         for (TraceStep s : steps) {
-            if (!s.error() && s.toolName().equals("link_alerts")) {
+            if (!s.error() && s.toolName().equals(LinkAlertsTool.NAME)) {
                 try {
-                    linked += ExactJson.mapper().readTree(s.arguments()).path("alert_ids").asText().split(",").length;
+                    String ids = ExactJson.mapper().readTree(s.arguments()).path("alert_ids").asText();
+                    Arrays.stream(ids.split(",")).map(String::strip).filter(id -> !id.isEmpty()).forEach(linked::add);
                 } catch (JsonProcessingException e) {
                     // a successful step had valid arguments; nothing to count otherwise
                 }
             }
         }
-        return linked;
+        return linked.size();
     }
 }

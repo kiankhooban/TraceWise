@@ -15,6 +15,8 @@ import tracewise.persistence.Ledger;
 /** Read tool: who an account sends money to and receives it from, with counts and totals per party. */
 public class CounterpartiesTool implements AgentTool {
 
+    public static final String NAME = "counterparties";
+
     private final Ledger ledger;
 
     public CounterpartiesTool(Ledger ledger) {
@@ -23,7 +25,7 @@ public class CounterpartiesTool implements AgentTool {
 
     @Override
     public String name() {
-        return "counterparties";
+        return NAME;
     }
 
     @Override

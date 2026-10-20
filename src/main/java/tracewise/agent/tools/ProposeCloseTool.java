@@ -8,13 +8,15 @@ import tracewise.llm.ToolParameter;
 
 public class ProposeCloseTool extends ActionTool {
 
+    public static final String NAME = "propose_close";
+
     public ProposeCloseTool(CommandDispatcher dispatcher, ActionScope scope) {
         super(dispatcher, scope);
     }
 
     @Override
     public String name() {
-        return "propose_close";
+        return NAME;
     }
 
     @Override
