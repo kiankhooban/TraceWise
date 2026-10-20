@@ -58,6 +58,8 @@ Source: `Project-Stage2-Instruction.pdf` (course handout, read 2026-10-20). Impl
   Method), approval queue with approve, reject and expiry, `approvals` CLI. Live check: the agent set a
   priority and proposed escalation; approving it escalated the case; all audited. 163 tests. Design
   changes 15 and 16.
+- 2026-10-20 (review 2): fixes for approval widening, agent action scope, fail-safe policy, decision
+  time (design change 17). Recordings re-made with actions; replay checked in any order. 167 tests.
 
 ## Tooling (installed 2026-10-20)
 - `jdtls-lsp` plugin with `jdtls` 1.63.0 (Homebrew): Java diagnostics and navigation.

@@ -167,3 +167,33 @@ id leak was found before it reached the demo data.
 
 **Outcome:** 142 tests pass. The four sample alerts replay from `data/replays` without a key, and
 every cited claim in them is confirmed against the ledger.
+
+---
+
+## Entry 8: Agent actions with human approval (F06), reviewed twice (2026-10-20)
+
+**Task:** Finish the open items from the first review (cancel tests, retry wait times), build F06,
+then review again before recording the demo runs.
+
+**Input/Instruction:** Kian asked to close the two open items first, confirmed F06 belongs to this
+week's plan, and asked for the code and other reviews to run again after F06.
+
+**AI Contribution:** Writing the cancel tests exposed a real race: a cancel sent just before a run
+started was lost; fixed. Built F06 from the design (Command, Factory Method, State): six actions,
+a dispatcher that validates, asks the permission policy and runs or queues each action, an approval
+queue with approve, reject and expiry, persisted proposals, action tools for the agent and the
+`approvals` CLI. The second `deep-code-review` (eleven reviewers plus OpenAI Codex, each finding
+validated) confirmed that the agent cannot approve its own proposals. Three reviewers independently
+found that the agent could link more alerts into a case after proposing to close it, so an approval
+would close alerts the reviewer never saw. Fixed, together with limiting the agent's actions to the
+case it investigates and making the permission policy fail safe (new actions need approval unless
+listed). Two concurrency findings were rejected by their validators as not reachable yet; they are
+kept for the GUI work. Before re-recording, the AI noticed that showing the agent the global
+proposal id would make replays depend on run order, and removed it.
+
+**Human Contribution:** Set the order (open items, then F06, then review) and required reviews
+before demo data is committed.
+
+**Outcome:** 167 tests pass. The four sample alerts replay from `data/replays` in any order without
+a key: three escalations proposed with every claim confirmed, and one INCONCLUSIVE fan-in where the
+agent created a task and proposed nothing.

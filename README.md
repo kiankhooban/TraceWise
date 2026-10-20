@@ -16,7 +16,7 @@ ledger before a human analyst approves or dismisses the case.
 | Stage | Content | Status |
 |---|---|---|
 | Stage 1: Design | [Design report](docs/stage1/Stage1-Design-Report.md) ([PDF](docs/stage1/Stage1-Design-Report.pdf)) (UMLet diagrams in [`docs/stage1/umlet`](docs/stage1/umlet)) | Complete (100/100) |
-| Stage 2: Implementation | [Plan and feature status](docs/stage2/PLAN.md), [design changes](docs/stage2/design-changes.md) | In progress: F01, F02, F03 and F05 working from the CLI |
+| Stage 2: Implementation | [Plan and feature status](docs/stage2/PLAN.md), [design changes](docs/stage2/design-changes.md) | In progress: F01, F02, F03, F05 and F06 working from the CLI |
 | Stage 3: Testing | JUnit tests, KUMA agent behaviour tests | Not started |
 
 ## Quick start
@@ -32,7 +32,12 @@ Prerequisites: Java 21 (JDK). Maven is not needed: the repository includes the M
 ./tracewise rules list
 ./tracewise --role supervisor rules set R3 --set window_days=10
 ./tracewise investigate ALR-00001               # the agent investigates an alert (needs an API key)
+./tracewise approvals list                      # closes and escalations the agent proposed
+./tracewise approvals approve APR-00001         # or: approvals reject APR-00001 --reason "..."
 ```
+
+The agent sets priorities, links alerts, watchlists accounts and creates tasks on its own; it can only
+propose closing or escalating a case, which an analyst approves or rejects.
 
 Every command accepts `--json` for machine-readable output. The database is `tracewise.db` in the
 current directory unless `--db FILE` or `TRACEWISE_DB` says otherwise.
@@ -57,7 +62,8 @@ Model options (each also has an environment variable):
 ```
 
 `--llm replay` answers only requests that were recorded, so it reproduces a recorded run on the
-same data. `data/replays` holds recorded investigations of the four sample alerts (Claude Haiku 5.5),
+same data. `data/replays` holds recorded investigations of the four sample alerts (Claude Haiku 5.5,
+with the agent's actions and proposals),
 so on a fresh database built from `data/samples/scenarios.csv` they replay without a key:
 
 ```bash
