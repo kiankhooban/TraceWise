@@ -42,8 +42,9 @@ public class CommandDispatcher {
                 log(actor, "ACTION_PROPOSED", command, tier + " as " + p.id() + ": " + justification, "PENDING");
                 return p;
             });
-            return new DispatchResult(DispatchResult.Status.PROPOSED, "Proposed for human approval as " + pending.id()
-                    + ": " + command.describe(), pending.id());
+            // the message omits the proposal id: the agent does not need it, and it depends on earlier proposals
+            return new DispatchResult(DispatchResult.Status.PROPOSED, "Proposed for human approval: " + command.describe(),
+                    pending.id());
         } catch (IllegalArgumentException | IllegalStateException e) {
             log(actor, "ACTION_REJECTED", command, e.getMessage(), "REJECTED");
             return new DispatchResult(DispatchResult.Status.REJECTED, "Not done: " + e.getMessage(), null);

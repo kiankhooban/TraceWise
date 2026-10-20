@@ -62,7 +62,8 @@ class ActionToolsTest {
         call("create_task", "{\"case_id\":\"CAS-00001\",\"description\":\"Check KYC\",\"justification\":\"no ID\"}");
 
         String proposed = call("propose_close", "{\"case_id\":\"CAS-00001\",\"justification\":\"payroll\"}");
-        assertTrue(proposed.contains("APR-00001") && proposed.contains("approval"), proposed);
+        assertTrue(proposed.contains("approval") && !proposed.contains("APR-"),
+                "the agent is not told the global proposal id, which would make replays depend on run order: " + proposed);
         assertEquals(CaseStatus.PENDING_APPROVAL, f.caseStatus());
     }
 
