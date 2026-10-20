@@ -83,3 +83,31 @@ structure of the project"), chose the four-figure split, and required the per-di
 **Outcome:** The report now shows only UMLet diagrams (`docs/stage1/umlet/`), and the PDF is
 regenerated with `docs/stage1/build_pdf.py`. The PlantUML drafts remain in `docs/stage1/diagrams/`.
 
+---
+
+## Entry 5: Implementing F01 and F02 test-first (2026-10-20)
+
+**Task:** Build the Stage 1 design for transaction import (F01) and rule-based monitoring (F02),
+with the CLI, against the graded design.
+
+**Input/Instruction:** Asked Claude Code (Opus 5.5, with the superpowers TDD skill and the
+ponytail skill at level full) to implement week 1 of the Stage 2 plan, committing each working
+unit and recording every deviation from the design.
+
+**AI Contribution:** Wrote each test before its code and confirmed it failed first, then wrote
+the code, about 67 tests in all. Pinned the exchange rates to Bank of Canada values fetched from
+the Bank's Valet API instead of inventing them. Built a seeded scenario generator whose planted
+schemes give an exact expected result (4 threshold reports, 4 alerts, no false positives), used
+as an integration test. While checking real CLI output it found and fixed its own defects: R4 reported money in plus money out
+(\$93,500 for a \$48,000 pass-through), a 7.5-day rule window that would crash a run, a locale
+setting that would write decimal commas into the CSV, an alert-to-transaction link bug, and
+foreign counterparties receiving threshold reports. Recorded five design changes with reasons.
+
+**Human Contribution:** Chose the tooling after reviewing the options with the AI: Java language
+server, ponytail for small code, a session-report plugin for cost reporting, and rejected pstack
+because it would re-open the graded design. Required that the Stage 1 design stay the spec and
+that changes be justified in the change log.
+
+**Outcome:** F01 and F02 work end to end from the CLI on the committed sample data; design
+changes 1 to 5 are in `docs/stage2/design-changes.md`.
+

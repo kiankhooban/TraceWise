@@ -15,19 +15,61 @@ ledger before a human analyst approves or dismisses the case.
 
 | Stage | Content | Status |
 |---|---|---|
-| Stage 1: Design | [Design report](docs/stage1/Stage1-Design-Report.md) ([PDF](docs/stage1/Stage1-Design-Report.pdf)) (UMLet diagrams in [`docs/stage1/umlet`](docs/stage1/umlet)) | Complete, under review |
-| Stage 2: Implementation | Source code, AI collaboration log | Not started |
+| Stage 1: Design | [Design report](docs/stage1/Stage1-Design-Report.md) ([PDF](docs/stage1/Stage1-Design-Report.pdf)) (UMLet diagrams in [`docs/stage1/umlet`](docs/stage1/umlet)) | Complete (100/100) |
+| Stage 2: Implementation | [Plan and feature status](docs/stage2/PLAN.md), [design changes](docs/stage2/design-changes.md) | In progress: F01 and F02 working from the CLI |
 | Stage 3: Testing | JUnit tests, KUMA agent behaviour tests | Not started |
 
-## Planned stack
+## Quick start
+
+Prerequisites: Java 21 (JDK). Maven is not needed: the repository includes the Maven Wrapper.
+
+```bash
+./mvnw package                                  # builds target/tracewise.jar and runs the tests
+./tracewise import data/samples/scenarios.csv   # load the sample transactions
+./tracewise monitor run                         # run the six monitoring rules
+./tracewise alerts list                         # the alert queue, highest risk first
+./tracewise threshold-reports list              # the Threshold Report Register
+./tracewise rules list
+./tracewise --role supervisor rules set R3 --set window_days=10
+```
+
+Every command accepts `--json` for machine-readable output. The database is `tracewise.db` in the
+current directory unless `--db FILE` or `TRACEWISE_DB` says otherwise.
+
+### Configuration and API key
+
+Features that call the LLM need an Anthropic API key. Keep it out of git:
+
+```bash
+cp .env.example .env      # .env is gitignored
+# then edit .env and replace the placeholder with your own key
+```
+
+Never commit `.env` or paste a key into code, reports, screenshots or videos.
+
+### Sample data
+
+`data/samples/scenarios.csv` is synthetic, generated with a fixed seed by
+`tracewise.tools.ScenarioGenerator`. It plants one scheme per monitoring rule, boundary cases
+that must not fire, and 60 normal customers that trigger nothing:
+
+```bash
+java -cp target/tracewise.jar tracewise.tools.ScenarioGenerator 42 data/samples/scenarios.csv
+```
+
+## Stack
 
 Java 21, JavaFX (GUI), picocli (CLI), LangChain4j (LLM access), Anthropic Claude models,
-SQLite, JUnit 5, Maven.
+SQLite, JUnit, Maven.
 
 ## Repository layout
 
 ```
+src/main/java/tracewise/   application code (ui, app, ingest, monitoring, domain, persistence, audit, tools)
+src/test/java/tracewise/   JUnit tests
+data/samples/              synthetic sample data
 docs/
-  stage1/          Stage 1 design report; UML in UMLet (umlet/), earlier PlantUML drafts (diagrams/)
-  ai-usage/        AI tools used and the AI-human collaboration log
+  stage1/                  Stage 1 design report; UML in UMLet (umlet/), earlier PlantUML drafts (diagrams/)
+  stage2/                  Stage 2 plan, feature status, design-change log
+  ai-usage/                AI tools used and the AI-human collaboration log
 ```

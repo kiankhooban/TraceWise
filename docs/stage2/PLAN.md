@@ -27,8 +27,8 @@ Source: `Project-Stage2-Instruction.pdf` (course handout, read 2026-10-20). Impl
 ## Feature status
 | Feature | Status | Implemented in | Video |
 |---|---|---|---|
-| F01 Transaction Data Import | Not started | | |
-| F02 Rule-Based Monitoring, Threshold Reporting and Alert Queue | Not started | | |
+| F01 Transaction Data Import | Working (CLI); GUI pending | `ingest/*`, `app/ImportService`, `persistence/SqliteTransactionRepository`, `ui/cli/ImportCli` | |
+| F02 Rule-Based Monitoring, Threshold Reporting and Alert Queue | Working (CLI); GUI pending | `monitoring/*` (six rules, `WindowedRule`, `RiskScorer`), `app/MonitoringService`, alert, register and rule-config repositories, `ui/cli/{Monitor,Alerts,ThresholdReports,Rules}Cli` | |
 | F03 Autonomous Alert Investigation | Not started | | |
 | F04 Indicator Retrieval and Case Memory | Not started | | |
 | F05 Claim Verification | Not started | | |
@@ -39,6 +39,12 @@ Source: `Project-Stage2-Instruction.pdf` (course handout, read 2026-10-20). Impl
 | F10 Natural-Language Analyst Assistant | Not started | | |
 | F11 Suspicious Transaction Report Drafting and Export | Not started | | |
 | F12 Agent Performance Dashboard | Not started | | |
+
+## Progress log
+- 2026-10-20: period 1 opened. Build skeleton, F01 import (both formats, rejection reasons,
+  duplicates, rollback, audit), F02 (six rules, risk scoring, alert queue, Threshold Report
+  Register, persisted rule configs with supervisor-only changes), CLI for both, scenario generator
+  and sample data. 67 tests passing. 15 code commits in period 1.
 
 ## Tooling (installed 2026-10-20)
 - `jdtls-lsp` plugin with `jdtls` 1.63.0 (Homebrew): Java diagnostics and navigation.
