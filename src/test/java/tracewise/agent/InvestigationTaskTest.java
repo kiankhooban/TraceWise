@@ -76,6 +76,8 @@ class InvestigationTaskTest {
     @Test
     void namesWhatIsWrongWithABadAnswer() {
         assertTrue(task.outputProblem("I would escalate this.").contains("JSON"));
+        assertTrue(task.outputProblem("See { here").contains("JSON"));
+        assertTrue(task.outputProblem("} then {").contains("JSON"));
         assertTrue(task.outputProblem(GOOD.replace("\"ESCALATE\"", "\"MAYBE\"")).contains("verdict"));
         assertTrue(task.outputProblem(GOOD.replace("0.85", "85")).contains("confidence"));
         assertTrue(task.outputProblem(GOOD.replace("2026-09-01", "Sept 1")).contains("date"));

@@ -86,6 +86,9 @@ public class CounterpartiesTool implements AgentTool {
             row.put("countries", List.copyOf(p.countries));
             rows.add(row);
         });
-        return ToolResult.json(Map.of("account_id", account, "counterparties", rows));
+        var result = new LinkedHashMap<String, Object>(); // fixed key order: replay matches requests byte for byte
+        result.put("account_id", account);
+        result.put("counterparties", rows);
+        return ToolResult.json(result);
     }
 }

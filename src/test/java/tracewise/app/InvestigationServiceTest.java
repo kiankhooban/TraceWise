@@ -81,10 +81,14 @@ class InvestigationServiceTest {
     }
 
     InvestigationService service() {
+        return service(AgentLimits.DEFAULT);
+    }
+
+    InvestigationService service(AgentLimits limits) {
         var tools = new ToolRegistry();
         tools.register(new AccountHistoryTool(transactions));
         tools.register(new CounterpartiesTool(transactions));
-        var runner = new AgentRunner(model, tools, AgentLimits.DEFAULT);
+        var runner = new AgentRunner(model, tools, limits);
         return new InvestigationService(db, alerts, cases, () -> runner, new ClaimVerifier(transactions), audit, analyst,
                 AgentRunnerTest.PRICES, BigDecimal.ONE);
     }
@@ -160,5 +164,46 @@ class InvestigationServiceTest {
     @Test
     void unknownAlertIsRejected() {
         assertThrows(IllegalArgumentException.class, () -> service().investigate("ALR-99999", null));
+    }
+
+    String historyCall() {
+        return "{\"account_id\":\"" + structuring.accountId() + "\"}";
+    }
+
+    @Test
+    void aRunCutShortByTheTurnLimitStoresAnIncompleteFinding() {
+        model.then(AgentRunnerTest.toolCall("account_history", historyCall())).then(AgentRunnerTest.answer(finding()));
+        var result = service(new AgentLimits(1, new BigDecimal("1"))).investigate(structuring.id(), null);
+
+        assertEquals(OutcomeStatus.INCOMPLETE, result.status());
+        assertTrue(cases.findByAlert(structuring.id()).orElseThrow().latestFinding().incomplete());
+    }
+
+    @Test
+    void anUnusableAnswerAtTheLimitFailsWithoutStoringAFinding() {
+        model.then(AgentRunnerTest.toolCall("account_history", historyCall())).then(AgentRunnerTest.answer("No idea."));
+        var result = service(new AgentLimits(1, new BigDecimal("1"))).investigate(structuring.id(), null);
+
+        assertEquals(OutcomeStatus.FAILED, result.status());
+        assertTrue(result.message().contains("not a valid finding"), result.message());
+        assertTrue(cases.findByAlert(structuring.id()).orElseThrow().findings().isEmpty());
+    }
+
+    @Test
+    void anUnexpectedErrorStillEndsTheRunAsFailedAndAudited() {
+        model.then(new IllegalStateException("recording folder is read-only"));
+        var result = service().investigate(structuring.id(), null);
+
+        assertEquals(OutcomeStatus.FAILED, result.status());
+        assertTrue(result.message().contains("read-only"), result.message());
+        var finished = audit.query(new AuditFilter("INVESTIGATION_FINISHED", structuring.id()));
+        assertEquals("FAILED", finished.get(0).outcome());
+    }
+
+    @Test
+    void aClosedAlertIsNotInvestigated() {
+        alerts.updateStatus(structuring.id(), AlertStatus.CLOSED);
+        assertThrows(IllegalStateException.class, () -> service().investigate(structuring.id(), null));
+        assertTrue(model.requests.isEmpty());
     }
 }

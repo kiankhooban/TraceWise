@@ -21,6 +21,9 @@ public class AgentRunner {
     static final String WRAP_UP = "You have reached the turn or cost limit for this run. Do not call any more tools. "
             + "Give your best answer now from the evidence gathered so far, in the required format.";
 
+    /** Calls beyond this in one response are answered with an error instead of being run. */
+    static final int MAX_TOOL_CALLS_PER_TURN = 10;
+
     private final LLMClient llm;
     private final ToolRegistry tools;
     private final AgentLimits limits;
@@ -76,12 +79,14 @@ public class AgentRunner {
                 continue;
             }
             messages.add(new LLMMessage.Assistant(response.text(), response.toolCalls()));
-            for (ToolCall call : response.toolCalls()) {
+            for (int i = 0; i < response.toolCalls().size(); i++) {
+                ToolCall call = response.toolCalls().get(i);
                 if (cancelled) {
                     return finish(trace, OutcomeStatus.CANCELLED, "Cancelled by the analyst");
                 }
                 long start = System.nanoTime();
-                ToolResult result = tools.execute(call);
+                ToolResult result = i < MAX_TOOL_CALLS_PER_TURN ? tools.execute(call)
+                        : ToolResult.error("Not run: at most " + MAX_TOOL_CALLS_PER_TURN + " tool calls per turn");
                 trace.record(new TraceStep(trace.subject(), turn, call.name(), call.argumentsJson(), result.content(),
                         result.error(), (System.nanoTime() - start) / 1_000_000));
                 messages.add(new LLMMessage.ToolResult(call.id(), call.name(), result.content()));

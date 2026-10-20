@@ -69,6 +69,7 @@ public class AgentRunnerTest {
     /** A history tool that can cancel the run while it executes. */
     class HistoryTool implements AgentTool {
         Runnable sideEffect = () -> { };
+        int runs;
 
         @Override
         public String name() {
@@ -83,6 +84,7 @@ public class AgentRunnerTest {
 
         @Override
         public ToolResult execute(ToolArguments args) {
+            runs++;
             sideEffect.run();
             return ToolResult.ok("3 transactions for " + args.string("account_id"));
         }
@@ -241,5 +243,21 @@ public class AgentRunnerTest {
         assertEquals(OutcomeStatus.CANCELLED, outcome.status());
         assertEquals(1, trace.steps().size());
         assertEquals(1, model.requests.size());
+    }
+
+    @Test
+    void oneResponseRunsAtMostTenToolCalls() {
+        var calls = new ArrayList<ToolCall>();
+        for (int i = 0; i < 12; i++) {
+            calls.add(new ToolCall("many-" + i, "history", "{\"account_id\":\"C" + i + "\"}"));
+        }
+        model.then(new LLMResponse("", calls, new TokenUsage(1000, 100))).then(answer("VERDICT: DISMISS"));
+        runner().run(TASK, trace);
+
+        assertEquals(10, history.runs);
+        assertEquals(12, trace.steps().size());
+        assertTrue(trace.steps().get(11).error());
+        var results = model.requests.get(1).messages().stream().filter(m -> m instanceof LLMMessage.ToolResult).count();
+        assertEquals(12, results);
     }
 }

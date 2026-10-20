@@ -72,4 +72,15 @@ class ClaimVerifierTest {
         var report = verifier.verify(List.of(), List.of());
         assertEquals(VerificationStatus.UNSUPPORTED, report.status());
     }
+
+    @Test
+    void totalsCitingNothingOrTheSameTransactionTwiceAreRejected() {
+        var empty = new TotalClaim("Nothing", BigDecimal.ZERO, List.of());
+        var doubled = new TotalClaim("Doubled", new BigDecimal("19000"), List.of("t1", "t1"));
+        var report = verifier.verify(List.of(), List.of(empty, doubled));
+
+        assertEquals(List.of(false, false), report.checks().stream().map(ClaimCheck::confirmed).toList());
+        assertTrue(report.checks().get(0).reason().contains("cites no transactions"), report.checks().get(0).reason());
+        assertTrue(report.checks().get(1).reason().contains("t1"), report.checks().get(1).reason());
+    }
 }

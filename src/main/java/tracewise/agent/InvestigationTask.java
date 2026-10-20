@@ -1,9 +1,7 @@
 package tracewise.agent;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.cfg.JsonNodeFeature;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -13,13 +11,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import tracewise.domain.Alert;
+import tracewise.persistence.ExactJson;
 
 /** F03: investigate one alert and answer with a structured finding. */
 public class InvestigationTask implements AgentTask {
 
-    // money must stay exact: read decimals as BigDecimal, not double
-    private static final ObjectMapper JSON = new ObjectMapper().enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
-            .configure(JsonNodeFeature.STRIP_TRAILING_BIGDECIMAL_ZEROES, false);
+    private static final ObjectMapper JSON = ExactJson.mapper();
 
     /** What each rule looks for, without numbers: supervisors can change the thresholds. */
     private static final Map<String, String> RULES = Map.of(
@@ -147,7 +144,7 @@ public class InvestigationTask implements AgentTask {
         if (fence >= 0) {
             int end = text.indexOf("```", fence + 7);
             body = text.substring(fence + 7, end < 0 ? text.length() : end);
-        } else if (text.indexOf('{') >= 0) {
+        } else if (text.indexOf('{') >= 0 && text.lastIndexOf('}') > text.indexOf('{')) {
             body = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
         }
         try {

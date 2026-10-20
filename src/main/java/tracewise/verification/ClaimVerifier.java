@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import tracewise.agent.Claim;
@@ -53,6 +54,15 @@ public class ClaimVerifier {
     }
 
     private ClaimCheck check(TotalClaim total) {
+        if (total.transactionIds().isEmpty()) {
+            return rejected(total.describe(), "the total cites no transactions");
+        }
+        var seen = new HashSet<String>();
+        for (String id : total.transactionIds()) {
+            if (!seen.add(id)) {
+                return rejected(total.describe(), id + " is cited more than once");
+            }
+        }
         BigDecimal sum = BigDecimal.ZERO;
         for (String id : total.transactionIds()) {
             Optional<Transaction> t = ledger.findTransaction(id);

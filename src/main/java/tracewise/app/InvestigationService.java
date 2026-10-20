@@ -74,6 +74,10 @@ public class InvestigationService {
         AgentOutcome outcome;
         try {
             outcome = agent.run(task, trace);
+        } catch (RuntimeException e) {
+            // anything other than a model failure (a full disk, a database error) still ends the run on record
+            return finished(c, new InvestigationResult(c.id(), OutcomeStatus.FAILED, null, trace,
+                    "The run failed: " + e.getMessage()));
         } finally {
             running = null;
         }

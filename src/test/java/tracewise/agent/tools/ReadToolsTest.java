@@ -97,6 +97,9 @@ class ReadToolsTest {
         assertEquals(1, c3.get("received_count").asInt());
         assertEquals(1, c3.get("sent_count").asInt());
         assertEquals(4, c.get("counterparties").size());
+        // replay matches requests byte for byte, so key order must not vary between JVM runs
+        assertTrue(registry.execute(new ToolCall("c", "counterparties", "{\"account_id\":\"C1\"}")).content()
+                .startsWith("{\"account_id\""));
     }
 
     static void assertCad(String expected, JsonNode actual) {

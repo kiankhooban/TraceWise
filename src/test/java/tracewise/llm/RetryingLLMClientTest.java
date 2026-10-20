@@ -67,4 +67,18 @@ class RetryingLLMClientTest {
     void reportsTheWrappedModel() {
         assertEquals("scripted", new RetryingLLMClient(new ScriptedClient(), Duration.ZERO).modelId());
     }
+
+    @Test
+    void anInterruptWhileWaitingStopsRetryingAndKeepsTheInterruptFlag() {
+        var inner = new ScriptedClient(transientFailure(), OK);
+        Thread.currentThread().interrupt();
+        try {
+            var e = assertThrows(LLMException.class, () -> new RetryingLLMClient(inner, Duration.ofMillis(5)).chat(HELLO));
+            assertFalse(e.retryable());
+            assertTrue(Thread.interrupted());
+            assertEquals(1, inner.calls);
+        } finally {
+            Thread.interrupted();
+        }
+    }
 }
