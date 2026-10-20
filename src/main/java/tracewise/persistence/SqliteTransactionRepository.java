@@ -126,4 +126,15 @@ public class SqliteTransactionRepository implements TransactionRepository {
             throw new DatabaseException(e);
         }
     }
+
+    @Override
+    public Optional<Account> findAccount(String id) {
+        return Jdbc.query(db, "SELECT id, watchlisted FROM accounts WHERE id = ?",
+                rs -> new Account(rs.getString(1), rs.getInt(2) == 1), id).stream().findFirst();
+    }
+
+    @Override
+    public void setWatchlisted(String accountId, boolean watchlisted) {
+        Jdbc.update(db, "UPDATE accounts SET watchlisted = ? WHERE id = ?", watchlisted ? 1 : 0, accountId);
+    }
 }

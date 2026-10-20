@@ -46,6 +46,15 @@ public class Database implements AutoCloseable {
     }
 
     /** Runs work atomically; nested calls join the outer transaction. */
+    /** Like inTransaction(Runnable), returning what the work produced. */
+    public <T> T inTransaction(java.util.function.Supplier<T> work) {
+        var result = new java.util.ArrayList<T>(1);
+        inTransaction(() -> {
+            result.add(work.get());
+        });
+        return result.get(0);
+    }
+
     public void inTransaction(Runnable work) {
         try {
             if (!connection.getAutoCommit()) {

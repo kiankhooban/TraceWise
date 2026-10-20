@@ -18,6 +18,7 @@ import tracewise.agent.TraceStep;
 import tracewise.agent.Verdict;
 import tracewise.cases.state.CaseStatus;
 import tracewise.domain.Case;
+import tracewise.domain.FollowUpTask;
 import tracewise.llm.ModelConfig;
 import tracewise.llm.TokenUsage;
 import tracewise.verification.VerificationReport;
@@ -43,6 +44,12 @@ public class SqliteCaseRepository implements CaseRepository {
             for (String alertId : c.alertIds()) {
                 Jdbc.update(db, "INSERT OR IGNORE INTO case_alerts (case_id, alert_id) VALUES (?, ?)", c.id(), alertId);
             }
+            Jdbc.update(db, "DELETE FROM case_tasks WHERE case_id = ?", c.id());
+            List<FollowUpTask> tasks = c.tasks();
+            for (int i = 0; i < tasks.size(); i++) {
+                Jdbc.update(db, "INSERT INTO case_tasks (case_id, position, description, done) VALUES (?, ?, ?, ?)",
+                        c.id(), i, tasks.get(i).description(), tasks.get(i).done() ? 1 : 0);
+            }
             int stored = Jdbc.query(db, "SELECT COUNT(*) FROM findings WHERE case_id = ?", rs -> rs.getInt(1), c.id()).get(0);
             List<AgentFinding> findings = c.findings();
             for (AgentFinding f : findings.subList(stored, findings.size())) {
@@ -57,7 +64,9 @@ public class SqliteCaseRepository implements CaseRepository {
                 Instant.ofEpochMilli(rs.getLong(2)),
                 Jdbc.query(db, "SELECT alert_id FROM case_alerts WHERE case_id = ? ORDER BY alert_id", r -> r.getString(1), id),
                 CaseStatus.valueOf(rs.getString(3)),
-                Jdbc.query(db, "SELECT body FROM findings WHERE case_id = ? ORDER BY seq", r -> read(r.getString(1)), id)),
+                Jdbc.query(db, "SELECT body FROM findings WHERE case_id = ? ORDER BY seq", r -> read(r.getString(1)), id),
+                Jdbc.query(db, "SELECT description, done FROM case_tasks WHERE case_id = ? ORDER BY position",
+                        r -> new FollowUpTask(r.getString(1), r.getInt(2) == 1), id)),
                 id).stream().findFirst();
     }
 

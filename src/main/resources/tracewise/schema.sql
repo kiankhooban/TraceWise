@@ -83,3 +83,24 @@ CREATE TABLE IF NOT EXISTS findings (
     case_id TEXT NOT NULL REFERENCES cases (id),
     body TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS case_tasks (
+    case_id TEXT NOT NULL REFERENCES cases (id),
+    position INTEGER NOT NULL,
+    description TEXT NOT NULL,
+    done INTEGER NOT NULL,
+    PRIMARY KEY (case_id, position)
+);
+CREATE TABLE IF NOT EXISTS approvals (
+    id TEXT PRIMARY KEY,
+    command_type TEXT NOT NULL,
+    command TEXT NOT NULL,
+    justification TEXT NOT NULL,
+    proposed_by TEXT NOT NULL,
+    proposed_by_type TEXT NOT NULL,
+    proposed_at INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    reviewer TEXT,
+    reviewer_type TEXT,
+    decision_reason TEXT,
+    decided_at INTEGER
+);

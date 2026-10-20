@@ -14,6 +14,7 @@ public class Case {
     private final Instant openedAt;
     private final List<String> alertIds;
     private final List<AgentFinding> findings;
+    private final List<FollowUpTask> tasks;
     private CaseState state;
 
     public Case(String id, Instant openedAt, List<String> alertIds) {
@@ -24,13 +25,34 @@ public class Case {
         this(id, openedAt, alertIds, status, List.of());
     }
 
-    /** For a case loaded from storage. */
     public Case(String id, Instant openedAt, List<String> alertIds, CaseStatus status, List<AgentFinding> findings) {
+        this(id, openedAt, alertIds, status, findings, List.of());
+    }
+
+    /** For a case loaded from storage. */
+    public Case(String id, Instant openedAt, List<String> alertIds, CaseStatus status, List<AgentFinding> findings,
+            List<FollowUpTask> tasks) {
         this.id = id;
         this.openedAt = openedAt;
-        this.alertIds = List.copyOf(alertIds);
+        this.alertIds = new ArrayList<>(alertIds);
         this.state = CaseState.of(status);
         this.findings = new ArrayList<>(findings);
+        this.tasks = new ArrayList<>(tasks);
+    }
+
+    /** Adds another alert to this case; an alert already linked is ignored. */
+    public void linkAlert(String alertId) {
+        if (!alertIds.contains(alertId)) {
+            alertIds.add(alertId);
+        }
+    }
+
+    public void addTask(FollowUpTask task) {
+        tasks.add(task);
+    }
+
+    public List<FollowUpTask> tasks() {
+        return List.copyOf(tasks);
     }
 
     public void addFinding(AgentFinding finding) {
@@ -89,6 +111,6 @@ public class Case {
     }
 
     public List<String> alertIds() {
-        return alertIds;
+        return List.copyOf(alertIds);
     }
 }

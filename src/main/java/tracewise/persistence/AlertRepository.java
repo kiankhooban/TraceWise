@@ -21,4 +21,7 @@ public interface AlertRepository {
     Optional<Alert> findById(String id);
 
     void updateStatus(String id, AlertStatus status);
+
+    /** priority: 1 high, 2 medium, 3 low. */
+    void updatePriority(String id, int priority);
 }

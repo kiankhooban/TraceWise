@@ -78,6 +78,14 @@ public class SqliteAlertRepository implements AlertRepository {
         Jdbc.update(db, "UPDATE alerts SET status = ? WHERE seq = ?", status.name(), Long.parseLong(id.substring(4)));
     }
 
+    @Override
+    public void updatePriority(String id, int priority) {
+        if (findById(id).isEmpty()) {
+            throw new IllegalArgumentException("No alert " + id);
+        }
+        Jdbc.update(db, "UPDATE alerts SET priority = ? WHERE seq = ?", priority, Long.parseLong(id.substring(4)));
+    }
+
     private static Alert map(ResultSet rs) throws SQLException {
         String ids = rs.getString(4);
         return new Alert(String.format("ALR-%05d", rs.getLong(1)), rs.getString(2), rs.getString(3),
