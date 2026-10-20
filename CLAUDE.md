@@ -3,6 +3,7 @@
 TraceWise is Kian Khooban's EECS3311 (York, Fall 2026) course project: a Java AI agent that
 investigates AML alerts. Stage 1 (design) is done and graded 100/100, tagged `stage1-submitted`.
 Stage 2 (implementation) runs 2026-10-20 to 2026-11-10. Plan and status: `docs/stage2/PLAN.md`.
+Resuming work: read `docs/stage2/HANDOFF.md` first (next task, code conventions, pitfalls).
 
 ## The design is the spec
 - `docs/stage1/Stage1-Design-Report.md` defines the 12 features (F01-F12), use cases, classes,
