@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import tracewise.ingest.CurrencyConverter;
 import tracewise.ingest.ScenarioCsvFormat;
@@ -30,9 +31,25 @@ class ScenarioGeneratorTest {
     @Test
     void plantedSchemesAreLabelledAndNormalCustomersAreNot() {
         List<String> lines = ScenarioGenerator.generate(42);
-        for (String scheme : List.of("STRUCT", "PASS", "FANIN", "FANOUT")) {
-            assertTrue(lines.stream().anyMatch(l -> l.startsWith(scheme + "-") && l.endsWith(",1")), scheme);
+        Map<String, String> ids = ScenarioGenerator.accounts(42);
+        for (String role : List.of("S-C1", "I-C2", "P-C1", "F-C1", "O-C1")) {
+            assertTrue(lines.stream().anyMatch(l -> l.contains("," + ids.get(role) + ",") && l.endsWith(",1")), role);
         }
-        assertTrue(lines.stream().filter(l -> l.startsWith("N-")).allMatch(l -> l.endsWith(",0")));
+        for (int c = 1; c <= 60; c++) {
+            String id = ids.get(String.format("N-C%02d", c));
+            assertTrue(lines.stream().filter(l -> l.contains("," + id + ",")).allMatch(l -> l.endsWith(",0")), id);
+        }
+    }
+
+    @Test
+    void noIdRevealsWhichSchemeOrCustomerTypeItBelongsTo() {
+        List<String> lines = ScenarioGenerator.generate(42);
+        for (String line : lines.subList(1, lines.size())) {
+            String[] f = line.split(",", -1);
+            assertTrue(f[0].matches("TX-\\d{5}"), f[0]);
+            for (String account : List.of(f[3], f[5])) {
+                assertTrue(account.matches("C\\d{4}|EXT-\\d{4}|CASH"), account);
+            }
+        }
     }
 }

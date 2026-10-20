@@ -41,8 +41,9 @@ SD5 (action and approval) in `docs/stage1/umlet/gen_sequence_diagrams.py`.
   `src/main/resources/tracewise/schema.sql` (statements split on `;` + newline before the next
   CREATE, so trigger bodies survive). `db.inTransaction(...)` nests.
 - Tests: `@TempDir` real SQLite; `monitoring/InMemoryLedger` test double; `ScenarioGenerator.generate(42)`
-  for integration data (expected monitoring result: 4 threshold reports, alerts R3 S-C1, R4 P-C1,
-  R5 F-C1, R6 O-C1).
+  for integration data (expected monitoring result: 4 threshold reports, alerts R3, R4, R5, R6 on
+  the roles S-C1, P-C1, F-C1, O-C1). Ids are neutral (C1037, TX-00001); `ScenarioGenerator.accounts(42)`
+  maps role names to ids. Never put scheme names in ids the agent can read.
 - New user operations go through `TraceWiseFacade` and are wired in `TraceWiseBootstrap`.
   CLI commands extend `CliCommandBase` (override `execute()`, optionally `print()` for text;
   `--json` is automatic); register them in `TraceWiseCli` subcommands.

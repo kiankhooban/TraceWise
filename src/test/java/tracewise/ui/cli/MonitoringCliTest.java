@@ -42,13 +42,14 @@ class MonitoringCliTest {
         assertTrue(out.toString().contains("4 threshold reports; 4 new alerts: R3 1, R4 1, R5 1, R6 1"), out.toString());
 
         assertEquals(0, run("alerts", "list", "--rule", "R3"));
-        assertTrue(out.toString().contains("ALR-") && out.toString().contains("S-C1"), out.toString());
+        assertTrue(out.toString().contains("ALR-") && out.toString().contains(ScenarioGenerator.accounts(42).get("S-C1")), out.toString());
 
         assertEquals(0, run("alerts", "list", "--json"));
         assertEquals(4, new ObjectMapper().readTree(out.toString()).size());
 
         assertEquals(0, run("threshold-reports", "list"));
-        assertTrue(out.toString().contains("L-C1") && out.toString().contains("I-C2"), out.toString());
+        var ids = ScenarioGenerator.accounts(42);
+        assertTrue(out.toString().contains(ids.get("L-C1")) && out.toString().contains(ids.get("I-C2")), out.toString());
     }
 
     @Test

@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -79,10 +80,12 @@ class MonitoringServiceTest {
         assertEquals("4 threshold reports; 4 new alerts: R3 1, R4 1, R5 1, R6 1", summary.toString());
 
         var subjects = monitoring.listAlerts(AlertFilter.ALL).stream().map(Alert::accountId).sorted().toList();
-        assertEquals(List.of("F-C1", "O-C1", "P-C1", "S-C1"), subjects);
+        var ids = ScenarioGenerator.accounts(42);
+        assertEquals(Stream.of("F-C1", "O-C1", "P-C1", "S-C1").map(ids::get).sorted().toList(), subjects);
         var reportSubjects = monitoring.listThresholdReports().stream().map(r -> r.ruleId() + ":" + r.accountId())
                 .sorted().toList();
-        assertEquals(List.of("R1:L-C1", "R1:L-C2", "R2:I-C1", "R2:I-C2"), reportSubjects);
+        assertEquals(Stream.of("R1:L-C1", "R1:L-C2", "R2:I-C1", "R2:I-C2")
+                .map(s -> s.substring(0, 3) + ids.get(s.substring(3))).sorted().toList(), reportSubjects);
         assertEquals("OK", audit.query(new AuditFilter("MONITORING_RUN", null)).get(0).outcome());
     }
 
@@ -99,8 +102,10 @@ class MonitoringServiceTest {
         assertEquals(1, monitoring.listAlerts(new AlertFilter("R3", null, null)).size());
         assertEquals(4, monitoring.listAlerts(new AlertFilter(null, AlertStatus.NEW, null)).size());
         assertTrue(monitoring.listAlerts(new AlertFilter(null, null, new BigDecimal("1000000"))).isEmpty());
-        assertEquals(List.of("STRUCT"), monitoring.listAlerts(new AlertFilter("R3", null, null)).get(0)
-                .transactionIds().stream().map(id -> id.split("-")[0]).distinct().toList());
+        var structuring = monitoring.listAlerts(new AlertFilter("R3", null, null)).get(0);
+        assertEquals(ScenarioGenerator.accounts(42).get("S-C1"), structuring.accountId());
+        assertTrue(structuring.transactionIds().stream()
+                .allMatch(id -> transactions.findTransaction(id).orElseThrow().launderingLabel()));
     }
 
     @Test

@@ -6,16 +6,23 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Random;
+import java.util.TreeSet;
 import tracewise.domain.Transaction;
 
 /**
  * Seeded, reproducible scenario data in the TraceWise scenario CSV format (Stage 1 report, 1.1.8):
  * one planted scheme per rule, boundary cases that must not fire, and normal customers that must
- * trigger nothing. Ids start with the scheme name; is_laundering marks the planted laundering.
+ * trigger nothing. is_laundering marks the planted laundering. Ids are neutral (C1001, EXT-2001, TX-00001)
+ * because the agent reads them: a name like "STRUCT-0001" would hand it the answer. accounts(seed) maps
+ * each role name (for example S-C1, the structuring customer) to its id for tests and demos.
  * Usage: java -cp target/tracewise.jar tracewise.tools.ScenarioGenerator SEED OUT.csv
  */
 public final class ScenarioGenerator {
@@ -34,17 +41,59 @@ public final class ScenarioGenerator {
     }
 
     public static List<String> generate(long seed) {
+        return build(seed).lines();
+    }
+
+    /** The id given to each role name, for example "S-C1" (structuring) or "N-C07" (a normal customer). */
+    public static Map<String, String> accounts(long seed) {
+        return build(seed).accounts();
+    }
+
+    private record Built(List<String> lines, Map<String, String> accounts) {
+    }
+
+    private static Built build(long seed) {
         var g = new ScenarioGenerator(seed);
         g.plantedSchemes();
         g.boundaryCases();
         for (int c = 1; c <= 60; c++) {
             g.normalCustomer(String.format("N-C%02d", c));
         }
+        // rename roles to shuffled neutral ids; a separate Random keeps amounts and times unchanged
+        var internal = new TreeSet<String>();
+        var external = new TreeSet<String>();
+        for (String[] r : g.rows) {
+            for (String account : new String[] {r[3], r[5]}) {
+                if (!Transaction.CASH.equals(account)) {
+                    (account.startsWith(Transaction.EXTERNAL_PREFIX) ? external : internal).add(account);
+                }
+            }
+        }
+        var shuffle = new Random(seed * 31 + 7);
+        var ids = new HashMap<String, String>();
+        assign(internal, "C", 1001, shuffle, ids);
+        assign(external, Transaction.EXTERNAL_PREFIX, 2001, shuffle, ids);
+
         var lines = new ArrayList<String>();
         lines.add(HEADER);
-        g.rows.stream().sorted(Comparator.comparing((String[] r) -> r[1]).thenComparing(r -> r[0]))
-                .forEach(r -> lines.add(String.join(",", r)));
-        return lines;
+        var sorted = g.rows.stream().sorted(Comparator.comparing((String[] r) -> r[1]).thenComparing(r -> r[0])).toList();
+        for (int n = 0; n < sorted.size(); n++) {
+            String[] r = sorted.get(n).clone();
+            r[0] = String.format("TX-%05d", n + 1);
+            r[3] = ids.getOrDefault(r[3], r[3]);
+            r[5] = ids.getOrDefault(r[5], r[5]);
+            lines.add(String.join(",", r));
+        }
+        return new Built(lines, Map.copyOf(ids));
+    }
+
+    private static void assign(Collection<String> names, String prefix, int first, Random random,
+            Map<String, String> ids) {
+        var shuffled = new ArrayList<>(names);
+        Collections.shuffle(shuffled, random);
+        for (int i = 0; i < shuffled.size(); i++) {
+            ids.put(shuffled.get(i), prefix + (first + i));
+        }
     }
 
     public static void main(String[] args) throws IOException {
