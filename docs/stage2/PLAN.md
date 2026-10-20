@@ -16,13 +16,13 @@ Source: `Project-Stage2-Instruction.pdf` (course handout, read 2026-10-20). Impl
 - README with prerequisites, install, local configuration (`.env` from `.env.example`), GUI and
   CLI launch commands, example usage. Safe sample data committed.
 
-## Schedule
+## Schedule (revised 2026-10-20: front-loaded to protect the deadline)
 | Period | Code | Records |
 |---|---|---|
-| 1: Oct 20-26 | Maven skeleton, `.env.example`, domain model, SQLite repositories, F01 import with sample data, F02 rules and alert queue, picocli skeleton, tests | design-changes log started |
-| 2: Oct 27-Nov 2 | LLMClient (LangChain4j adapter, retry, replay), agent loop and tools (F03), retrieval (F04), verifier (F05), commands and approvals (F06), triage (F07), CLI `ask --json` (F10), JavaFX shell | collaboration entries |
-| 3: Nov 3-9 | JavaFX views, case states and audit (F08), network view (F09), STR draft and export (F11), dashboard (F12), fixes | updated UMLet class diagram, report draft, demo scripts |
-| Nov 10 | Fresh-clone README check, secret scan of history | Kian records videos; report PDF and demo index |
+| 1: Oct 20-26 | Done: skeleton, F01, F02, CLI, sample data, EnvFile, LLMClient and Anthropic adapter. Next: retry and replay decorators, agent loop, trace and listeners, tool registry and read tools, claim verifier, `investigate` CLI (F03, F05); then commands, permission tiers and approvals (F06) and triage (F07) | design-changes log, collaboration entries |
+| 2: Oct 27-Nov 2 | Retrieval with embeddings (F04), `ask --json` (F10), JavaFX shell with Alerts, Case and Approvals screens, case states and audit screen (F08) | collaboration entries |
+| 3: Nov 3-9 | Network view (F09), STR draft and export (F11), dashboard (F12), remaining GUI, fixes. Feature freeze Nov 7 | updated UMLet class diagram, report draft, demo scripts |
+| Nov 8-10 | Fresh-clone README check, secret scan of history | Kian records videos; report PDF and demo index |
 
 ## Feature status
 | Feature | Status | Implemented in | Video |
