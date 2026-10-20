@@ -92,7 +92,7 @@ public class ImportService {
             accounts.add(t.senderAccountId());
             accounts.add(t.receiverAccountId());
         }
-        accounts.remove(Transaction.CASH);
+        accounts.removeIf(Transaction::isOutsideBank);
         Instant earliest = valid.stream().map(Transaction::timestamp).min(Instant::compareTo).orElse(null);
         Instant latest = valid.stream().map(Transaction::timestamp).max(Instant::compareTo).orElse(null);
         return new ImportSummary(rowsRead, valid.size(), List.copyOf(rejected), accounts.size(), earliest, latest);

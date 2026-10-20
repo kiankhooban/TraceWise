@@ -10,6 +10,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
+import tracewise.domain.Transaction;
 
 /**
  * Seeded, reproducible scenario data in the TraceWise scenario CSV format (Stage 1 report, 1.1.8):
@@ -60,20 +61,20 @@ public final class ScenarioGenerator {
         cash("LCASH", "L-C2", true, at(9, 9), "6000.00", false);
         cash("LCASH", "L-C2", true, at(9, 29), "4000.00", false);
         // R2 international: one incoming USD wire, and four outgoing wires to the UAE totalling $10,400 in a day
-        wire("INTL", "I-SRC", "I-C1", at(11, 14), "8500.00", "USD", "US", false);
+        wire("INTL", "EXT-US-1", "I-C1", at(11, 14), "8500.00", "USD", "US", false);
         for (int i = 0; i < 4; i++) {
-            wire("INTL", "I-C2", "I-DST" + (i + 1), at(14, 9 + i * 5), "2600.00", "CAD", "AE", true);
+            wire("INTL", "I-C2", "EXT-AE-" + (i + 1), at(14, 9 + i * 5), "2600.00", "CAD", "AE", true);
         }
         // R4 pass-through: $48,000 in, about 95% out five hours later
-        wire("PASS", "P-SRC", "P-C1", at(16, 10), "48000.00", "CAD", "CA", true);
-        wire("PASS", "P-C1", "P-DST", at(16, 15), "45500.00", "CAD", "CA", true);
+        wire("PASS", "EXT-P-SRC", "P-C1", at(16, 10), "48000.00", "CAD", "CA", true);
+        wire("PASS", "P-C1", "EXT-P-DST", at(16, 15), "45500.00", "CAD", "CA", true);
         // R5 fan-in: six different senders to one account within five days
         for (int i = 1; i <= 6; i++) {
-            wire("FANIN", "FI-S" + i, "F-C1", at(18 + i / 2, 8 + i), amount(1_500, 3_000), "CAD", "CA", true);
+            wire("FANIN", "EXT-FI-" + i, "F-C1", at(18 + i / 2, 8 + i), amount(1_500, 3_000), "CAD", "CA", true);
         }
         // R6 fan-out: one account pays seven different recipients within three days
         for (int i = 1; i <= 7; i++) {
-            wire("FANOUT", "O-C1", "FO-R" + i, at(22 + i / 3, 7 + i), amount(1_200, 2_800), "CAD", "CA", true);
+            wire("FANOUT", "O-C1", "EXT-FO-" + i, at(22 + i / 3, 7 + i), amount(1_200, 2_800), "CAD", "CA", true);
         }
     }
 
@@ -90,18 +91,18 @@ public final class ScenarioGenerator {
         cash("EDGE", "E-C3", true, at(6, 12), "9999.99", false);
         // four distinct senders in a week: one short of R5
         for (int i = 1; i <= 4; i++) {
-            wire("EDGE", "E4-S" + i, "E-C4", at(20, i * 3), "900.00", "CAD", "CA", false);
+            wire("EDGE", "EXT-E4-" + i, "E-C4", at(20, i * 3), "900.00", "CAD", "CA", false);
         }
     }
 
     private void normalCustomer(String c) {
         for (int day : new int[] {1, 15}) {
-            wire("N", c + "-EMP", c, at(day, 9), amount(1_800, 4_500), "CAD", "CA", false);
+            wire("N", "EXT-" + c + "-EMP", c, at(day, 9), amount(1_800, 4_500), "CAD", "CA", false);
         }
-        wire("N", c, c + "-RENT", at(1, 12), amount(1_200, 2_200), "CAD", "CA", false);
+        wire("N", c, "EXT-" + c + "-RENT", at(1, 12), amount(1_200, 2_200), "CAD", "CA", false);
         for (int week = 0; week < 4; week++) {
             for (int p = 0; p < 2; p++) {
-                String shop = c + "-SHOP" + (1 + random.nextInt(3));
+                String shop = "EXT-" + c + "-SHOP" + (1 + random.nextInt(3));
                 add("N", c, shop, at(2 + week * 7 + p * 3, 10 + random.nextInt(9)), amount(15, 300), "CAD",
                         "CARD", "CA", false);
             }
@@ -128,8 +129,11 @@ public final class ScenarioGenerator {
     private void add(String scheme, String from, String to, LocalDateTime when, String amount, String currency,
             String channel, String country, boolean laundering) {
         rows.add(new String[] {String.format("%s-%04d", scheme, ++sequence), TIMESTAMP.format(when),
-                "CASH".equals(from) ? "" : "001", from,
-                "CASH".equals(to) ? "" : "001", to, amount, currency, channel, country, laundering ? "1" : "0"});
+                bank(from), from, bank(to), to, amount, currency, channel, country, laundering ? "1" : "0"});
+    }
+
+    private static String bank(String account) {
+        return Transaction.CASH.equals(account) ? "" : account.startsWith(Transaction.EXTERNAL_PREFIX) ? "999" : "001";
     }
 
     private LocalDateTime at(int day, int hours) {

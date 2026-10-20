@@ -84,9 +84,10 @@ class SqliteTransactionRepositoryTest {
     }
 
     @Test
-    void savingTransactionsCreatesTheAccountsOfBothPartiesExceptCash() {
+    void savingTransactionsCreatesAccountsOnlyForPartiesInsideTheBank() {
         repo.saveAll(List.of(tx("1", "2026-09-01T00:00:00Z", "CASH", "C1", "5"),
-                tx("2", "2026-09-01T01:00:00Z", "C1", "C2", "5")));
+                tx("2", "2026-09-01T01:00:00Z", "C1", "C2", "5"),
+                tx("3", "2026-09-01T02:00:00Z", "EXT-US-1", "C2", "5")));
         assertEquals(List.of(new Account("C1", false), new Account("C2", false)), repo.accounts());
     }
 
