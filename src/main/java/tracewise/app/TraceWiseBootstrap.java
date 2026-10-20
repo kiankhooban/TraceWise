@@ -84,7 +84,8 @@ public final class TraceWiseBootstrap {
         Supplier<AgentRunner> runner = once(() -> new AgentRunner(llm.get(), tools, AgentLimits.DEFAULT));
         var investigationService = new InvestigationService(db, alerts, cases, runner, scope, approvals,
                 new ClaimVerifier(transactions), audit, user, config.model(), rates.toCad(BigDecimal.ONE, "USD"));
-        return new TraceWiseFacade(db, importService, monitoringService, investigationService, approvals,
+        var triageService = new TriageService(alerts, cases, investigationService, audit, user);
+        return new TraceWiseFacade(db, importService, monitoringService, investigationService, triageService, approvals,
                 new CaseService(cases), user);
     }
 

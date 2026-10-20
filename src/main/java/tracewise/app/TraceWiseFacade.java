@@ -6,6 +6,7 @@ import tracewise.actions.ApprovalQueue;
 import tracewise.actions.PendingAction;
 import tracewise.agent.AgentEventListener;
 import tracewise.agent.InvestigationResult;
+import tracewise.agent.TriageReport;
 import tracewise.domain.Actor;
 import tracewise.domain.Alert;
 import tracewise.domain.Case;
@@ -25,16 +26,19 @@ public class TraceWiseFacade implements AutoCloseable {
     private final ImportService importService;
     private final MonitoringService monitoringService;
     private final InvestigationService investigationService;
+    private final TriageService triageService;
     private final ApprovalQueue approvals;
     private final CaseService caseService;
     private final Actor user;
 
     TraceWiseFacade(Database database, ImportService importService, MonitoringService monitoringService,
-            InvestigationService investigationService, ApprovalQueue approvals, CaseService caseService, Actor user) {
+            InvestigationService investigationService, TriageService triageService, ApprovalQueue approvals,
+            CaseService caseService, Actor user) {
         this.database = database;
         this.importService = importService;
         this.monitoringService = monitoringService;
         this.investigationService = investigationService;
+        this.triageService = triageService;
         this.approvals = approvals;
         this.caseService = caseService;
         this.user = user;
@@ -75,6 +79,15 @@ public class TraceWiseFacade implements AutoCloseable {
 
     public void cancelInvestigation(String alertId) {
         investigationService.cancel(alertId);
+    }
+
+    /** Investigates the open alerts in risk order within the limits; listener (may be null) sees each step. */
+    public TriageReport triage(TriageLimits limits, AgentEventListener listener) {
+        return triageService.triage(limits, listener);
+    }
+
+    public void stopTriage() {
+        triageService.stop();
     }
 
     public List<PendingAction> pendingApprovals() {
