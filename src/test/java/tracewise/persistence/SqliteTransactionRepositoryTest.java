@@ -82,4 +82,20 @@ class SqliteTransactionRepositoryTest {
     void usesWriteAheadLogging() {
         assertEquals("wal", db.journalMode());
     }
+
+    @Test
+    void savingTransactionsCreatesTheAccountsOfBothPartiesExceptCash() {
+        repo.saveAll(List.of(tx("1", "2026-09-01T00:00:00Z", "CASH", "C1", "5"),
+                tx("2", "2026-09-01T01:00:00Z", "C1", "C2", "5")));
+        assertEquals(List.of(new Account("C1", false), new Account("C2", false)), repo.accounts());
+    }
+
+    @Test
+    void saveAllIsAllOrNothing() {
+        repo.saveAll(List.of(tx("1", "2026-09-01T00:00:00Z", "A", "B", "5")));
+        assertThrows(DatabaseException.class, () -> repo.saveAll(List.of(
+                tx("2", "2026-09-01T00:00:00Z", "A", "C", "5"), tx("1", "2026-09-01T00:00:00Z", "A", "B", "5"))));
+        assertFalse(repo.exists("2"));
+        assertEquals(List.of("A", "B"), repo.accounts().stream().map(Account::id).toList());
+    }
 }

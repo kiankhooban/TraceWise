@@ -25,6 +25,7 @@ public class SqliteTransactionRepository implements TransactionRepository {
         this.db = db;
     }
 
+    /** Stores the transactions and creates any new accounts, all in one database transaction. */
     @Override
     public void saveAll(List<Transaction> transactions) {
         db.inTransaction(() -> {
@@ -50,6 +51,13 @@ public class SqliteTransactionRepository implements TransactionRepository {
                 ps.executeBatch();
             } catch (SQLException e) {
                 throw new DatabaseException(e);
+            }
+            for (Transaction t : transactions) {
+                for (String id : List.of(t.senderAccountId(), t.receiverAccountId())) {
+                    if (!Transaction.CASH.equals(id)) {
+                        saveAccount(new Account(id, false));
+                    }
+                }
             }
         });
     }

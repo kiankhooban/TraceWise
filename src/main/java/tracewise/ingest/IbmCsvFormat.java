@@ -47,6 +47,16 @@ public class IbmCsvFormat implements TransactionFormat {
     }
 
     @Override
+    public String name() {
+        return "IBM synthetic AML CSV";
+    }
+
+    @Override
+    public List<String> header() {
+        return HEADER;
+    }
+
+    @Override
     public boolean matches(List<String> header) {
         return HEADER.equals(header);
     }

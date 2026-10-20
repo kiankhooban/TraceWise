@@ -23,6 +23,16 @@ public class ScenarioCsvFormat implements TransactionFormat {
     }
 
     @Override
+    public String name() {
+        return "TraceWise scenario CSV";
+    }
+
+    @Override
+    public List<String> header() {
+        return HEADER;
+    }
+
+    @Override
     public boolean matches(List<String> header) {
         return HEADER.equals(header);
     }
