@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
 # Runs the TraceWise CLI. Build it first with: ./mvnw -q package -DskipTests
 dir=$(cd "$(dirname "$0")" && pwd)
+export TRACEWISE_HOME="$dir"
 exec java -jar "$dir/target/tracewise.jar" "$@"

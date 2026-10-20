@@ -9,11 +9,12 @@ import tracewise.app.AppConfig;
 import tracewise.app.TraceWiseBootstrap;
 import tracewise.app.TraceWiseFacade;
 import tracewise.domain.ActorType;
+import tracewise.llm.ModelConfig;
 
 @Command(name = "tracewise", mixinStandardHelpOptions = true, version = "TraceWise 0.1.0",
         description = "AI agent for anti-money-laundering alert investigation.",
         subcommands = {ImportCli.class, MonitorCli.class, AlertsCli.class, ThresholdReportsCli.class,
-                RulesCli.class})
+                RulesCli.class, InvestigateCli.class})
 public class TraceWiseCli {
 
     @Option(names = "--db", description = "SQLite database file (default: ${DEFAULT-VALUE}).",
@@ -24,11 +25,29 @@ public class TraceWiseCli {
             defaultValue = "${env:TRACEWISE_ROLE:-ANALYST}")
     ActorType role;
 
+    @Option(names = "--llm", description = "anthropic, or replay to answer from recorded runs without a key "
+            + "(default: ${DEFAULT-VALUE}).", defaultValue = "${env:TRACEWISE_LLM:-anthropic}")
+    String provider;
+
+    @Option(names = "--model", description = "Model id (default: ${DEFAULT-VALUE}).",
+            defaultValue = "${env:TRACEWISE_MODEL:-claude-sonnet-5-5}")
+    String model;
+
+    @Option(names = "--record", description = "Save every model answer so the run can be replayed.",
+            defaultValue = "${env:TRACEWISE_RECORD:-false}")
+    boolean record;
+
+    @Option(names = "--replays", description = "Folder of recorded runs (default: ${DEFAULT-VALUE}).",
+            defaultValue = "${env:TRACEWISE_HOME:-.}/data/replays")
+    Path replays;
+
     private TraceWiseFacade facade;
 
     TraceWiseFacade facade() {
         if (facade == null) {
-            facade = TraceWiseBootstrap.create(new AppConfig(database, System.getProperty("user.name"), role));
+            Path home = Path.of(System.getenv().getOrDefault("TRACEWISE_HOME", "."));
+            facade = TraceWiseBootstrap.create(new AppConfig(database, System.getProperty("user.name"), role,
+                    ModelConfig.of(provider, model, record), replays, home.resolve(".env")));
         }
         return facade;
     }
