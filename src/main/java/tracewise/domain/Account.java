@@ -1,4 +1,4 @@
 package tracewise.domain;
 
-public record Account(String id, String bankId, boolean watchlisted) {
+public record Account(String id, boolean watchlisted) {
 }
