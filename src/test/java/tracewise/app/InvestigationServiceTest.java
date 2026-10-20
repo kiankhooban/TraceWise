@@ -13,6 +13,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import tracewise.actions.ApprovalQueue;
+import tracewise.actions.CommandContext;
+import tracewise.actions.CommandDispatcher;
+import tracewise.actions.PermissionPolicy;
 import tracewise.agent.AgentEventListener;
 import tracewise.agent.AgentLimits;
 import tracewise.agent.AgentOutcome;
@@ -22,9 +26,6 @@ import tracewise.agent.AgentRunnerTest.ScriptedModel;
 import tracewise.agent.OutcomeStatus;
 import tracewise.agent.TraceStep;
 import tracewise.agent.Verdict;
-import tracewise.agent.tools.AccountHistoryTool;
-import tracewise.agent.tools.CounterpartiesTool;
-import tracewise.agent.tools.ToolRegistry;
 import tracewise.audit.AuditFilter;
 import tracewise.audit.AuditLog;
 import tracewise.audit.SqliteAuditRepository;
@@ -39,6 +40,7 @@ import tracewise.llm.LLMException;
 import tracewise.monitoring.AlertFilter;
 import tracewise.persistence.Database;
 import tracewise.persistence.SqliteAlertRepository;
+import tracewise.persistence.SqliteApprovalRepository;
 import tracewise.persistence.SqliteCaseRepository;
 import tracewise.persistence.SqliteRuleConfigRepository;
 import tracewise.persistence.SqliteThresholdReportRepository;
@@ -85,9 +87,10 @@ class InvestigationServiceTest {
     }
 
     InvestigationService service(AgentLimits limits) {
-        var tools = new ToolRegistry();
-        tools.register(new AccountHistoryTool(transactions));
-        tools.register(new CounterpartiesTool(transactions));
+        var ctx = new CommandContext(cases, alerts, transactions);
+        var queue = new ApprovalQueue(db, new SqliteApprovalRepository(db), ctx, audit);
+        var tools = TraceWiseBootstrap.investigationTools(transactions, alerts, cases,
+                new CommandDispatcher(db, ctx, new PermissionPolicy(), queue, audit));
         var runner = new AgentRunner(model, tools, limits);
         return new InvestigationService(db, alerts, cases, () -> runner, new ClaimVerifier(transactions), audit, analyst,
                 AgentRunnerTest.PRICES, BigDecimal.ONE);
@@ -226,5 +229,20 @@ class InvestigationServiceTest {
         model.beforeEachCall = () -> service.cancel("ALR-99999");
         model.then(AgentRunnerTest.toolCall("account_history", historyCall())).then(AgentRunnerTest.answer(finding()));
         assertEquals(OutcomeStatus.COMPLETED, service.investigate(structuring.id(), null).status());
+    }
+
+    @Test
+    void aProposalMadeDuringTheRunIsNotUndoneWhenTheRunEnds() {
+        String caseId = "CAS-" + structuring.id().substring(4);
+        model.then(AgentRunnerTest.toolCall("propose_escalation",
+                        "{\"case_id\":\"" + caseId + "\",\"justification\":\"Structured cash deposits\"}"))
+                .then(AgentRunnerTest.answer(finding()));
+        var result = service().investigate(structuring.id(), null);
+
+        assertEquals(OutcomeStatus.COMPLETED, result.status());
+        assertFalse(result.trace().steps().get(0).error(), result.trace().steps().get(0).result());
+        var stored = cases.findById(caseId).orElseThrow();
+        assertEquals(CaseStatus.PENDING_APPROVAL, stored.status());
+        assertEquals(1, stored.findings().size());
     }
 }

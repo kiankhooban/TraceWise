@@ -15,7 +15,7 @@ class InvestigationTaskTest {
 
     static final Alert ALERT = new Alert("ALR-00001", "R3", "S-C1", List.of("t1", "t2", "t3"), new BigDecimal("28500"),
             82, 1, AlertStatus.NEW, Instant.parse("2026-10-20T12:00:00Z"));
-    final InvestigationTask task = new InvestigationTask(ALERT);
+    final InvestigationTask task = new InvestigationTask(ALERT, "CAS-00001");
 
     static final String GOOD = """
             The deposits are structured.
@@ -36,10 +36,12 @@ class InvestigationTaskTest {
     @Test
     void opensWithTheAlertDetails() {
         String m = task.initialMessage();
-        for (String expected : List.of("ALR-00001", "R3", "S-C1", "t1, t2, t3", "28500")) {
+        for (String expected : List.of("ALR-00001", "CAS-00001", "R3", "S-C1", "t1, t2, t3", "28500")) {
             assertTrue(m.contains(expected), expected + " missing from: " + m);
         }
-        assertEquals(Set.of("account_history", "counterparties"), task.toolNames());
+        assertEquals(Set.of("account_history", "counterparties", "linked_alerts", "set_priority", "link_alerts",
+                "add_to_watchlist", "create_task", "propose_close", "propose_escalation"), task.toolNames());
+        assertTrue(task.systemPrompt().contains("propose_escalation"));
         assertTrue(task.systemPrompt().contains("\"verdict\""));
     }
 

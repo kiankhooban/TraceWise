@@ -2,9 +2,13 @@ package tracewise.app;
 
 import java.nio.file.Path;
 import java.util.List;
+import tracewise.actions.ApprovalQueue;
+import tracewise.actions.PendingAction;
 import tracewise.agent.AgentEventListener;
 import tracewise.agent.InvestigationResult;
+import tracewise.domain.Actor;
 import tracewise.domain.Alert;
+import tracewise.domain.Case;
 import tracewise.domain.ThresholdReport;
 import tracewise.ingest.ImportPreview;
 import tracewise.ingest.ImportSummary;
@@ -21,13 +25,19 @@ public class TraceWiseFacade implements AutoCloseable {
     private final ImportService importService;
     private final MonitoringService monitoringService;
     private final InvestigationService investigationService;
+    private final ApprovalQueue approvals;
+    private final CaseService caseService;
+    private final Actor user;
 
     TraceWiseFacade(Database database, ImportService importService, MonitoringService monitoringService,
-            InvestigationService investigationService) {
+            InvestigationService investigationService, ApprovalQueue approvals, CaseService caseService, Actor user) {
         this.database = database;
         this.importService = importService;
         this.monitoringService = monitoringService;
         this.investigationService = investigationService;
+        this.approvals = approvals;
+        this.caseService = caseService;
+        this.user = user;
     }
 
     public ImportPreview previewImport(Path file) {
@@ -65,6 +75,25 @@ public class TraceWiseFacade implements AutoCloseable {
 
     public void cancelInvestigation(String alertId) {
         investigationService.cancel(alertId);
+    }
+
+    public List<PendingAction> pendingApprovals() {
+        return approvals.pending();
+    }
+
+    /** The session's analyst or supervisor approves; the proposal runs, or expires if the case changed. */
+    public PendingAction approve(String pendingId) {
+        approvals.approve(pendingId, user);
+        return approvals.find(pendingId);
+    }
+
+    public PendingAction reject(String pendingId, String reason) {
+        approvals.reject(pendingId, user, reason);
+        return approvals.find(pendingId);
+    }
+
+    public Case getCase(String caseId) {
+        return caseService.getCase(caseId);
     }
 
     @Override

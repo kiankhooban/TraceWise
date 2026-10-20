@@ -64,7 +64,7 @@ public class InvestigationService {
         AgentRunner agent = runner.get();
         Case c = openCase(alert);
 
-        var task = new InvestigationTask(alert);
+        var task = new InvestigationTask(alert, c.id());
         var trace = new AgentTrace(alertId, pricing, cadPerUsd);
         if (listener != null) {
             trace.addListener(listener);
@@ -93,7 +93,6 @@ public class InvestigationService {
                     "The agent's answer is not a valid finding: " + e.getMessage()));
         }
         finding.attachVerification(verifier.verify(finding.claims(), finding.totals()));
-        c.addFinding(finding);
         return finished(c, new InvestigationResult(c.id(), outcome.status(), finding, trace,
                 finding.verification().summary()));
     }
@@ -118,8 +117,16 @@ public class InvestigationService {
         return c;
     }
 
-    private InvestigationResult finished(Case c, InvestigationResult result) {
+    /**
+     * Stores the finding on the case as it is now: the agent's actions may have changed the case during the
+     * run (a proposal moves it to Pending Approval), so the copy loaded at the start is not written back.
+     */
+    private InvestigationResult finished(Case started, InvestigationResult result) {
         db.inTransaction(() -> {
+            Case c = cases.findById(started.id()).orElseThrow();
+            if (result.finding() != null) {
+                c.addFinding(result.finding());
+            }
             cases.save(c);
             String details = result.finding() == null ? result.message()
                     : result.finding().verdict() + ", confidence " + result.finding().confidence() + ", " + result.message();

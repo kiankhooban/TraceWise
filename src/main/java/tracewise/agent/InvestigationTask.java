@@ -45,6 +45,13 @@ public class InvestigationTask implements AgentTask {
             - ESCALATE when the evidence gives reasonable grounds to suspect money laundering, DISMISS when \
             there is a clear legitimate explanation, INCONCLUSIVE when the evidence is not enough to decide.
 
+            Actions (each needs a justification that cites the evidence):
+            - set_priority, link_alerts, add_to_watchlist and create_task take effect at once. Use them only \
+            when the evidence supports them, for example linking an alert on a counterparty in the same scheme.
+            - propose_escalation and propose_close only propose: a human analyst approves or rejects them. \
+            Before your final answer, propose escalation when your verdict is ESCALATE and propose closing when \
+            it is DISMISS. Propose nothing when it is INCONCLUSIVE.
+
             Finish with your finding as one JSON object in a ```json block, with nothing after it:
             ```json
             {
@@ -65,9 +72,11 @@ public class InvestigationTask implements AgentTask {
             averages and the absence of activity in the narrative instead. Use [] if there are none.""";
 
     private final Alert alert;
+    private final String caseId;
 
-    public InvestigationTask(Alert alert) {
+    public InvestigationTask(Alert alert, String caseId) {
         this.alert = alert;
+        this.caseId = caseId;
     }
 
     @Override
@@ -77,7 +86,7 @@ public class InvestigationTask implements AgentTask {
 
     @Override
     public String initialMessage() {
-        return "Investigate alert " + alert.id() + ".\n"
+        return "Investigate alert " + alert.id() + " (case " + caseId + ").\n"
                 + "Rule: " + alert.ruleId() + " (" + RULES.getOrDefault(alert.ruleId(), "custom rule") + ")\n"
                 + "Account: " + alert.accountId() + "\n"
                 + "Flagged transactions: " + String.join(", ", alert.transactionIds()) + "\n"
@@ -87,7 +96,8 @@ public class InvestigationTask implements AgentTask {
 
     @Override
     public Set<String> toolNames() {
-        return Set.of("account_history", "counterparties");
+        return Set.of("account_history", "counterparties", "linked_alerts", "set_priority", "link_alerts",
+                "add_to_watchlist", "create_task", "propose_close", "propose_escalation");
     }
 
     @Override

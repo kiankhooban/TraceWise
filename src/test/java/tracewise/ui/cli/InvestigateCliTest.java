@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
@@ -14,17 +13,10 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import tracewise.agent.AgentLimits;
-import tracewise.agent.AgentRunner;
 import tracewise.agent.AgentRunnerTest;
 import tracewise.agent.AgentRunnerTest.ScriptedModel;
-import tracewise.agent.tools.AccountHistoryTool;
-import tracewise.agent.tools.CounterpartiesTool;
-import tracewise.agent.tools.ToolRegistry;
-import tracewise.app.InvestigationService;
-import tracewise.audit.AuditLog;
-import tracewise.audit.SqliteAuditRepository;
-import tracewise.domain.Actor;
+import tracewise.app.AppConfig;
+import tracewise.app.TraceWiseBootstrap;
 import tracewise.domain.ActorType;
 import tracewise.domain.Alert;
 import tracewise.llm.ModelConfig;
@@ -33,10 +25,8 @@ import tracewise.llm.ReplayStore;
 import tracewise.monitoring.AlertFilter;
 import tracewise.persistence.Database;
 import tracewise.persistence.SqliteAlertRepository;
-import tracewise.persistence.SqliteCaseRepository;
 import tracewise.persistence.SqliteTransactionRepository;
 import tracewise.tools.ScenarioGenerator;
-import tracewise.verification.ClaimVerifier;
 
 class InvestigateCliTest {
 
@@ -54,33 +44,35 @@ class InvestigateCliTest {
                 .execute(all.toArray(String[]::new));
     }
 
-    /** Records a scripted investigation of the R3 alert through the service, on a copy of the database. */
+    /** Records a scripted investigation of the R3 alert through the app's own wiring, on a copy of the database. */
     String recordStructuringInvestigation(Path copy) {
+        String alertId;
+        String accountId;
+        String finding;
         try (var db = Database.open(copy)) {
             var transactions = new SqliteTransactionRepository(db);
-            var alerts = new SqliteAlertRepository(db);
-            Alert alert = alerts.find(new AlertFilter("R3", null, null)).get(0);
+            Alert alert = new SqliteAlertRepository(db).find(new AlertFilter("R3", null, null)).get(0);
             var t = transactions.findTransaction(alert.transactionIds().get(0)).orElseThrow();
-            var model = new ScriptedModel()
-                    .then(AgentRunnerTest.toolCall("account_history", "{\"account_id\":\"" + alert.accountId() + "\"}"))
-                    .then(AgentRunnerTest.answer("""
-                            ```json
-                            {"verdict": "ESCALATE", "confidence": 0.9, "indicators": ["Structuring"],
-                             "cited_transactions": [{"transaction_id": "%s", "account_id": "%s", "amount_cad": %s,
-                               "date": "%s"}], "totals": [], "narrative": "Deposits under the threshold."}
-                            ```""".formatted(t.id(), alert.accountId(), t.amountCad().toPlainString(),
-                            LocalDate.ofInstant(t.timestamp(), ZoneOffset.UTC))));
-            var tools = new ToolRegistry();
-            tools.register(new AccountHistoryTool(transactions));
-            tools.register(new CounterpartiesTool(transactions));
-            var runner = new AgentRunner(new RecordingLLMClient(model, new ReplayStore(dir.resolve("replays"))), tools,
-                    AgentLimits.DEFAULT);
-            new InvestigationService(db, alerts, new SqliteCaseRepository(db), () -> runner,
-                    new ClaimVerifier(transactions), new AuditLog(new SqliteAuditRepository(db)),
-                    new Actor("rec", ActorType.ANALYST), ModelConfig.of("anthropic", "claude-haiku-5-5", true),
-                    BigDecimal.ONE).investigate(alert.id(), null);
-            return alert.id();
+            alertId = alert.id();
+            accountId = alert.accountId();
+            finding = """
+                    ```json
+                    {"verdict": "ESCALATE", "confidence": 0.9, "indicators": ["Structuring"],
+                     "cited_transactions": [{"transaction_id": "%s", "account_id": "%s", "amount_cad": %s,
+                       "date": "%s"}], "totals": [], "narrative": "Deposits under the threshold."}
+                    ```""".formatted(t.id(), accountId, t.amountCad().toPlainString(),
+                    LocalDate.ofInstant(t.timestamp(), ZoneOffset.UTC));
         }
+        var model = new ScriptedModel()
+                .then(AgentRunnerTest.toolCall("account_history", "{\"account_id\":\"" + accountId + "\"}"))
+                .then(AgentRunnerTest.answer(finding));
+        var config = new AppConfig(copy, "rec", ActorType.ANALYST, ModelConfig.of("anthropic", "claude-haiku-5-5", true),
+                dir.resolve("replays"), dir.resolve(".env"));
+        try (var facade = TraceWiseBootstrap.create(config,
+                () -> new RecordingLLMClient(model, new ReplayStore(dir.resolve("replays"))))) {
+            facade.investigate(alertId, null);
+        }
+        return alertId;
     }
 
     @Test
