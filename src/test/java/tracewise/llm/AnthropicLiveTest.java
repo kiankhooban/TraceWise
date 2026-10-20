@@ -19,7 +19,7 @@ class AnthropicLiveTest {
         String key = EnvFile.read(Path.of(".env")).get("ANTHROPIC_API_KEY");
         assertNotNull(key, "ANTHROPIC_API_KEY missing from .env");
         var client = new AnthropicLLMClient(new ModelConfig("anthropic", "claude-haiku-5-5",
-                new BigDecimal("0.10"), new BigDecimal("0.50")), key);
+                new BigDecimal("0.10"), new BigDecimal("0.50"), false), key);
         var tool = new ToolSchema("get_balance", "Returns the current balance in CAD of one account",
                 List.of(new ToolParameter("account_id", ToolParameter.Type.STRING, "The account id", true)));
         var messages = new ArrayList<LLMMessage>(List.of(new LLMMessage.User(
