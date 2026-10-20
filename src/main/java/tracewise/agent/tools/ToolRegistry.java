@@ -1,8 +1,10 @@
 package tracewise.agent.tools;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.cfg.JsonNodeFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -20,7 +22,9 @@ import tracewise.llm.ToolSchema;
  */
 public class ToolRegistry {
 
-    private static final ObjectMapper JSON = new ObjectMapper();
+    // money must stay exact: read decimals as BigDecimal, not double
+    private static final ObjectMapper JSON = new ObjectMapper().enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+            .configure(JsonNodeFeature.STRIP_TRAILING_BIGDECIMAL_ZEROES, false);
 
     private final Map<String, AgentTool> tools = new LinkedHashMap<>();
 
