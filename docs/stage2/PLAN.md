@@ -33,7 +33,7 @@ Source: `Project-Stage2-Instruction.pdf` (course handout, read 2026-10-20). Impl
 | F04 Indicator Retrieval and Case Memory | Not started | | |
 | F05 Claim Verification | Working (CLI, inside `investigate`) | `verification/*` (`ClaimVerifier`, `VerificationReport`), `agent/Claim`, `agent/TotalClaim` | |
 | F06 Agent Actions and Approval Queue | Working (CLI); GUI pending; report-draft action comes with F11 | `actions/*` (`ActionCommand` and six commands, `CommandDispatcher`, `PermissionPolicy`, `ApprovalQueue`, `PendingAction`), `agent/tools/ActionTool` and six action tools, `persistence/SqliteApprovalRepository`, `ui/cli/ApprovalsCli` | |
-| F07 Autonomous Queue Triage | Not started | | |
+| F07 Autonomous Queue Triage | Working (CLI); GUI pending | `app/TriageService`, `app/TriageLimits`, `agent/TriageReport`, `ui/cli/TriageCli` | |
 | F08 Case Management and Audit Trail | Partly: case states (State pattern) and storage, agent steps audited; case and audit commands pending | `domain/Case`, `cases/state/*`, `persistence/SqliteCaseRepository`, `audit/AuditLog` | |
 | F09 Money-Flow Network View | Not started | | |
 | F10 Natural-Language Analyst Assistant | Not started | | |
@@ -60,6 +60,9 @@ Source: `Project-Stage2-Instruction.pdf` (course handout, read 2026-10-20). Impl
   changes 15 and 16.
 - 2026-10-20 (review 2): fixes for approval widening, agent action scope, fail-safe policy, decision
   time (design change 17). Recordings re-made with actions; replay checked in any order. 167 tests.
+- 2026-10-20 (F07): proposals from runs without a finding expire and re-runs see earlier decisions
+  (design change 18); triage with alert and cost limits, stop, failure handling and summary, `triage`
+  CLI (design change 19). A full triage of the sample alerts replays offline. 178 tests.
 
 ## Tooling (installed 2026-10-20)
 - `jdtls-lsp` plugin with `jdtls` 1.63.0 (Homebrew): Java diagnostics and navigation.

@@ -197,3 +197,24 @@ before demo data is committed.
 **Outcome:** 167 tests pass. The four sample alerts replay from `data/replays` in any order without
 a key: three escalations proposed with every claim confirmed, and one INCONCLUSIVE fan-in where the
 agent created a task and proposed nothing.
+
+---
+
+## Entry 9: Closing review items, then queue triage (F07) (2026-10-20)
+
+**Task:** Fix the two items the F06 review left open, then build F07 (triage the alert queue).
+
+**Input/Instruction:** Kian asked for the open items first, then F07.
+
+**AI Contribution:** Proposals made by a run that ends without a finding now expire and free the
+case, so nobody can approve an action whose evidence was never produced; a re-investigation now tells
+the agent what people decided on its earlier proposals and why. Each change was checked by switching
+the behaviour off and watching the new tests fail. Built triage from the design (SD4): open alerts in
+risk order, alert and cost limits, stop after the current alert, failed alerts left open and retried
+by the next triage, and a summary of proposals, actions, failures and cost. Kept the agent's opening
+message unchanged for cases without history, so the committed recordings still replay and a whole
+triage of the sample alerts runs offline.
+
+**Human Contribution:** Kept the order: finish open items before new features.
+
+**Outcome:** 178 tests pass. `tracewise triage` works; the period 1 plan is complete.

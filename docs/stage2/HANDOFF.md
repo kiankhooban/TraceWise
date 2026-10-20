@@ -1,6 +1,6 @@
 # Stage 2 handoff (for the next Claude session or after /compact)
 
-Last updated 2026-10-20 after the F06 review fixes. Read this, then `CLAUDE.md` (repo root) and
+Last updated 2026-10-20 after F07. Read this, then `CLAUDE.md` (repo root) and
 `docs/stage2/PLAN.md`. The session that wrote this ran from `~/Brain`, so the TraceWise `CLAUDE.md`
 is NOT loaded automatically there: read it explicitly.
 
@@ -13,16 +13,17 @@ is NOT loaded automatically there: read it explicitly.
   listens); `ClaimVerifier` (F05); `Case` with the State pattern and `SqliteCaseRepository`;
   `InvestigationService` and `tracewise investigate <alertId> [--json]` (F03).
 - Live check (Haiku 5.5, sample data): all 4 alerts COMPLETED, ESCALATE, every claim confirmed, CAD 0.012.
-- 167 tests pass, 1 skipped (the opt-in live test). Design changes 1 to 17 logged.
+- 178 tests pass, 1 skipped (the opt-in live test). Design changes 1 to 19 logged.
 - Patterns in code: Facade, Strategy, Template Method, Adapter, Decorator, Factory Method (client
   factory), Observer, State, Command (F06). All nine designed patterns are now in code.
 - F06 done: actions with permission tiers, approval queue, `approvals` CLI, agent actions scoped to its case.
+- F07 done: `TriageService`, `tracewise triage`; period 1 plan complete.
 
-## Next task, in this order (period 1, front-loaded)
-1. F07: `TriageService.triage(limits, listener)` + `stop()`, `TriageLimits`, `TriageReport`; CLI
-   `tracewise triage`. SD4. A failed alert stays open and triage continues; stop after the current alert.
-2. Then week 2 work (F04 retrieval, F10 `ask`, JavaFX shell, F08 case commands: `case show`, notes,
-   reopen, and human close/escalate through the dispatcher).
+## Next task, in this order (period 2 work, started early)
+1. F04: retrieval of FINTRAC indicators and similar cases (bge-small-en-v1.5 quantized embeddings,
+   `Retriever`, `SearchIndicatorsTool`, `SimilarCasesTool`, case memory).
+2. F10 `ask --json`, then the JavaFX shell with Alerts, Case and Approvals screens, F08 case commands
+   (`case show`, notes, reopen, human close and escalate through the dispatcher).
 
 Design sources for these: `docs/stage1/diagrams/src/model.iuml` (full 146-classifier model with
 every member; grep the class name), report sections F03 to F07 and Task 4 in
@@ -80,9 +81,7 @@ SD5 (action and approval) in `docs/stage1/umlet/gen_sequence_diagrams.py`.
     whole requests). Keep tool results free of values that depend on run order (global ids, times).
 - From the F06 review, not fixed yet (all need concurrency the CLI does not have; handle with the GUI):
   two runs linking the same alert, one run's cancel reaching another, a cancel that lands just after a
-  run ends. Also: proposals made by a run that then fails stay pending and show the case's latest
-  finding; the agent does not see earlier rejection reasons when a case is re-investigated;
-  `approvals` ids come from COUNT(*)+1 (fine while rows are never deleted); the reviewer's identity is
+  run ends. Also: `approvals` ids come from COUNT(*)+1 (fine while rows are never deleted); the reviewer's identity is
   the `--role` the session claims (the GUI must not trust a client-side role).
 - `OpenAiCompatibleLLMClient` from the design is not built; build it or log it as a design change.
 - Kian revoked the key exposed on 2026-10-20 (Console showed 0 keys); the new key is in `.env`.
