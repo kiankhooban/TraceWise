@@ -8,8 +8,8 @@ import tracewise.llm.ToolParameter;
 
 public class AddToWatchlistTool extends ActionTool {
 
-    public AddToWatchlistTool(CommandDispatcher dispatcher) {
-        super(dispatcher);
+    public AddToWatchlistTool(CommandDispatcher dispatcher, ActionScope scope) {
+        super(dispatcher, scope);
     }
 
     @Override

@@ -8,6 +8,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import tracewise.agent.tools.ActionScope;
 import tracewise.agent.tools.ToolRegistry;
 import tracewise.app.TraceWiseBootstrap;
 import tracewise.cases.state.CaseStatus;
@@ -18,11 +19,14 @@ class ActionToolsTest {
     @TempDir Path dir;
     ActionsFixture f;
     ToolRegistry tools;
+    ActionScope scope;
 
     @BeforeEach
     void open() {
         f = new ActionsFixture(dir);
-        tools = TraceWiseBootstrap.investigationTools(f.accounts, f.alerts, f.cases, f.dispatcher);
+        scope = new ActionScope(f.cases);
+        tools = TraceWiseBootstrap.investigationTools(f.accounts, f.alerts, f.cases, f.dispatcher, scope);
+        scope.begin("CAS-00001");
     }
 
     @AfterEach
@@ -65,9 +69,9 @@ class ActionToolsTest {
     @Test
     void aRejectedActionIsAnErrorTheAgentCanReadAndFix() {
         var result = tools.execute(new ToolCall("c", "set_priority",
-                "{\"alert_id\":\"ALR-99999\",\"priority\":1,\"justification\":\"x\"}"));
+                "{\"alert_id\":\"ALR-00001\",\"priority\":7,\"justification\":\"x\"}"));
         assertTrue(result.error());
-        assertTrue(result.content().contains("No alert ALR-99999"), result.content());
+        assertTrue(result.content().contains("priority must be 1"), result.content());
     }
 
     @Test
@@ -79,5 +83,23 @@ class ActionToolsTest {
         assertEquals("CAS-00001", alerts.get(0).get("case_id").asText());
         assertEquals("ALR-00002", alerts.get(1).get("alert_id").asText());
         assertEquals("C3", alerts.get(1).get("account_id").asText());
+    }
+
+    @Test
+    void theAgentMayActOnlyOnTheCaseItIsInvestigating() {
+        f.cases.save(new tracewise.domain.Case("CAS-00002", java.time.Instant.EPOCH, java.util.List.of("ALR-00002"),
+                CaseStatus.UNDER_INVESTIGATION));
+        var otherCase = tools.execute(new ToolCall("c", "propose_close", "{\"case_id\":\"CAS-00002\",\"justification\":\"x\"}"));
+        assertTrue(otherCase.error() && otherCase.content().contains("CAS-00001"), otherCase.content());
+        assertEquals(CaseStatus.UNDER_INVESTIGATION, f.cases.findById("CAS-00002").orElseThrow().status());
+
+        var otherAlert = tools.execute(new ToolCall("c", "set_priority",
+                "{\"alert_id\":\"ALR-00002\",\"priority\":1,\"justification\":\"x\"}"));
+        assertTrue(otherAlert.error(), otherAlert.content());
+
+        scope.end();
+        var noRun = tools.execute(new ToolCall("c", "set_priority",
+                "{\"alert_id\":\"ALR-00001\",\"priority\":1,\"justification\":\"x\"}"));
+        assertTrue(noRun.error() && noRun.content().contains("no investigation"), noRun.content());
     }
 }

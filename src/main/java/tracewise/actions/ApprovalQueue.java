@@ -56,6 +56,7 @@ public class ApprovalQueue {
             db.inTransaction(() -> {
                 stale.markExpired(e.getMessage());
                 repository.save(stale);
+                returnToInvestigationIfWaiting(stale);
                 log(reviewer, "PROPOSAL_EXPIRED", stale, "the case changed since the proposal: " + e.getMessage(), "EXPIRED");
             });
         }
@@ -70,13 +71,18 @@ public class ApprovalQueue {
         db.inTransaction(() -> {
             p.markRejected(reviewer, reason);
             repository.save(p);
-            p.command().targetCaseId().map(ctx::caseFor).filter(c -> c.status() == CaseStatus.PENDING_APPROVAL)
-                    .ifPresent(c -> {
-                        c.returnToInvestigation();
-                        ctx.cases().save(c);
-                    });
+            returnToInvestigationIfWaiting(p);
             log(reviewer, "PROPOSAL_REJECTED", p, "rejected: " + reason, "REJECTED");
         });
+    }
+
+    /** A case still waiting on this proposal goes back to investigation, so it is never left stuck. */
+    private void returnToInvestigationIfWaiting(PendingAction p) {
+        p.command().targetCaseId().map(ctx::caseFor).filter(c -> c.status() == CaseStatus.PENDING_APPROVAL)
+                .ifPresent(c -> {
+                    c.returnToInvestigation();
+                    ctx.cases().save(c);
+                });
     }
 
     /** Waiting proposals, oldest first. */

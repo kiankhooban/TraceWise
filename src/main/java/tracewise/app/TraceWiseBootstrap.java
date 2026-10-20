@@ -10,6 +10,7 @@ import tracewise.actions.CommandContext;
 import tracewise.actions.CommandDispatcher;
 import tracewise.actions.PermissionPolicy;
 import tracewise.agent.tools.AccountHistoryTool;
+import tracewise.agent.tools.ActionScope;
 import tracewise.agent.tools.AddToWatchlistTool;
 import tracewise.agent.tools.CounterpartiesTool;
 import tracewise.agent.tools.CreateTaskTool;
@@ -78,9 +79,10 @@ public final class TraceWiseBootstrap {
         var commands = new CommandContext(cases, alerts, transactions);
         var approvals = new ApprovalQueue(db, new SqliteApprovalRepository(db), commands, audit);
         var dispatcher = new CommandDispatcher(db, commands, new PermissionPolicy(), approvals, audit);
-        var tools = investigationTools(transactions, alerts, cases, dispatcher);
+        var scope = new ActionScope(cases);
+        var tools = investigationTools(transactions, alerts, cases, dispatcher, scope);
         Supplier<AgentRunner> runner = once(() -> new AgentRunner(llm.get(), tools, AgentLimits.DEFAULT));
-        var investigationService = new InvestigationService(db, alerts, cases, runner,
+        var investigationService = new InvestigationService(db, alerts, cases, runner, scope,
                 new ClaimVerifier(transactions), audit, user, config.model(), rates.toCad(BigDecimal.ONE, "USD"));
         return new TraceWiseFacade(db, importService, monitoringService, investigationService, approvals,
                 new CaseService(cases), user);
@@ -97,17 +99,17 @@ public final class TraceWiseBootstrap {
 
     /** Every tool the investigating agent may call: read tools, then action tools that go through the dispatcher. */
     public static ToolRegistry investigationTools(TransactionRepository transactions, AlertRepository alerts,
-            CaseRepository cases, CommandDispatcher dispatcher) {
+            CaseRepository cases, CommandDispatcher dispatcher, ActionScope scope) {
         var tools = new ToolRegistry();
         tools.register(new AccountHistoryTool(transactions));
         tools.register(new CounterpartiesTool(transactions));
         tools.register(new LinkedAlertsTool(transactions, alerts, cases));
-        tools.register(new SetPriorityTool(dispatcher));
-        tools.register(new LinkAlertsTool(dispatcher));
-        tools.register(new AddToWatchlistTool(dispatcher));
-        tools.register(new CreateTaskTool(dispatcher));
-        tools.register(new ProposeCloseTool(dispatcher));
-        tools.register(new ProposeEscalationTool(dispatcher));
+        tools.register(new SetPriorityTool(dispatcher, scope));
+        tools.register(new LinkAlertsTool(dispatcher, scope));
+        tools.register(new AddToWatchlistTool(dispatcher, scope));
+        tools.register(new CreateTaskTool(dispatcher, scope));
+        tools.register(new ProposeCloseTool(dispatcher, scope));
+        tools.register(new ProposeEscalationTool(dispatcher, scope));
         return tools;
     }
 

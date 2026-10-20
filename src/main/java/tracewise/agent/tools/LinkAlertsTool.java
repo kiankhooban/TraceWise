@@ -9,8 +9,8 @@ import tracewise.llm.ToolParameter;
 
 public class LinkAlertsTool extends ActionTool {
 
-    public LinkAlertsTool(CommandDispatcher dispatcher) {
-        super(dispatcher);
+    public LinkAlertsTool(CommandDispatcher dispatcher, ActionScope scope) {
+        super(dispatcher, scope);
     }
 
     @Override

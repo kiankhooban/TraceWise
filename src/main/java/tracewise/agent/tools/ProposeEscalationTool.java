@@ -8,8 +8,8 @@ import tracewise.llm.ToolParameter;
 
 public class ProposeEscalationTool extends ActionTool {
 
-    public ProposeEscalationTool(CommandDispatcher dispatcher) {
-        super(dispatcher);
+    public ProposeEscalationTool(CommandDispatcher dispatcher, ActionScope scope) {
+        super(dispatcher, scope);
     }
 
     @Override

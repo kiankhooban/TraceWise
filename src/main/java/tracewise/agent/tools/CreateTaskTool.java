@@ -8,8 +8,8 @@ import tracewise.llm.ToolParameter;
 
 public class CreateTaskTool extends ActionTool {
 
-    public CreateTaskTool(CommandDispatcher dispatcher) {
-        super(dispatcher);
+    public CreateTaskTool(CommandDispatcher dispatcher, ActionScope scope) {
+        super(dispatcher, scope);
     }
 
     @Override

@@ -93,5 +93,17 @@ class ApprovalQueueTest {
         assertEquals(Actor.AGENT, p.proposedBy());
         reopened.approve(id, analyst);
         assertEquals(CaseStatus.CLOSED, f.caseStatus());
+        var decided = new ApprovalQueue(f.db, new SqliteApprovalRepository(f.db), f.ctx, f.audit).find(id);
+        assertEquals(analyst, decided.reviewer());
+        assertNotNull(decided.decidedAt(), "an approval with no reason still has a decision time");
+    }
+
+    @Test
+    void rejectingAnOvertakenProposalLeavesTheCaseAlone() {
+        String id = proposeClose();
+        f.dispatcher.submit(new EscalateCaseCommand("CAS-00001"), analyst, "Escalating directly");
+        f.queue.reject(id, analyst, "No longer relevant");
+        assertEquals(ProposalStatus.REJECTED, f.queue.find(id).status());
+        assertEquals(CaseStatus.ESCALATED, f.caseStatus());
     }
 }

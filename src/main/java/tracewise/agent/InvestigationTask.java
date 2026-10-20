@@ -45,7 +45,8 @@ public class InvestigationTask implements AgentTask {
             - ESCALATE when the evidence gives reasonable grounds to suspect money laundering, DISMISS when \
             there is a clear legitimate explanation, INCONCLUSIVE when the evidence is not enough to decide.
 
-            Actions (each needs a justification that cites the evidence):
+            Actions apply only to the case you are investigating and its alerts; each needs a justification \
+            that cites the evidence:
             - set_priority, link_alerts, add_to_watchlist and create_task take effect at once. Use them only \
             when the evidence supports them, for example linking an alert on a counterparty in the same scheme.
             - propose_escalation and propose_close only propose: a human analyst approves or rejects them. \

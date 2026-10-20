@@ -18,6 +18,7 @@ import tracewise.actions.CommandContext;
 import tracewise.actions.CommandDispatcher;
 import tracewise.actions.PermissionPolicy;
 import tracewise.agent.AgentEventListener;
+import tracewise.agent.tools.ActionScope;
 import tracewise.agent.AgentLimits;
 import tracewise.agent.AgentOutcome;
 import tracewise.agent.AgentRunner;
@@ -89,10 +90,11 @@ class InvestigationServiceTest {
     InvestigationService service(AgentLimits limits) {
         var ctx = new CommandContext(cases, alerts, transactions);
         var queue = new ApprovalQueue(db, new SqliteApprovalRepository(db), ctx, audit);
+        var scope = new ActionScope(cases);
         var tools = TraceWiseBootstrap.investigationTools(transactions, alerts, cases,
-                new CommandDispatcher(db, ctx, new PermissionPolicy(), queue, audit));
+                new CommandDispatcher(db, ctx, new PermissionPolicy(), queue, audit), scope);
         var runner = new AgentRunner(model, tools, limits);
-        return new InvestigationService(db, alerts, cases, () -> runner, new ClaimVerifier(transactions), audit, analyst,
+        return new InvestigationService(db, alerts, cases, () -> runner, scope, new ClaimVerifier(transactions), audit, analyst,
                 AgentRunnerTest.PRICES, BigDecimal.ONE);
     }
 

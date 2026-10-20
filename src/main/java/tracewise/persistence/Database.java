@@ -45,7 +45,6 @@ public class Database implements AutoCloseable {
         return connection;
     }
 
-    /** Runs work atomically; nested calls join the outer transaction. */
     /** Like inTransaction(Runnable), returning what the work produced. */
     public <T> T inTransaction(java.util.function.Supplier<T> work) {
         var result = new java.util.ArrayList<T>(1);
@@ -55,6 +54,7 @@ public class Database implements AutoCloseable {
         return result.get(0);
     }
 
+    /** Runs work atomically; nested calls join the outer transaction. */
     public void inTransaction(Runnable work) {
         try {
             if (!connection.getAutoCommit()) {

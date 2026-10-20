@@ -89,10 +89,11 @@ public class SqliteApprovalRepository implements ApprovalRepository {
         }
         String reviewer = rs.getString(9);
         long decided = rs.getLong(12);
+        Instant decidedAt = rs.wasNull() ? null : Instant.ofEpochMilli(decided);
         return new PendingAction(rs.getString(1), command, rs.getString(4),
                 new Actor(rs.getString(5), ActorType.valueOf(rs.getString(6))), Instant.ofEpochMilli(rs.getLong(7)),
                 ProposalStatus.valueOf(rs.getString(8)),
                 reviewer == null ? null : new Actor(reviewer, ActorType.valueOf(rs.getString(10))), rs.getString(11),
-                rs.wasNull() ? null : Instant.ofEpochMilli(decided));
+                decidedAt);
     }
 }

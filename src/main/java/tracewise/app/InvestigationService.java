@@ -12,6 +12,7 @@ import tracewise.agent.AgentTrace;
 import tracewise.agent.InvestigationResult;
 import tracewise.agent.InvestigationTask;
 import tracewise.agent.OutcomeStatus;
+import tracewise.agent.tools.ActionScope;
 import tracewise.audit.AuditEntry;
 import tracewise.audit.AuditLog;
 import tracewise.domain.Actor;
@@ -34,6 +35,7 @@ public class InvestigationService {
     private final AlertRepository alerts;
     private final CaseRepository cases;
     private final Supplier<AgentRunner> runner;
+    private final ActionScope scope;
     private final ClaimVerifier verifier;
     private final AuditLog audit;
     private final Actor user;
@@ -43,11 +45,12 @@ public class InvestigationService {
 
     /** runner is supplied lazily so commands that never call the model work without an API key. */
     public InvestigationService(Database db, AlertRepository alerts, CaseRepository cases, Supplier<AgentRunner> runner,
-            ClaimVerifier verifier, AuditLog audit, Actor user, ModelConfig pricing, BigDecimal cadPerUsd) {
+            ActionScope scope, ClaimVerifier verifier, AuditLog audit, Actor user, ModelConfig pricing, BigDecimal cadPerUsd) {
         this.db = db;
         this.alerts = alerts;
         this.cases = cases;
         this.runner = runner;
+        this.scope = scope;
         this.verifier = verifier;
         this.audit = audit;
         this.user = user;
@@ -71,6 +74,7 @@ public class InvestigationService {
         }
         trace.addListener(audit);
         running = alertId;
+        scope.begin(c.id());
         AgentOutcome outcome;
         try {
             outcome = agent.run(task, trace);
@@ -79,6 +83,7 @@ public class InvestigationService {
             return finished(c, new InvestigationResult(c.id(), OutcomeStatus.FAILED, null, trace,
                     "The run failed: " + e.getMessage()));
         } finally {
+            scope.end();
             running = null;
         }
 

@@ -8,8 +8,8 @@ import tracewise.llm.ToolParameter;
 
 public class ProposeCloseTool extends ActionTool {
 
-    public ProposeCloseTool(CommandDispatcher dispatcher) {
-        super(dispatcher);
+    public ProposeCloseTool(CommandDispatcher dispatcher, ActionScope scope) {
+        super(dispatcher, scope);
     }
 
     @Override

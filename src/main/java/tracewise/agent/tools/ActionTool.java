@@ -17,9 +17,11 @@ import tracewise.llm.ToolSchema;
 public abstract class ActionTool implements AgentTool {
 
     private final CommandDispatcher dispatcher;
+    private final ActionScope scope;
 
-    protected ActionTool(CommandDispatcher dispatcher) {
+    protected ActionTool(CommandDispatcher dispatcher, ActionScope scope) {
         this.dispatcher = dispatcher;
+        this.scope = scope;
     }
 
     protected abstract ActionCommand createCommand(ToolArguments args);
@@ -38,7 +40,12 @@ public abstract class ActionTool implements AgentTool {
 
     @Override
     public final ToolResult execute(ToolArguments args) {
-        DispatchResult result = dispatcher.submit(createCommand(args), Actor.AGENT, args.string("justification"));
+        ActionCommand command = createCommand(args);
+        String outOfScope = scope.problemWith(command);
+        if (outOfScope != null) {
+            return ToolResult.error(outOfScope);
+        }
+        DispatchResult result = dispatcher.submit(command, Actor.AGENT, args.string("justification"));
         return result.status() == DispatchResult.Status.REJECTED ? ToolResult.error(result.message())
                 : ToolResult.ok(result.message());
     }

@@ -2,6 +2,7 @@ package tracewise.actions;
 
 import java.util.List;
 import java.util.Optional;
+import tracewise.cases.state.CaseStatus;
 import tracewise.domain.Alert;
 import tracewise.domain.AlertStatus;
 import tracewise.domain.Case;
@@ -15,7 +16,10 @@ public record LinkAlertsCommand(String caseId, List<String> alertIds) implements
 
     @Override
     public void validate(CommandContext ctx) {
-        ctx.activeCase(caseId);
+        if (ctx.activeCase(caseId).status() == CaseStatus.PENDING_APPROVAL) {
+            // the pending proposal covers the alerts the reviewer sees; adding more would widen it unseen
+            throw new IllegalStateException("Case " + caseId + " is waiting for approval; decide the proposal first");
+        }
         if (alertIds.isEmpty()) {
             throw new IllegalArgumentException("No alerts to link");
         }

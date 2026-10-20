@@ -96,4 +96,26 @@ class CommandDispatcherTest {
         assertEquals(DispatchResult.Status.REJECTED,
                 f.dispatcher.submit(new LinkAlertsCommand("CAS-00001", List.of("ALR-00009")), Actor.AGENT, "x").status());
     }
+
+    @Test
+    void nothingCanBeLinkedIntoACaseWaitingForApproval() {
+        f.dispatcher.submit(new CloseCaseCommand("CAS-00001"), Actor.AGENT, "Payroll pattern");
+        var link = f.dispatcher.submit(new LinkAlertsCommand("CAS-00001", List.of("ALR-00002")), Actor.AGENT, "Same funds");
+        assertEquals(DispatchResult.Status.REJECTED, link.status());
+        assertTrue(link.message().contains("waiting for approval"), link.message());
+        assertEquals(List.of("ALR-00001"), f.cases.findById("CAS-00001").orElseThrow().alertIds());
+    }
+
+    @Test
+    void anyActionTheAgentMayTakeAloneIsListedAndEverythingElseNeedsApproval() {
+        ActionCommand unknown = new ActionCommand() {
+            public void validate(CommandContext ctx) { }
+            public void execute(CommandContext ctx) { }
+            public String describe() { return "something new"; }
+            public java.util.Optional<String> targetCaseId() { return java.util.Optional.empty(); }
+            public String target() { return "x"; }
+        };
+        assertEquals(PermissionTier.REQUIRES_APPROVAL, new PermissionPolicy().tierFor(unknown, Actor.AGENT));
+        assertEquals(PermissionTier.AUTONOMOUS, new PermissionPolicy().tierFor(unknown, analyst));
+    }
 }
