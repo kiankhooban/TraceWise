@@ -7,6 +7,8 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.exception.LangChain4jException;
+import dev.langchain4j.exception.RetriableException;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
@@ -30,7 +32,13 @@ public abstract class LangChain4jClient implements LLMClient {
 
     @Override
     public LLMResponse chat(LLMRequest request) {
-        return toLLMResponse(model.chat(toChatRequest(request)));
+        try {
+            return toLLMResponse(model.chat(toChatRequest(request)));
+        } catch (RetriableException e) {
+            throw new LLMException(e.getMessage(), true, e);
+        } catch (LangChain4jException e) {
+            throw new LLMException(e.getMessage(), false, e);
+        }
     }
 
     @Override

@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.exception.AuthenticationException;
+import dev.langchain4j.exception.RateLimitException;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -20,10 +22,14 @@ class LangChain4jClientTest {
     static class FakeChatModel implements ChatModel {
         ChatRequest received;
         ChatResponse answer;
+        RuntimeException failure;
 
         @Override
         public ChatResponse doChat(ChatRequest request) {
             received = request;
+            if (failure != null) {
+                throw failure;
+            }
             return answer;
         }
     }
@@ -82,5 +88,21 @@ class LangChain4jClientTest {
         model.answer = ChatResponse.builder().aiMessage(AiMessage.from("ok")).build();
         client.chat(new LLMRequest(null, List.of(new LLMMessage.User("hi")), List.of()));
         assertInstanceOf(UserMessage.class, model.received.messages().get(0));
+    }
+
+    static final LLMRequest HELLO = new LLMRequest(null, List.of(new LLMMessage.User("hi")), List.of());
+
+    @Test
+    void transientProviderFailuresBecomeRetryable() {
+        model.failure = new RateLimitException("slow down");
+        var e = assertThrows(LLMException.class, () -> client.chat(HELLO));
+        assertTrue(e.retryable());
+    }
+
+    @Test
+    void permanentProviderFailuresAreNotRetryable() {
+        model.failure = new AuthenticationException("bad key");
+        var e = assertThrows(LLMException.class, () -> client.chat(HELLO));
+        assertFalse(e.retryable());
     }
 }
