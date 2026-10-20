@@ -1,0 +1,46 @@
+package tracewise.monitoring;
+
+import java.math.BigDecimal;
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import tracewise.domain.Account;
+import tracewise.domain.DateRange;
+import tracewise.domain.Transaction;
+import tracewise.persistence.Ledger;
+
+/** R6: one account paying five or more different recipients within 7 days. */
+public class FanOutRule extends WindowedRule {
+
+    public FanOutRule() {
+        super(new RuleConfig(true, Map.of("min_recipients", new BigDecimal("5"), "window_days", new BigDecimal("7"))));
+    }
+
+    @Override
+    public String id() {
+        return "R6";
+    }
+
+    @Override
+    public RuleKind kind() {
+        return RuleKind.SUSPICION;
+    }
+
+    @Override
+    protected List<Transaction> candidates(Ledger ledger, Account account) {
+        return ledger.transactionsFor(account.id(), DateRange.ALL).stream()
+                .filter(t -> t.senderAccountId().equals(account.id()) && !Transaction.CASH.equals(t.receiverAccountId()))
+                .toList();
+    }
+
+    @Override
+    protected boolean isMatch(Account account, List<Transaction> window) {
+        return window.stream().map(Transaction::receiverAccountId).distinct().count()
+                >= parameter("min_recipients").intValue();
+    }
+
+    @Override
+    protected Duration window() {
+        return Duration.ofDays(parameter("window_days").longValueExact());
+    }
+}

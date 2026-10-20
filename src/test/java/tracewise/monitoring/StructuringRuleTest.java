@@ -56,4 +56,12 @@ class StructuringRuleTest {
                 assertThrows(InvalidConfigurationException.class, () -> rule.configure(new RuleConfig(true, unknown))).getMessage());
         assertEquals(before, rule.config());
     }
+
+    @Test
+    void windowsAndCountsMustBeWholeNumbers() {
+        var params = new HashMap<>(rule.config().parameters());
+        params.put("window_days", new BigDecimal("7.5"));
+        assertEquals("R3: window_days must be a whole number",
+                assertThrows(InvalidConfigurationException.class, () -> rule.configure(new RuleConfig(true, params))).getMessage());
+    }
 }

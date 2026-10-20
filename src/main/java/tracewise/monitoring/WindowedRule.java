@@ -59,6 +59,11 @@ public abstract class WindowedRule implements DetectionRule {
                     throw new InvalidConfigurationException(id() + ": missing parameter " + name);
                 });
         next.validate();
+        next.parameters().forEach((name, value) -> {
+            if (name.matches(".*_(days|hours|count|senders|recipients)") && value.stripTrailingZeros().scale() > 0) {
+                throw new InvalidConfigurationException(id() + ": " + name + " must be a whole number");
+            }
+        });
         check(next);
         config = next;
     }
