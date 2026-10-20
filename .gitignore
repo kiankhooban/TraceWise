@@ -18,7 +18,10 @@ bin/
 
 # Secrets and local config: never commit API keys
 .env
+.env.*
+!.env.example
 *.env
+config.local.json
 application-local.properties
 
 # Local data and runtime state
