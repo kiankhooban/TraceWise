@@ -68,6 +68,11 @@ public class SqliteApprovalRepository implements ApprovalRepository {
     }
 
     @Override
+    public List<PendingAction> findAll() {
+        return Jdbc.query(db, SELECT + "ORDER BY id", SqliteApprovalRepository::map);
+    }
+
+    @Override
     public String nextId() {
         return String.format("APR-%05d", Jdbc.query(db, "SELECT COUNT(*) FROM approvals", rs -> rs.getLong(1)).get(0) + 1);
     }

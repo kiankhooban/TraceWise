@@ -85,4 +85,13 @@ class InvestigationTaskTest {
         assertTrue(task.outputProblem(GOOD.replace("2026-09-01", "Sept 1")).contains("date"));
         assertTrue(task.outputProblem(GOOD.replace("\"narrative\"", "\"story\"")).contains("narrative"));
     }
+
+    @Test
+    void earlierDecisionsOnTheCaseAreInTheOpeningMessageOnlyWhenThereAreSome() {
+        assertFalse(task.initialMessage().contains("Earlier"));
+        var again = new InvestigationTask(ALERT, "CAS-00001",
+                List.of("Escalate case CAS-00001 for a suspicious transaction report: REJECTED by kian (Check KYC first)"));
+        assertTrue(again.initialMessage().contains("Earlier decisions on this case"), again.initialMessage());
+        assertTrue(again.initialMessage().contains("REJECTED by kian (Check KYC first)"), again.initialMessage());
+    }
 }

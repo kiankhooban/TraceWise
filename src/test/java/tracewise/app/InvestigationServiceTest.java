@@ -83,18 +83,20 @@ class InvestigationServiceTest {
         db.close();
     }
 
+    ApprovalQueue queue;
+
     InvestigationService service() {
         return service(AgentLimits.DEFAULT);
     }
 
     InvestigationService service(AgentLimits limits) {
         var ctx = new CommandContext(cases, alerts, transactions);
-        var queue = new ApprovalQueue(db, new SqliteApprovalRepository(db), ctx, audit);
+        queue = new ApprovalQueue(db, new SqliteApprovalRepository(db), ctx, audit);
         var scope = new ActionScope(cases);
         var tools = TraceWiseBootstrap.investigationTools(transactions, alerts, cases,
                 new CommandDispatcher(db, ctx, new PermissionPolicy(), queue, audit), scope);
         var runner = new AgentRunner(model, tools, limits);
-        return new InvestigationService(db, alerts, cases, () -> runner, scope, new ClaimVerifier(transactions), audit, analyst,
+        return new InvestigationService(db, alerts, cases, () -> runner, scope, queue, new ClaimVerifier(transactions), audit, analyst,
                 AgentRunnerTest.PRICES, BigDecimal.ONE);
     }
 
@@ -246,5 +248,37 @@ class InvestigationServiceTest {
         var stored = cases.findById(caseId).orElseThrow();
         assertEquals(CaseStatus.PENDING_APPROVAL, stored.status());
         assertEquals(1, stored.findings().size());
+    }
+
+    String proposeEscalation() {
+        return "{\"case_id\":\"CAS-" + structuring.id().substring(4) + "\",\"justification\":\"Structured cash\"}";
+    }
+
+    @Test
+    void aProposalFromARunThatEndsWithoutAFindingExpires() {
+        model.then(AgentRunnerTest.toolCall("propose_escalation", proposeEscalation()))
+                .then(new LLMException("overloaded", true, null));
+        var result = service().investigate(structuring.id(), null);
+
+        assertEquals(OutcomeStatus.FAILED, result.status());
+        assertTrue(queue.pending().isEmpty());
+        assertEquals(tracewise.actions.ProposalStatus.EXPIRED, queue.find("APR-00001").status());
+        assertEquals(CaseStatus.UNDER_INVESTIGATION, cases.findByAlert(structuring.id()).orElseThrow().status());
+        assertEquals(1, audit.query(new AuditFilter("PROPOSAL_EXPIRED", null)).size());
+    }
+
+    @Test
+    void aReinvestigationTellsTheAgentWhyItsLastProposalWasRejected() {
+        model.then(AgentRunnerTest.toolCall("propose_escalation", proposeEscalation()))
+                .then(AgentRunnerTest.answer(finding()));
+        var service = service();
+        service.investigate(structuring.id(), null);
+        queue.reject("APR-00001", analyst, "Check the source of the cash first");
+
+        model.then(AgentRunnerTest.answer(finding()));
+        service.investigate(structuring.id(), null);
+        var opening = (tracewise.llm.LLMMessage.User) model.requests.get(2).messages().get(0);
+        assertTrue(opening.text().contains("REJECTED") && opening.text().contains("Check the source of the cash first"),
+                opening.text());
     }
 }

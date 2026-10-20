@@ -74,10 +74,17 @@ public class InvestigationTask implements AgentTask {
 
     private final Alert alert;
     private final String caseId;
+    private final List<String> earlierDecisions;
 
     public InvestigationTask(Alert alert, String caseId) {
+        this(alert, caseId, List.of());
+    }
+
+    /** earlierDecisions: what people decided about the agent's earlier proposals on this case, one line each. */
+    public InvestigationTask(Alert alert, String caseId, List<String> earlierDecisions) {
         this.alert = alert;
         this.caseId = caseId;
+        this.earlierDecisions = List.copyOf(earlierDecisions);
     }
 
     @Override
@@ -92,7 +99,9 @@ public class InvestigationTask implements AgentTask {
                 + "Account: " + alert.accountId() + "\n"
                 + "Flagged transactions: " + String.join(", ", alert.transactionIds()) + "\n"
                 + "Total flagged: " + alert.totalCad().toPlainString() + " CAD\n"
-                + "Risk score: " + alert.riskScore() + ", priority " + alert.priority() + " (1 high, 3 low)";
+                + "Risk score: " + alert.riskScore() + ", priority " + alert.priority() + " (1 high, 3 low)"
+                + (earlierDecisions.isEmpty() ? "" : "\nEarlier decisions on this case (take the reasons into account):\n- "
+                        + String.join("\n- ", earlierDecisions));
     }
 
     @Override

@@ -85,6 +85,27 @@ public class ApprovalQueue {
                 });
     }
 
+    /** Every proposal on the case, oldest first. shortcut: filters all proposals; add a case column if they grow. */
+    public List<PendingAction> forCase(String caseId) {
+        return repository.findAll().stream().filter(p -> p.command().targetCaseId().filter(caseId::equals).isPresent())
+                .toList();
+    }
+
+    /**
+     * Expires the case's waiting proposals when the run that made them ended without a finding, so nobody
+     * approves an action whose evidence was never produced. Runs in the caller's transaction.
+     */
+    public void expireUnfinished(String caseId, String reason) {
+        for (PendingAction p : forCase(caseId)) {
+            if (p.status() == ProposalStatus.PENDING) {
+                p.markExpired(reason);
+                repository.save(p);
+                returnToInvestigationIfWaiting(p);
+                log(Actor.SYSTEM, "PROPOSAL_EXPIRED", p, reason, "EXPIRED");
+            }
+        }
+    }
+
     /** Waiting proposals, oldest first. */
     public List<PendingAction> pending() {
         return repository.findPending();

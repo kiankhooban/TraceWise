@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.function.Supplier;
+import tracewise.actions.ApprovalQueue;
+import tracewise.actions.ProposalStatus;
 import tracewise.agent.AgentEventListener;
 import tracewise.agent.AgentFinding;
 import tracewise.agent.AgentOutcome;
@@ -36,6 +38,7 @@ public class InvestigationService {
     private final CaseRepository cases;
     private final Supplier<AgentRunner> runner;
     private final ActionScope scope;
+    private final ApprovalQueue approvals;
     private final ClaimVerifier verifier;
     private final AuditLog audit;
     private final Actor user;
@@ -45,12 +48,13 @@ public class InvestigationService {
 
     /** runner is supplied lazily so commands that never call the model work without an API key. */
     public InvestigationService(Database db, AlertRepository alerts, CaseRepository cases, Supplier<AgentRunner> runner,
-            ActionScope scope, ClaimVerifier verifier, AuditLog audit, Actor user, ModelConfig pricing, BigDecimal cadPerUsd) {
+            ActionScope scope, ApprovalQueue approvals, ClaimVerifier verifier, AuditLog audit, Actor user, ModelConfig pricing, BigDecimal cadPerUsd) {
         this.db = db;
         this.alerts = alerts;
         this.cases = cases;
         this.runner = runner;
         this.scope = scope;
+        this.approvals = approvals;
         this.verifier = verifier;
         this.audit = audit;
         this.user = user;
@@ -67,7 +71,7 @@ public class InvestigationService {
         AgentRunner agent = runner.get();
         Case c = openCase(alert);
 
-        var task = new InvestigationTask(alert, c.id());
+        var task = new InvestigationTask(alert, c.id(), earlierDecisions(c.id()));
         var trace = new AgentTrace(alertId, pricing, cadPerUsd);
         if (listener != null) {
             trace.addListener(listener);
@@ -102,6 +106,15 @@ public class InvestigationService {
                 finding.verification().summary()));
     }
 
+    /** Decided proposals on the case, so a new run sees what a person already rejected and why. */
+    private List<String> earlierDecisions(String caseId) {
+        return approvals.forCase(caseId).stream().filter(p -> p.status() != ProposalStatus.PENDING)
+                .map(p -> p.command().describe() + ": " + p.status()
+                        + (p.reviewer() == null ? "" : " by " + p.reviewer().name())
+                        + (p.decisionReason() == null ? "" : " (" + p.decisionReason() + ")"))
+                .toList();
+    }
+
     /** Stops the investigation of this alert after its current step, if it is running. */
     public void cancel(String alertId) {
         if (alertId.equals(running)) {
@@ -128,6 +141,10 @@ public class InvestigationService {
      */
     private InvestigationResult finished(Case started, InvestigationResult result) {
         db.inTransaction(() -> {
+            if (result.finding() == null) {
+                approvals.expireUnfinished(started.id(), "the investigation that proposed it ended " + result.status()
+                        + " without a finding");
+            }
             Case c = cases.findById(started.id()).orElseThrow();
             if (result.finding() != null) {
                 c.addFinding(result.finding());
