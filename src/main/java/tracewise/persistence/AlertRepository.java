@@ -3,6 +3,7 @@ package tracewise.persistence;
 import java.util.List;
 import java.util.Optional;
 import tracewise.domain.Alert;
+import tracewise.domain.AlertStatus;
 import tracewise.monitoring.AlertFilter;
 import tracewise.monitoring.RuleMatch;
 
@@ -18,4 +19,6 @@ public interface AlertRepository {
     boolean hasOpenAlert(RuleMatch match);
 
     Optional<Alert> findById(String id);
+
+    void updateStatus(String id, AlertStatus status);
 }

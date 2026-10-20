@@ -1,7 +1,9 @@
 package tracewise.domain;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import tracewise.agent.AgentFinding;
 import tracewise.cases.state.CaseState;
 import tracewise.cases.state.CaseStatus;
 
@@ -11,18 +13,38 @@ public class Case {
     private final String id;
     private final Instant openedAt;
     private final List<String> alertIds;
+    private final List<AgentFinding> findings;
     private CaseState state;
 
     public Case(String id, Instant openedAt, List<String> alertIds) {
-        this(id, openedAt, alertIds, CaseStatus.OPEN);
+        this(id, openedAt, alertIds, CaseStatus.OPEN, List.of());
+    }
+
+    public Case(String id, Instant openedAt, List<String> alertIds, CaseStatus status) {
+        this(id, openedAt, alertIds, status, List.of());
     }
 
     /** For a case loaded from storage. */
-    public Case(String id, Instant openedAt, List<String> alertIds, CaseStatus status) {
+    public Case(String id, Instant openedAt, List<String> alertIds, CaseStatus status, List<AgentFinding> findings) {
         this.id = id;
         this.openedAt = openedAt;
         this.alertIds = List.copyOf(alertIds);
         this.state = CaseState.of(status);
+        this.findings = new ArrayList<>(findings);
+    }
+
+    public void addFinding(AgentFinding finding) {
+        findings.add(finding);
+    }
+
+    /** Null before the first finding. */
+    public AgentFinding latestFinding() {
+        return findings.isEmpty() ? null : findings.get(findings.size() - 1);
+    }
+
+    /** Oldest first. */
+    public List<AgentFinding> findings() {
+        return List.copyOf(findings);
     }
 
     public void startInvestigation() {

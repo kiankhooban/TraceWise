@@ -46,7 +46,9 @@ class InvestigationTaskTest {
     @Test
     void parsesTheStructuredFinding() {
         assertNull(task.outputProblem(GOOD));
-        var f = task.parseFinding(GOOD, false);
+        var trace = new AgentTrace("ALR-00001", AgentRunnerTest.PRICES, java.math.BigDecimal.ONE);
+        trace.finish(new AgentOutcome("ALR-00001", OutcomeStatus.COMPLETED, GOOD));
+        var f = task.parseFinding(GOOD, trace);
         assertEquals(Verdict.ESCALATE, f.verdict());
         assertEquals(0.85, f.confidence());
         assertEquals(List.of("Cash deposits just under the reporting threshold"), f.indicators());
@@ -54,7 +56,15 @@ class InvestigationTaskTest {
         assertEquals(List.of("t1", "t2", "t3"), f.totals().get(0).transactionIds());
         assertEquals("Three deposits of about $9,500 in three days.", f.narrative());
         assertFalse(f.incomplete());
+        assertSame(trace, f.trace());
         assertNull(f.verification());
+    }
+
+    @Test
+    void aRunCutShortByALimitGivesAnIncompleteFinding() {
+        var trace = new AgentTrace("ALR-00001", AgentRunnerTest.PRICES, java.math.BigDecimal.ONE);
+        trace.finish(new AgentOutcome("ALR-00001", OutcomeStatus.INCOMPLETE, GOOD));
+        assertTrue(task.parseFinding(GOOD, trace).incomplete());
     }
 
     @Test

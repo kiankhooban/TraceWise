@@ -95,15 +95,20 @@ public class InvestigationTask implements AgentTask {
     @Override
     public String outputProblem(String finalText) {
         try {
-            parseFinding(finalText, false);
+            parseFinding(finalText, null);
             return null;
         } catch (IllegalArgumentException e) {
             return e.getMessage();
         }
     }
 
-    /** Reads the finding from the agent's final answer; throws IllegalArgumentException naming what is wrong. */
-    public AgentFinding parseFinding(String text, boolean incomplete) {
+    /**
+     * Reads the finding from the agent's final answer; throws IllegalArgumentException naming what is wrong.
+     * The finding is incomplete when the trace's run was cut short by a limit.
+     */
+    public AgentFinding parseFinding(String text, AgentTrace trace) {
+        boolean incomplete = trace != null && trace.outcome() != null
+                && trace.outcome().status() == OutcomeStatus.INCOMPLETE;
         JsonNode f = readJson(text);
         String verdict = requireText(f, "verdict");
         Verdict v;
@@ -132,7 +137,7 @@ public class InvestigationTask implements AgentTask {
             totals.add(new TotalClaim(requireText(t, "description"), requireAmount(t), ids));
         }
         return new AgentFinding(v, confidence.asDouble(), indicators, claims, totals, requireText(f, "narrative"),
-                incomplete);
+                incomplete, trace);
     }
 
     /** The ```json block if there is one, otherwise everything from the first { to the last }. */

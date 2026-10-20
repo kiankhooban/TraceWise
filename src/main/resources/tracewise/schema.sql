@@ -68,3 +68,18 @@ CREATE TABLE IF NOT EXISTS rule_configs (
     enabled INTEGER NOT NULL,
     parameters TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS cases (
+    id TEXT PRIMARY KEY,
+    opened_at INTEGER NOT NULL,
+    status TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS case_alerts (
+    case_id TEXT NOT NULL REFERENCES cases (id),
+    alert_id TEXT NOT NULL,
+    PRIMARY KEY (case_id, alert_id)
+);
+CREATE TABLE IF NOT EXISTS findings (
+    seq INTEGER PRIMARY KEY AUTOINCREMENT,
+    case_id TEXT NOT NULL REFERENCES cases (id),
+    body TEXT NOT NULL
+);

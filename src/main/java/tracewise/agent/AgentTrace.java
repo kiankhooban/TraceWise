@@ -76,6 +76,14 @@ public class AgentTrace {
         return usd.multiply(cadPerUsd);
     }
 
+    public ModelConfig pricing() {
+        return pricing;
+    }
+
+    public BigDecimal cadPerUsd() {
+        return cadPerUsd;
+    }
+
     public String subject() {
         return subject;
     }

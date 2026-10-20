@@ -4,8 +4,9 @@ import java.util.List;
 import tracewise.verification.VerificationReport;
 
 /**
- * The agent's structured conclusion about an alert. incomplete is true when a turn or cost limit forced
- * it early. verification is null until the ClaimVerifier has checked the claims.
+ * The agent's structured conclusion about an alert, with the trace of the run that produced it (null
+ * only while the answer is being format-checked). incomplete is true when a turn or cost limit forced it
+ * early. verification is null until the ClaimVerifier has checked the claims.
  */
 public class AgentFinding {
 
@@ -16,10 +17,11 @@ public class AgentFinding {
     private final List<TotalClaim> totals;
     private final String narrative;
     private final boolean incomplete;
+    private final AgentTrace trace;
     private VerificationReport verification;
 
     public AgentFinding(Verdict verdict, double confidence, List<String> indicators, List<Claim> claims,
-            List<TotalClaim> totals, String narrative, boolean incomplete) {
+            List<TotalClaim> totals, String narrative, boolean incomplete, AgentTrace trace) {
         this.verdict = verdict;
         this.confidence = confidence;
         this.indicators = List.copyOf(indicators);
@@ -27,6 +29,7 @@ public class AgentFinding {
         this.totals = List.copyOf(totals);
         this.narrative = narrative;
         this.incomplete = incomplete;
+        this.trace = trace;
     }
 
     public void attachVerification(VerificationReport report) {
@@ -63,5 +66,9 @@ public class AgentFinding {
 
     public boolean incomplete() {
         return incomplete;
+    }
+
+    public AgentTrace trace() {
+        return trace;
     }
 }

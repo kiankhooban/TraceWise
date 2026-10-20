@@ -70,6 +70,14 @@ public class SqliteAlertRepository implements AlertRepository {
                 Long.parseLong(id.substring(4))).stream().findFirst();
     }
 
+    @Override
+    public void updateStatus(String id, AlertStatus status) {
+        if (findById(id).isEmpty()) {
+            throw new IllegalArgumentException("No alert " + id);
+        }
+        Jdbc.update(db, "UPDATE alerts SET status = ? WHERE seq = ?", status.name(), Long.parseLong(id.substring(4)));
+    }
+
     private static Alert map(ResultSet rs) throws SQLException {
         String ids = rs.getString(4);
         return new Alert(String.format("ALR-%05d", rs.getLong(1)), rs.getString(2), rs.getString(3),

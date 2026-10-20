@@ -24,14 +24,14 @@ import tracewise.llm.ToolCall;
 import tracewise.llm.ToolParameter;
 import tracewise.llm.ToolSchema;
 
-class AgentRunnerTest {
+public class AgentRunnerTest {
 
     /** Plays back scripted responses (or failures) and keeps every request it was sent. */
-    static class ScriptedModel implements LLMClient {
+    public static class ScriptedModel implements LLMClient {
         final Deque<Object> script = new ArrayDeque<>();
-        final List<LLMRequest> requests = new ArrayList<>();
+        public final List<LLMRequest> requests = new ArrayList<>();
 
-        ScriptedModel then(Object step) {
+        public ScriptedModel then(Object step) {
             script.add(step);
             return this;
         }
@@ -54,11 +54,15 @@ class AgentRunnerTest {
 
     static int ids;
 
-    static LLMResponse toolCall(String args) {
-        return new LLMResponse("", List.of(new ToolCall("call-" + (++ids), "history", args)), new TokenUsage(1000, 100));
+    public static LLMResponse toolCall(String args) {
+        return toolCall("history", args);
     }
 
-    static LLMResponse answer(String text) {
+    public static LLMResponse toolCall(String tool, String args) {
+        return new LLMResponse("", List.of(new ToolCall("call-" + (++ids), tool, args)), new TokenUsage(1000, 100));
+    }
+
+    public static LLMResponse answer(String text) {
         return new LLMResponse(text, List.of(), new TokenUsage(1000, 100));
     }
 
@@ -107,7 +111,7 @@ class AgentRunnerTest {
         }
     };
 
-    static final ModelConfig PRICES = new ModelConfig("anthropic", "m", new BigDecimal("2"), new BigDecimal("10"), false);
+    public static final ModelConfig PRICES = new ModelConfig("anthropic", "m", new BigDecimal("2"), new BigDecimal("10"), false);
 
     /** Remembers what listeners are told. */
     static class Recorder implements AgentEventListener {
