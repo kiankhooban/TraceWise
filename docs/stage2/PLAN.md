@@ -50,6 +50,10 @@ Source: `Project-Stage2-Instruction.pdf` (course handout, read 2026-10-20). Impl
   listeners, turn and cost limits; claim verification; cases with the State pattern; the
   `investigate` command. Live check on the sample data with Haiku 5.5: all four alerts escalated,
   every cited claim confirmed, CAD 0.012 in total. 134 tests passing. Design changes 7 to 13.
+- 2026-10-20 (review): `deep-code-review` of the F03/F05 work (11 reviewers plus Codex, each finding
+  validated). Fixed: scheme names in sample ids, totals with repeated or no transactions, a parser
+  crash, replay-breaking key order, unrecorded run failures, unlimited tool calls per response
+  (design change 14). Recordings of the four sample alerts committed in `data/replays`. 142 tests.
 
 ## Tooling (installed 2026-10-20)
 - `jdtls-lsp` plugin with `jdtls` 1.63.0 (Homebrew): Java diagnostics and navigation.

@@ -1,6 +1,6 @@
 # Stage 2 handoff (for the next Claude session or after /compact)
 
-Last updated 2026-10-20 after commit `55dbc27`. Read this, then `CLAUDE.md` (repo root) and
+Last updated 2026-10-20 after commit `a4531ce`. Read this, then `CLAUDE.md` (repo root) and
 `docs/stage2/PLAN.md`. The session that wrote this ran from `~/Brain`, so the TraceWise `CLAUDE.md`
 is NOT loaded automatically there: read it explicitly.
 
@@ -13,7 +13,7 @@ is NOT loaded automatically there: read it explicitly.
   listens); `ClaimVerifier` (F05); `Case` with the State pattern and `SqliteCaseRepository`;
   `InvestigationService` and `tracewise investigate <alertId> [--json]` (F03).
 - Live check (Haiku 5.5, sample data): all 4 alerts COMPLETED, ESCALATE, every claim confirmed, CAD 0.012.
-- 134 tests pass, 1 skipped (the opt-in live test). Design changes 1 to 13 logged.
+- 142 tests pass, 1 skipped (the opt-in live test). Design changes 1 to 14 logged.
 - Patterns in code: Facade, Strategy, Template Method, Adapter, Decorator, Factory Method (client
   factory), Observer, State. Still to come: Command (F06).
 
@@ -65,12 +65,22 @@ SD5 (action and approval) in `docs/stage1/umlet/gen_sequence_diagrams.py`.
   `STRIP_TRAILING_BIGDECIMAL_ZEROES` (see `InvestigationTask`, `SqliteCaseRepository`).
 - Replay matches whole requests: prompts must never include the current time or random values.
 - Live runs: `./tracewise --model claude-haiku-5-5 --record --replays <scratch dir> investigate ALR-00001`
-  (CAD 0.003 per alert). Recordings are not committed yet; ask Kian before committing any.
+  (CAD 0.003 per alert). `data/replays` holds the committed recordings of the four sample alerts.
 - Tests reuse `monitoring/InMemoryLedger` and `agent/AgentRunnerTest.ScriptedModel` (both public).
 
 ## Open items to remember
 - JavaFX GUI not started (weeks 2-3). F01, F02, F03, F05 have CLI only.
 - `AgentLimits.DEFAULT` is 12 turns and CAD 1.00 per investigation (no value in the design).
+- From the 2026-10-20 review, not fixed yet:
+  - One investigation at a time per `InvestigationService` (shared runner; findings appended by count).
+    Before the GUI runs investigations on background threads, refuse a second concurrent run or give
+    each run its own runner, and append findings with a plain INSERT.
+  - The agent sees only flagged transaction ids; on a busy account they can fall outside the 100 rows
+    `account_history` lists. Give it the flagged rows (or a lookup tool) and the rule's live
+    thresholds; the design's other read tools (linked alerts, window aggregates) are still to build.
+  - Stored findings have no format version; renaming a field makes old rows unreadable.
+  - Re-record `data/replays` after any change to the prompt, tools or sample data (replay matches
+    whole requests).
 - `OpenAiCompatibleLLMClient` from the design is not built; build it or log it as a design change.
 - Kian revoked the key exposed on 2026-10-20 (Console showed 0 keys); the new key is in `.env`.
 - Kian records the demo videos himself; we prepare a script per feature in week 3.

@@ -140,3 +140,30 @@ design to stay the spec with every change justified, and kept the API key out of
 **Outcome:** `tracewise investigate` works on the sample data with Claude Haiku 5.5: all four
 planted schemes were escalated and every cited claim was confirmed against the ledger, for CAD 0.012
 in total. 134 tests pass.
+
+---
+
+## Entry 7: Multi-agent code review before committing the recordings (2026-10-20)
+
+**Task:** Review the F03 and F05 code before the live runs were committed as demo recordings.
+
+**Input/Instruction:** Kian asked for every change to be reviewed with the project's review skill
+before anything else builds on it, and for the live runs to be committed only if the review did
+not affect them.
+
+**AI Contribution:** Ran `deep-code-review`: eleven specialist reviewers (correctness, security,
+reliability, adversarial, testing and others) plus an independent adversarial pass by a second
+model family (OpenAI Codex), then one independent validator per finding. 12 of 15 findings were
+confirmed and fixed test-first. The most important: the sample data's ids named the planted
+schemes (`STRUCT-0001`, `S-C1`, `N-C29`), so the agent could read the answer from the ids; a
+stated total could repeat a transaction and still be confirmed; one tool returned its fields in an
+order that changes between runs, which silently broke replay. Three findings were rejected by
+their validators (two concurrency cases that cannot happen yet, one deliberate design choice). The
+live runs were then recorded again on the corrected data. The first new recording showed the agent
+listing a difference as a "total", which the verifier rejected, so the prompt was made explicit.
+
+**Human Contribution:** Required the review before the recordings were committed, which is why the
+id leak was found before it reached the demo data.
+
+**Outcome:** 142 tests pass. The four sample alerts replay from `data/replays` without a key, and
+every cited claim in them is confirmed against the ledger.
