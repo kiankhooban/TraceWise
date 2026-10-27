@@ -25,6 +25,7 @@ import tracewise.agent.tools.LinkAlertsTool;
 import tracewise.agent.tools.LinkedAlertsTool;
 import tracewise.agent.tools.ProposeCloseTool;
 import tracewise.agent.tools.ProposeEscalationTool;
+import tracewise.agent.tools.QueryCasesTool;
 import tracewise.agent.tools.SearchIndicatorsTool;
 import tracewise.agent.tools.SetPriorityTool;
 import tracewise.agent.tools.SimilarCasesTool;
@@ -119,7 +120,10 @@ public final class TraceWiseBootstrap {
         return key != null ? key : System.getenv("ANTHROPIC_API_KEY");
     }
 
-    /** Every tool the investigating agent may call: read tools, then action tools that go through the dispatcher. */
+    /**
+     * Every tool an agent task may call: read tools, then action tools that go through the dispatcher. Each task
+     * offers its own subset (the runner refuses the rest).
+     */
     public static ToolRegistry investigationTools(TransactionRepository transactions, AlertRepository alerts,
             CaseRepository cases, Retriever indicators, CaseMemory memory, CommandDispatcher dispatcher,
             ActionScope scope) {
@@ -129,6 +133,7 @@ public final class TraceWiseBootstrap {
         tools.register(new LinkedAlertsTool(transactions, alerts, cases));
         tools.register(new SearchIndicatorsTool(indicators));
         tools.register(new SimilarCasesTool(memory));
+        tools.register(new QueryCasesTool(cases, alerts));
         tools.register(new SetPriorityTool(dispatcher, scope));
         tools.register(new LinkAlertsTool(dispatcher, scope));
         tools.register(new AddToWatchlistTool(dispatcher, scope));
