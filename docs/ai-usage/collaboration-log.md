@@ -312,3 +312,26 @@ rather than the one clicked. Others: a cancel or stop pressed while the job wait
 could close the database under a running job, and a linked alert opened the wrong case. All were fixed, the
 testable ones test-first; the assistant's questions were re-recorded because `get_case` now shows notes.
 283 tests pass.
+
+## Entry 13: Suspicious transaction reports (F11) (2026-10-27)
+
+**Task:** Build F11 (draft, edit, finalise and export a suspicious transaction report) and review it.
+
+**Input/Instruction:** Kian's plan for the week: F11, then F09, each reviewed before the next.
+
+**AI Contribution:** Read the F11 design (feature section, UC14, UC15, SD7) against the running system and found
+that the design's "finalise through the escalation" cannot work as written: the agent's escalation is normally
+approved before any report exists. Proposed and built finalisation as its own approved command on an escalated
+case, which keeps every F11 error case, and logged it (design change 33). The model writes only the narrative,
+from confirmed facts; everything else, including the rule that blocks finalisation while a rejected claim is still
+in the text, is deterministic. Drafted the three escalated sample cases live with Haiku 5.5 and checked every id,
+amount and date in the narratives against the confirmed data, then recorded them so the build replays them.
+
+**Human Contribution:** Set the order of work and the review rule.
+
+**Outcome:** A seventh `deep-code-review` (ten reviewers plus Codex, one validator per finding) confirmed twelve of
+sixteen findings. The most important: an edit after a finalisation request left a stale request that blocked a new
+one, a redraft from the CLI silently replaced the analyst's edits, and the model was given the agent's unverified
+summary as if it were fact (now labelled unverified; the re-recorded narratives no longer repeat its unchecked
+remarks). One question is left for Kian: whether the person who requests a finalisation may also approve it.
+315 tests pass; the replays pass on Apple Silicon and on x86 Linux.

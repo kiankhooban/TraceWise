@@ -16,7 +16,7 @@ ledger before a human analyst approves or dismisses the case.
 | Stage | Content | Status |
 |---|---|---|
 | Stage 1: Design | [Design report](docs/stage1/Stage1-Design-Report.md) ([PDF](docs/stage1/Stage1-Design-Report.pdf)) (UMLet diagrams in [`docs/stage1/umlet`](docs/stage1/umlet)) | Complete (100/100) |
-| Stage 2: Implementation | [Plan and feature status](docs/stage2/PLAN.md), [design changes](docs/stage2/design-changes.md) | In progress: F01 to F08 and F10 working from the CLI and the GUI |
+| Stage 2: Implementation | [Plan and feature status](docs/stage2/PLAN.md), [design changes](docs/stage2/design-changes.md) | In progress: F01 to F08, F10 and F11 working from the CLI and the GUI |
 | Stage 3: Testing | JUnit tests, KUMA agent behaviour tests | Not started |
 
 ## Quick start
@@ -40,6 +40,9 @@ Prerequisites: Java 21 (JDK). Maven is not needed: the repository includes the M
 ./tracewise ask "Why is account C1037 risky?"   # the read-only assistant (add --json for scripts)
 ./tracewise case show CAS-00001                 # also: case note, case close --reason, case reopen --reason
 ./tracewise audit export --from 2026-10-01 --out audit.csv
+./tracewise report draft CAS-00001              # the agent drafts the STR narrative (also: report show, report edit)
+./tracewise report finalise CAS-00001           # waits in the approval queue; approve it with approvals approve
+./tracewise report export CAS-00001 --format both --out reports   # HTML and JSON; nothing is sent to FINTRAC
 ```
 
 Indicator search runs a local embedding model (bge-small-en-v1.5) inside the JVM: no key, no network,

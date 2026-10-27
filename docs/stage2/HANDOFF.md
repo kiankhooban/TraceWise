@@ -1,6 +1,6 @@
 # Stage 2 handoff (read this first after /compact or in a new session)
 
-Last updated 2026-10-27, during the GUI and F08 work (commit `9ab8e5d`). Read this file, then `CLAUDE.md` (repo root) and
+Last updated 2026-10-27, after F11 and its review (commit `33d47e1`). Read this file, then `CLAUDE.md` (repo root) and
 `docs/stage2/PLAN.md`. Sessions often run from `~/Brain`, where the TraceWise `CLAUDE.md` is NOT
 loaded automatically: read it explicitly.
 
@@ -24,7 +24,8 @@ loaded automatically: read it explicitly.
 | F08 Case management, audit | core done: notes, analyst close, reopen, history, audit filters and CSV; CLI and GUI pieces in progress | `actions/{AddNote,ReopenCase}Command`, `app/CaseService`, `audit/{AuditFilter,AuditCsv}`, `domain/CaseNote` |
 | F04 Retrieval and case memory | CLI and agent tools done | `retrieval/*`, `agent/tools/{SearchIndicators,SimilarCases}Tool`, `ui/cli/{Indicators,Cases}Cli`, `resources/tracewise/fintrac-indicators.tsv` |
 | F10 Assistant | CLI done (`ask --json`) | `agent/Assistant*`, `agent/ConversationMemory`, `agent/tools/{QueryCases,QueryAlerts,GetCase}Tool`, `app/AssistantService`, `ui/cli/AskCli` |
-| F09, F11, F12 | not started | |
+| F11 STR drafts and export | CLI and GUI Report tab done and reviewed | `reporting/*`, `actions/{SaveReportDraft,FinaliseReport}Command`, `app/ReportService`, `ui/cli/ReportCli`, `ui/gui/ReportTab` |
+| F09, F12 | not started | |
 | GUI (JavaFX 21) | Alerts (import, monitoring, queue, register, investigate, triage), Cases (finding, live steps, evidence, tasks), Approvals, Admin (rules, knowledge, audit log), Assistant panel | `ui/gui/*`; launch `./tracewise-gui` |
 
 All nine designed patterns are in code: Facade (`TraceWiseFacade`), Strategy (`DetectionRule`,
@@ -36,8 +37,10 @@ Strategy also covers `Retriever` (`EmbeddingRetriever`, context `SearchIndicator
 
 ## 2. Next tasks, in order (plan agreed with Kian 2026-10-27, see PLAN.md "Revised schedule")
 
-1. GUI and F08 are done and reviewed (review 6, commit `4d1c6f7`); 283 tests; design changes 1 to 32.
-2. **F11** STR draft and export (Report tab), **F09** network view (Network tab, JavaFXSmartGraph). This week.
+1. GUI, F08 and F11 are done and reviewed (review 7, commit `33d47e1`); 315 tests; design changes 1 to 34.
+   Waiting on Kian: may the person who requests a report finalisation also approve it? (Today yes; a supervisor-only
+   rule would be about ten lines in `ApprovalQueue.approve`.)
+2. **F09** network view (Network tab, JavaFXSmartGraph; check JavaFX 21 compatibility via context7). This week.
 3. Period 3 (Nov 3 to 6): **F12** dashboard (the real period 3 feature), final review fixes, fresh-clone check.
 4. Records: UMLet class diagram update, stage2-report PDF, demo scripts.
 
@@ -202,3 +205,14 @@ From the F10 review (2026-10-27), deferred or accepted:
   could drop out on another CPU (the current recordings pass on x86).
 - `query_cases` sums the alert totals of a case, so alerts over the same transactions would count twice.
 - `ask` failures print only `{"error": ...}` (no trace), unlike `investigate --json`; documented for Stage 3.
+
+From the F11 review (2026-10-27), rejected or accepted:
+- The requester can approve their own finalisation (validator: the queue is a confirmation step and roles are
+  self-declared with `--role`, so a different-person rule enforces little). Kian to decide; see section 2.
+- `ApprovalQueue.enqueue` skips the Pending Approval move for any command on an escalated case; only
+  `FinaliseReportCommand` can get there today (every other command refuses an escalated case in `validate`).
+- Rejected-claim detection matches exact text only (ids, plain or grouped amounts, indicator text); a paraphrase of a
+  rejected claim passes. The analyst reviews the text, and the narrative is never given the rejected claims as facts.
+- The narrative is free text from the model; only its rejected-claim mentions are checked deterministically.
+- Exports are not written atomically; a failed write leaves the report final so the export can be retried.
+

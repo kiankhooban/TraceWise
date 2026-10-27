@@ -46,7 +46,7 @@ Do almost all the work in period 2 so there is time to recover if something goes
 | F08 Case Management and Audit Trail | Working (CLI and GUI) | `domain/Case`, `cases/state/*`, `persistence/SqliteCaseRepository`, `audit/AuditLog` | |
 | F09 Money-Flow Network View | Not started | | |
 | F10 Natural-Language Analyst Assistant | Working (CLI, `ask --json`); GUI Assistant panel pending | `agent/{AssistantTask,AssistantAnswer,AssistantContext,ConversationMemory,AgentJson}`, `agent/tools/{QueryCases,QueryAlerts,GetCase}Tool`, `app/AssistantService`, `ui/cli/AskCli` | |
-| F11 Suspicious Transaction Report Drafting and Export | Not started | | |
+| F11 Suspicious Transaction Report Drafting and Export | Working (CLI and GUI Report tab) | `reporting/*` (`StrReport`, `ReportExporter`, `HtmlReportExporter`, `JsonReportExporter`), `actions/{SaveReportDraft,FinaliseReport}Command`, `app/ReportService`, `ui/cli/ReportCli`, `ui/gui/ReportTab` | |
 | F12 Agent Performance Dashboard | Not started | | |
 
 ## Progress log
@@ -97,6 +97,12 @@ Do almost all the work in period 2 so there is time to recover if something goes
   history, audit filters and CSV export, CLI `case` and `audit export`. Review fixes: close and reopen target,
   queued cancel and stop, shutdown order, linked-alert case, notes for the assistant. 283 tests. Changes 30 to 32.
 
+- 2026-10-27 (F11, review 7): suspicious transaction reports: the model drafts the grounds for suspicion from the
+  confirmed facts, the analyst edits, finalisation waits in the approval queue on an escalated case and is refused
+  while a field is empty or a rejected claim remains, final reports export as HTML and JSON. CLI `report` and the
+  GUI Report tab. Narratives for the three escalated sample cases recorded live. Review fixes: stale finalisation
+  requests, redraft only with `--replace`, drafts from an older finding, the unverified summary labelled. 315 tests.
+  Design changes 33 and 34.
 ## Tooling (installed 2026-10-20)
 - `jdtls-lsp` plugin with `jdtls` 1.63.0 (Homebrew): Java diagnostics and navigation.
 - `ponytail` 5.3.2: level `full`; cost ledger on, webhook off, task names not sent.
