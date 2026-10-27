@@ -39,6 +39,10 @@ final class AdminView {
     private final TableView<AuditEntry> audit = new TableView<>();
     private final ComboBox<String> eventType = new ComboBox<>();
     private final TextField target = new TextField();
+    private final javafx.scene.control.DatePicker from = new javafx.scene.control.DatePicker();
+    private final javafx.scene.control.DatePicker to = new javafx.scene.control.DatePicker();
+    private final ComboBox<String> actor = new ComboBox<>(FXCollections.observableArrayList("Anyone", "ANALYST",
+            "SUPERVISOR", "AGENT", "SYSTEM"));
 
     AdminView(Gui gui) {
         this.gui = gui;
@@ -157,9 +161,18 @@ final class AdminView {
                 "TRIAGE_FINISHED", "ASSISTANT_ASKED"));
         eventType.setValue("All");
         target.setPromptText("case, alert or account");
+        target.setPrefColumnCount(9);
+        from.setPromptText("from");
+        to.setPromptText("to");
+        from.setPrefWidth(120);
+        to.setPrefWidth(120);
+        actor.setValue("Anyone");
         var go = new Button("Filter");
         go.setOnAction(e -> searchAudit());
-        var bar = new HBox(8, new Label("Event"), eventType, new Label("Target"), target, go);
+        var export = new Button("Export CSV...");
+        export.setOnAction(e -> exportAudit());
+        var bar = new HBox(8, new Label("Event"), eventType, new Label("Target"), target, new Label("Actor"), actor,
+                from, to, go, export);
         bar.getStyleClass().add("toolbar");
         audit.getColumns().setAll(List.of(Gui.column("Time (UTC)", AuditEntry::timestamp, 130),
                 Gui.column("Actor", e -> e.actor().name() + " (" + e.actor().type() + ")", 150),
@@ -172,9 +185,32 @@ final class AdminView {
         return pane;
     }
 
+    private AuditFilter auditFilter() {
+        return new AuditFilter("All".equals(eventType.getValue()) ? null : eventType.getValue(),
+                target.getText().isBlank() ? null : target.getText().strip(),
+                from.getValue() == null ? null : from.getValue().atStartOfDay().toInstant(java.time.ZoneOffset.UTC),
+                to.getValue() == null ? null : to.getValue().plusDays(1).atStartOfDay().toInstant(java.time.ZoneOffset.UTC),
+                "Anyone".equals(actor.getValue()) ? null : ActorType.valueOf(actor.getValue()));
+    }
+
     private void searchAudit() {
-        var filter = new AuditFilter("All".equals(eventType.getValue()) ? null : eventType.getValue(),
-                target.getText().isBlank() ? null : target.getText().strip());
+        var filter = auditFilter();
         gui.run("Loading the audit log", () -> gui.facade.queryAudit(filter), entries -> audit.getItems().setAll(entries));
+    }
+
+    private void exportAudit() {
+        var chooser = new javafx.stage.FileChooser();
+        chooser.setTitle("Export the audit log");
+        chooser.setInitialFileName("tracewise-audit.csv");
+        var file = chooser.showSaveDialog(gui.stage);
+        if (file == null) {
+            return;
+        }
+        var filter = auditFilter();
+        gui.run("Exporting the audit log", () -> {
+            try (var w = java.nio.file.Files.newBufferedWriter(file.toPath(), java.nio.charset.StandardCharsets.UTF_8)) {
+                return gui.facade.exportAudit(filter, w);
+            }
+        }, n -> gui.info("Audit log exported", n + " entries written to " + file));
     }
 }

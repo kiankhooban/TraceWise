@@ -52,6 +52,11 @@ final class CaseView implements AgentEventListener {
     private final TableView<RetrievedPassage> indicators = new TableView<>();
     private final TableView<RetrievedPassage> similar = new TableView<>();
     private final ListView<String> tasks = new ListView<>();
+    private final ListView<String> notes = new ListView<>();
+    private final javafx.scene.control.TextField noteText = new javafx.scene.control.TextField();
+    private final TableView<tracewise.audit.AuditEntry> history = new TableView<>();
+    private final Button close = new Button("Close...");
+    private final Button reopen = new Button("Reopen...");
     private final TabPane detail = new TabPane();
     private Case shown;
     private String running;
@@ -93,7 +98,20 @@ final class CaseView implements AgentEventListener {
         cancel.setOnAction(e -> gui.facade.cancelInvestigation(running)); // only sets a flag: safe on the UI thread
         var spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        var header = new HBox(10, new VBox(2, title, subtitle), spacer, investigate, cancel);
+        close.setDisable(true);
+        close.setOnAction(e -> withReason("Close " + shown.id() + " as a false alarm", "Why is it a false alarm?",
+                reason -> gui.run("Closing " + shown.id(), () -> {
+                    gui.facade.closeCase(shown.id(), reason);
+                    return shown.id();
+                }, this::changed)));
+        reopen.setDisable(true);
+        reopen.setOnAction(e -> withReason("Reopen " + shown.id(), "Why is it reopened (for example new evidence)?",
+                reason -> gui.run("Reopening " + shown.id(), () -> {
+                    gui.facade.reopenCase(shown.id(), reason);
+                    return shown.id();
+                }, this::changed)));
+        var buttons = new HBox(8, investigate, cancel, spacer, close, reopen);
+        var header = new VBox(4, title, subtitle, buttons);
         header.getStyleClass().add("toolbar");
 
         steps.getColumns().setAll(List.of(Gui.column("Turn", TraceStep::turn, 45), Gui.column("Tool", TraceStep::toolName, 140),
@@ -112,8 +130,22 @@ final class CaseView implements AgentEventListener {
         VBox.setVgrow(similar, Priority.ALWAYS);
         evidence.setPadding(new Insets(8));
         finding.setPadding(new Insets(10));
+        noteText.setPromptText("Add a note, for example what the branch said");
+        noteText.setOnAction(e -> addNote());
+        var addNote = new Button("Add note");
+        addNote.setOnAction(e -> addNote());
+        HBox.setHgrow(noteText, Priority.ALWAYS);
+        var notesPane = new BorderPane(notes);
+        notesPane.setBottom(new HBox(6, noteText, addNote));
+        notesPane.setPadding(new Insets(8));
+        notes.setPlaceholder(new Label("No notes yet."));
+        history.getColumns().setAll(List.of(Gui.column("Time (UTC)", tracewise.audit.AuditEntry::timestamp, 125),
+                Gui.column("Who", e -> e.actor().name(), 120), Gui.column("Event", tracewise.audit.AuditEntry::eventType, 150),
+                Gui.column("Target", tracewise.audit.AuditEntry::target, 90),
+                Gui.column("Details", e -> oneLine(e.details(), 200), 480)));
         detail.getTabs().setAll(new Tab("Finding", new javafx.scene.control.ScrollPane(finding)), new Tab("Agent steps", steps),
-                new Tab("Evidence", evidence), new Tab("Tasks", tasks));
+                new Tab("Evidence", evidence), new Tab("Tasks", tasks), new Tab("Notes", notesPane),
+                new Tab("History", history));
         detail.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         ((javafx.scene.control.ScrollPane) detail.getTabs().get(0).getContent()).setFitToWidth(true);
         var right = new BorderPane(detail);
@@ -178,6 +210,34 @@ final class CaseView implements AgentEventListener {
         investigate.setDisable(shown == null || decided(shown));
     }
 
+    private void addNote() {
+        String text = noteText.getText();
+        if (shown == null || text.isBlank()) {
+            return;
+        }
+        String id = shown.id();
+        gui.run("Adding a note to " + id, () -> {
+            gui.facade.addNote(id, text);
+            return id;
+        }, done -> {
+            noteText.clear();
+            changed(done);
+        });
+    }
+
+    private void changed(String caseId) {
+        refresh();
+        showCase(caseId);
+    }
+
+    private void withReason(String title, String question, java.util.function.Consumer<String> then) {
+        var ask = new javafx.scene.control.TextInputDialog();
+        ask.initOwner(gui.stage);
+        ask.setTitle(title);
+        ask.setHeaderText(question);
+        ask.showAndWait().filter(r -> !r.isBlank()).ifPresent(then);
+    }
+
     @Override
     public void onStep(TraceStep step) {
         Platform.runLater(() -> steps.getItems().add(step)); // called on the worker thread
@@ -192,6 +252,11 @@ final class CaseView implements AgentEventListener {
         title.setText(c.id() + "   " + c.status());
         subtitle.setText("Alerts " + String.join(", ", c.alertIds()) + "   opened " + Gui.text(c.openedAt()) + " UTC");
         investigate.setDisable(running != null || decided(c));
+        close.setDisable(running != null || c.status() == CaseStatus.CLOSED || c.status() == CaseStatus.ESCALATED);
+        reopen.setDisable(running != null || c.status() != CaseStatus.CLOSED);
+        notes.getItems().setAll(c.notes().stream().map(n -> Gui.text(n.createdAt()) + "  " + n.author() + ":  " + n.text())
+                .toList());
+        gui.run("Loading the history of " + c.id(), () -> gui.facade.caseHistory(c.id()), h -> history.getItems().setAll(h));
         AgentFinding f = c.latestFinding();
         tasks.getItems().setAll(c.tasks().stream().map(t -> (t.done() ? "[done] " : "[open] ") + t.description()).toList());
         finding.getChildren().clear();
