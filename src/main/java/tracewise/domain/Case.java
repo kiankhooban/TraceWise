@@ -15,6 +15,7 @@ public class Case {
     private final List<String> alertIds;
     private final List<AgentFinding> findings;
     private final List<FollowUpTask> tasks;
+    private final List<CaseNote> notes;
     private CaseState state;
 
     public Case(String id, Instant openedAt, List<String> alertIds) {
@@ -29,15 +30,21 @@ public class Case {
         this(id, openedAt, alertIds, status, findings, List.of());
     }
 
-    /** For a case loaded from storage. */
     public Case(String id, Instant openedAt, List<String> alertIds, CaseStatus status, List<AgentFinding> findings,
             List<FollowUpTask> tasks) {
+        this(id, openedAt, alertIds, status, findings, tasks, List.of());
+    }
+
+    /** For a case loaded from storage. */
+    public Case(String id, Instant openedAt, List<String> alertIds, CaseStatus status, List<AgentFinding> findings,
+            List<FollowUpTask> tasks, List<CaseNote> notes) {
         this.id = id;
         this.openedAt = openedAt;
         this.alertIds = new ArrayList<>(alertIds);
         this.state = CaseState.of(status);
         this.findings = new ArrayList<>(findings);
         this.tasks = new ArrayList<>(tasks);
+        this.notes = new ArrayList<>(notes);
     }
 
     /** Adds another alert to this case; an alert already linked is ignored. */
@@ -49,6 +56,15 @@ public class Case {
 
     public void addTask(FollowUpTask task) {
         tasks.add(task);
+    }
+
+    public void addNote(CaseNote note) {
+        notes.add(note);
+    }
+
+    /** Oldest first. */
+    public List<CaseNote> notes() {
+        return List.copyOf(notes);
     }
 
     public List<FollowUpTask> tasks() {

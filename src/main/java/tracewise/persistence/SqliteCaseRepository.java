@@ -18,6 +18,7 @@ import tracewise.agent.TraceStep;
 import tracewise.agent.Verdict;
 import tracewise.cases.state.CaseStatus;
 import tracewise.domain.Case;
+import tracewise.domain.CaseNote;
 import tracewise.domain.FollowUpTask;
 import tracewise.llm.ModelConfig;
 import tracewise.llm.TokenUsage;
@@ -50,6 +51,12 @@ public class SqliteCaseRepository implements CaseRepository {
                 Jdbc.update(db, "INSERT INTO case_tasks (case_id, position, description, done) VALUES (?, ?, ?, ?)",
                         c.id(), i, tasks.get(i).description(), tasks.get(i).done() ? 1 : 0);
             }
+            Jdbc.update(db, "DELETE FROM case_notes WHERE case_id = ?", c.id());
+            List<CaseNote> notes = c.notes();
+            for (int i = 0; i < notes.size(); i++) {
+                Jdbc.update(db, "INSERT INTO case_notes (case_id, position, text, author, created_at) VALUES (?, ?, ?, ?, ?)",
+                        c.id(), i, notes.get(i).text(), notes.get(i).author(), notes.get(i).createdAt().toString());
+            }
             int stored = Jdbc.query(db, "SELECT COUNT(*) FROM findings WHERE case_id = ?", rs -> rs.getInt(1), c.id()).get(0);
             List<AgentFinding> findings = c.findings();
             for (AgentFinding f : findings.subList(stored, findings.size())) {
@@ -66,7 +73,9 @@ public class SqliteCaseRepository implements CaseRepository {
                 CaseStatus.valueOf(rs.getString(3)),
                 Jdbc.query(db, "SELECT body FROM findings WHERE case_id = ? ORDER BY seq", r -> read(r.getString(1)), id),
                 Jdbc.query(db, "SELECT description, done FROM case_tasks WHERE case_id = ? ORDER BY position",
-                        r -> new FollowUpTask(r.getString(1), r.getInt(2) == 1), id)),
+                        r -> new FollowUpTask(r.getString(1), r.getInt(2) == 1), id),
+                Jdbc.query(db, "SELECT text, author, created_at FROM case_notes WHERE case_id = ? ORDER BY position",
+                        r -> new CaseNote(r.getString(1), r.getString(2), Instant.parse(r.getString(3))), id)),
                 id).stream().findFirst();
     }
 

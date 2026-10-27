@@ -59,6 +59,18 @@ class CaseMemoryTest {
     }
 
     @Test
+    void aReopenedCaseLeavesTheMemory() {
+        var c = decided("CAS-3", CaseStatus.CLOSED, "Regular payroll.");
+        stored.add(c);
+        assertEquals(1, memory.similar("payroll", 3).size());
+
+        stored.set(0, decided("CAS-3", CaseStatus.OPEN, "Regular payroll."));
+        memory.remember(stored.get(0));
+
+        assertEquals(List.of(), memory.similar("payroll", 3));
+    }
+
+    @Test
     void aDecisionThatWasNeverStoredIsNotRemembered() {
         memory.similar("payroll", 3);
 

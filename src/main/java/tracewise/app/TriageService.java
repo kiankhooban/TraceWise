@@ -126,14 +126,17 @@ public class TriageService {
         stopRequested = true;
     }
 
-    /** New alerts, and alerts whose case is still open with no finding (an earlier run failed). */
+    /**
+     * New alerts; alerts whose case is Open (never investigated, or reopened by an analyst); and alerts whose case
+     * is under investigation with no finding (an earlier run failed).
+     */
     private boolean needsInvestigation(Alert alert) {
         if (alert.status() == AlertStatus.NEW) {
             return true;
         }
         return alert.status() == AlertStatus.IN_CASE && cases.findByAlert(alert.id())
-                .filter(c -> c.status() == CaseStatus.OPEN || c.status() == CaseStatus.UNDER_INVESTIGATION)
-                .filter(c -> c.latestFinding() == null).isPresent();
+                .filter(c -> c.status() == CaseStatus.OPEN
+                        || c.status() == CaseStatus.UNDER_INVESTIGATION && c.latestFinding() == null).isPresent();
     }
 
     private static int count(List<TraceStep> steps, String tool) {

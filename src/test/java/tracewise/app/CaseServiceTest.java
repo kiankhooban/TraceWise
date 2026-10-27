@@ -24,7 +24,7 @@ class CaseServiceTest {
             cases.save(new Case("CAS-00001", t, List.of("ALR-00001")));
 
             assertEquals(List.of("CAS-00001", "CAS-00002"),
-                    new CaseService(cases).listCases().stream().map(Case::id).toList());
+                    new CaseService(cases, null, null, null).listCases().stream().map(Case::id).toList());
         }
     }
 }

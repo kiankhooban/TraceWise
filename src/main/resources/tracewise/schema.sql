@@ -90,6 +90,15 @@ CREATE TABLE IF NOT EXISTS case_tasks (
     done INTEGER NOT NULL,
     PRIMARY KEY (case_id, position)
 );
+
+CREATE TABLE IF NOT EXISTS case_notes (
+    case_id TEXT NOT NULL REFERENCES cases (id),
+    position INTEGER NOT NULL,
+    text TEXT NOT NULL,
+    author TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (case_id, position)
+);
 CREATE TABLE IF NOT EXISTS approvals (
     id TEXT PRIMARY KEY,
     command_type TEXT NOT NULL,

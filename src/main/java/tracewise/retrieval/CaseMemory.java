@@ -26,13 +26,11 @@ public class CaseMemory {
     }
 
     /**
-     * Called when a case is closed or escalated, inside that decision's transaction. It embeds nothing, so it
-     * cannot fail the decision: the next search rebuilds from storage, which leaves out a rolled-back decision.
+     * Called when a case is closed, escalated or reopened, inside that change's transaction. It embeds nothing, so
+     * it cannot fail the change: the next search rebuilds from storage, which leaves out a rolled-back change.
      */
-    public synchronized void remember(Case decidedCase) {
-        if (passage(decidedCase).isPresent()) {
-            loaded = false;
-        }
+    public synchronized void remember(Case changedCase) {
+        loaded = false;
     }
 
     public synchronized List<RetrievedPassage> similar(String description, int maxResults) {

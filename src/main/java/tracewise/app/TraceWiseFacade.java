@@ -129,6 +129,21 @@ public class TraceWiseFacade implements AutoCloseable {
         return audit.query(filter);
     }
 
+    /** F08: the session's user adds a note to a case. */
+    public void addNote(String caseId, String text) {
+        caseService.addNote(caseId, text);
+    }
+
+    /** F08: the session's user closes a case as a false alarm, giving the reason. */
+    public void closeCase(String caseId, String reason) {
+        caseService.close(caseId, reason);
+    }
+
+    /** F08: the session's user returns a closed case to Open, giving the reason. */
+    public void reopenCase(String caseId, String reason) {
+        caseService.reopen(caseId, reason);
+    }
+
     public List<Case> listCases() {
         return caseService.listCases();
     }

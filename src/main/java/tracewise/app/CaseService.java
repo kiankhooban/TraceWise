@@ -1,16 +1,35 @@
 package tracewise.app;
 
 import java.util.List;
+import tracewise.actions.ActionCommand;
+import tracewise.actions.AddNoteCommand;
+import tracewise.actions.ApprovalQueue;
+import tracewise.actions.CloseCaseCommand;
+import tracewise.actions.CommandDispatcher;
+import tracewise.actions.DispatchResult;
+import tracewise.actions.ProposalStatus;
+import tracewise.actions.ReopenCaseCommand;
+import tracewise.cases.state.CaseStatus;
+import tracewise.domain.Actor;
 import tracewise.domain.Case;
 import tracewise.persistence.CaseRepository;
 
-/** F08: case operations for people. Notes and reopening arrive with the case commands. */
+/**
+ * F08: case operations for people. Each is a command submitted through the dispatcher as the session's user,
+ * so the change and its audit entry are saved in one transaction.
+ */
 public class CaseService {
 
     private final CaseRepository cases;
+    private final CommandDispatcher dispatcher;
+    private final ApprovalQueue approvals;
+    private final Actor user;
 
-    public CaseService(CaseRepository cases) {
+    public CaseService(CaseRepository cases, CommandDispatcher dispatcher, ApprovalQueue approvals, Actor user) {
         this.cases = cases;
+        this.dispatcher = dispatcher;
+        this.approvals = approvals;
+        this.user = user;
     }
 
     /** Every case, by id. */
@@ -20,5 +39,40 @@ public class CaseService {
 
     public Case getCase(String caseId) {
         return cases.findById(caseId).orElseThrow(() -> new IllegalArgumentException("No case " + caseId));
+    }
+
+    public void addNote(String caseId, String text) {
+        require(text, "A note needs some text");
+        submit(new AddNoteCommand(caseId, text, user.name()), "note");
+    }
+
+    /** An analyst closes a case as a false alarm. A case waiting for approval is closed by deciding its proposal. */
+    public void close(String caseId, String reason) {
+        require(reason, "A reason is required to close a case");
+        if (getCase(caseId).status() == CaseStatus.PENDING_APPROVAL) {
+            String waiting = approvals.forCase(caseId).stream().filter(p -> p.status() == ProposalStatus.PENDING)
+                    .map(p -> p.id()).findFirst().orElse("a proposal");
+            throw new IllegalStateException("Case " + caseId + " is waiting for approval of " + waiting
+                    + ": approve or reject that proposal instead");
+        }
+        submit(new CloseCaseCommand(caseId), reason);
+    }
+
+    public void reopen(String caseId, String reason) {
+        require(reason, "A reason is required to reopen a case");
+        submit(new ReopenCaseCommand(caseId, reason), reason);
+    }
+
+    private void submit(ActionCommand command, String justification) {
+        DispatchResult r = dispatcher.submit(command, user, justification);
+        if (r.status() == DispatchResult.Status.REJECTED) {
+            throw new IllegalStateException(r.message());
+        }
+    }
+
+    private static void require(String text, String message) {
+        if (text == null || text.isBlank()) {
+            throw new IllegalArgumentException(message);
+        }
     }
 }
