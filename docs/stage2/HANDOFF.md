@@ -36,10 +36,11 @@ Strategy also covers `Retriever` (`EmbeddingRetriever`, context `SearchIndicator
 
 ## 2. Next tasks, in order (plan agreed with Kian 2026-10-27, see PLAN.md "Revised schedule")
 
-1. **F08 finish**: CLI `case show|note|reopen|close` and `audit export --from --to [--actor] [--out]`; GUI case
-   view: Notes and History tabs, Reopen and Close buttons; Admin audit log: date and actor filters, Export CSV.
-   Then log design changes (GUI threading, launcher, screenshot mode, CaseService through the dispatcher,
-   AuditFilter fields, human close but no direct human escalate), README GUI section, review (deep-code-review).
+1. **Review of GUI + F08 in progress** (2026-10-27): deep-code-review run dir
+   `/tmp/compound-engineering/ce-code-review/gui-f08-20261027154110` (base `a9dc992`; reviewer JSON files and
+   `adversarial-codex.json` land there). Next: validate each finding (`validate-*.md` from
+   `references/validator-template.md`), fix confirmed ones test-first, records (collaboration entry 12, PLAN).
+   F08 is otherwise done (CLI, GUI, design changes 30 and 31, README).
 2. **F11** STR draft and export (Report tab), **F09** network view (Network tab, JavaFXSmartGraph). This week.
 3. Period 3 (Nov 3 to 6): **F12** dashboard (the real period 3 feature), final review fixes, fresh-clone check.
 4. Records: UMLet class diagram update, stage2-report PDF, demo scripts.
