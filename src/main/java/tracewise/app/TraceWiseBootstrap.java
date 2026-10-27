@@ -64,7 +64,7 @@ public final class TraceWiseBootstrap {
     }
 
     public static TraceWiseFacade create(AppConfig config) {
-        return create(config, () -> new LLMClientFactory(apiKey(config), new ReplayStore(config.replayDir()))
+        return create(config, () -> new LLMClientFactory(apiKey(config), replayStore(config.replayDir()))
                 .create(config.model()));
     }
 
@@ -100,6 +100,14 @@ public final class TraceWiseBootstrap {
         var triageService = new TriageService(alerts, cases, investigationService, audit, user);
         return new TraceWiseFacade(db, importService, monitoringService, investigationService, triageService, approvals,
                 new CaseService(cases), indicators, memory, user);
+    }
+
+    /**
+     * Recordings of model answers. Retrieval results are left out of matching: the local embedding model's
+     * scores differ between ARM and x86 CPUs, and similar cases change as cases are decided.
+     */
+    public static ReplayStore replayStore(java.nio.file.Path dir) {
+        return new ReplayStore(dir, java.util.Set.of(SearchIndicatorsTool.NAME, SimilarCasesTool.NAME));
     }
 
     /** The key from .env, else from the environment; null when replaying, which needs none. */

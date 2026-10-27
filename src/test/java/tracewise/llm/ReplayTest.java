@@ -67,4 +67,26 @@ class ReplayTest {
         assertFalse(e.retryable());
         assertTrue(e.getMessage().contains("No recorded response"), e.getMessage());
     }
+
+    static LLMRequest withToolResult(String tool, String content) {
+        return new LLMRequest("sys", List.of(new LLMMessage.User("q"),
+                new LLMMessage.Assistant("", List.of(new ToolCall("c1", tool, "{}"))),
+                new LLMMessage.ToolResult("c1", tool, content)), List.of());
+    }
+
+    @Test
+    void resultsOfToolsThatDifferAcrossMachinesAreLeftOutOfTheMatch() {
+        var store = new ReplayStore(dir, java.util.Set.of("search_indicators"));
+        store.save(withToolResult("search_indicators", "{\"score\":0.831}"), ANSWER);
+
+        assertEquals(ANSWER, store.find(withToolResult("search_indicators", "{\"score\":0.830}")).orElseThrow());
+    }
+
+    @Test
+    void resultsOfOtherToolsMustMatchExactly() {
+        var store = new ReplayStore(dir, java.util.Set.of("search_indicators"));
+        store.save(withToolResult("account_history", "{\"amount\":9500}"), ANSWER);
+
+        assertTrue(store.find(withToolResult("account_history", "{\"amount\":9501}")).isEmpty());
+    }
 }

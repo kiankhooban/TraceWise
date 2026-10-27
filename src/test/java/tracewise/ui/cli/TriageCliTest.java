@@ -19,7 +19,6 @@ import tracewise.app.TriageLimits;
 import tracewise.domain.ActorType;
 import tracewise.llm.ModelConfig;
 import tracewise.llm.RecordingLLMClient;
-import tracewise.llm.ReplayStore;
 import tracewise.tools.ScenarioGenerator;
 
 class TriageCliTest {
@@ -60,7 +59,7 @@ class TriageCliTest {
         var config = new AppConfig(copy, "rec", ActorType.ANALYST, ModelConfig.of("anthropic", "claude-haiku-5-5", true),
                 dir.resolve("replays"), dir.resolve(".env"));
         try (var facade = TraceWiseBootstrap.create(config,
-                () -> new RecordingLLMClient(model, new ReplayStore(dir.resolve("replays"))))) {
+                () -> new RecordingLLMClient(model, TraceWiseBootstrap.replayStore(dir.resolve("replays"))))) {
             facade.triage(new TriageLimits(2, new java.math.BigDecimal("5.00"), tracewise.monitoring.AlertFilter.ALL), null);
         }
 

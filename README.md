@@ -78,9 +78,10 @@ so on a fresh database built from `data/samples/scenarios.csv` they replay witho
 ./tracewise --llm replay --model claude-haiku-5-5 triage      # all four, in risk order
 ```
 
-Replays reproduce the recorded requests only. Approving or rejecting a proposal changes what later
-runs see (past decisions and similar cases), so after a decision further investigations need a live
-model; the replay error says so.
+Replays answer only the recorded requests (same prompt, data and tool results). Retrieval results
+are left out of the match, because the local embedding model's scores differ slightly between Apple
+Silicon and x86 CPUs, and similar cases change as cases are decided. Rejecting a proposal changes the
+next run's prompt, so a re-investigation after a rejection needs a live model.
 
 Each investigation prints its token usage and cost in CAD.
 

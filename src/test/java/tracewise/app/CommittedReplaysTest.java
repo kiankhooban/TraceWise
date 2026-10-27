@@ -1,7 +1,6 @@
 package tracewise.app;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
@@ -48,15 +47,15 @@ class CommittedReplaysTest {
     }
 
     @Test
-    void afterADecisionAReplayMissSaysWhy() {
+    void afterADecisionTheRecordingsStillReplay() {
         try (var facade = replaying()) {
             facade.investigate("ALR-00004", null);
             facade.approve(facade.pendingApprovals().get(0).id());
 
             var report = facade.triage(TriageLimits.DEFAULT, null);
 
-            assertTrue(report.failed() > 0, report.summary());
-            assertTrue(report.failures().get(0).contains("decided"), report.failures().toString());
+            assertEquals(0, report.failed(), report.failures().toString());
+            assertEquals(3, report.processed());
         }
     }
 }
