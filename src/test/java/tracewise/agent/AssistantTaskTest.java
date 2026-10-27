@@ -16,7 +16,7 @@ class AssistantTaskTest {
     static final String ANSWER = """
             C1037 received four cash deposits just under the threshold.
             ```json
-            {"answer": "C1037 received four cash deposits under 10,000 CAD, totalling 37065.53 CAD.",
+            {"kind": "ANSWER", "answer": "C1037 received four cash deposits under 10,000 CAD, totalling 37065.53 CAD.",
              "cited_transactions": [{"transaction_id": "TX-00121", "account_id": "C1037", "amount_cad": 8673.80,
                                      "date": "2026-09-02"}],
              "totals": [{"description": "Four deposits", "amount_cad": 37065.53,
@@ -28,7 +28,7 @@ class AssistantTaskTest {
         var task = new AssistantTask("Why is C1037 risky?", AssistantContext.NONE, List.of());
 
         assertEquals(Set.of("account_history", "counterparties", "linked_alerts", "search_indicators", "similar_cases",
-                "query_cases"), task.toolNames());
+                "query_cases", "query_alerts", "get_case"), task.toolNames());
     }
 
     @Test
@@ -47,7 +47,8 @@ class AssistantTaskTest {
     void thePromptCoversTheDesignedCases() {
         String p = new AssistantTask("q", AssistantContext.NONE, List.of()).systemPrompt();
 
-        for (String expected : List.of("query_cases", "clarifying question", "decline", "instructions", "\"answer\"")) {
+        for (String expected : List.of("query_cases", "clarifying question", "decline", "instructions", "\"answer\"",
+                "CLARIFY", "DECLINE")) {
             assertTrue(p.contains(expected), expected + " missing");
         }
     }
@@ -60,6 +61,7 @@ class AssistantTaskTest {
         AssistantAnswer a = task.parseAnswer(ANSWER, null);
 
         assertTrue(a.text().startsWith("C1037 received four cash deposits"));
+        assertEquals(AssistantAnswer.Kind.ANSWER, a.kind());
         assertEquals(List.of(new Claim("TX-00121", "C1037", new BigDecimal("8673.80"), LocalDate.parse("2026-09-02"))),
                 a.claims());
         assertEquals(new BigDecimal("37065.53"), a.totals().get(0).amountCad());
@@ -68,17 +70,21 @@ class AssistantTaskTest {
     @Test
     void aClarifyingQuestionNeedsNoCitations() {
         var task = new AssistantTask("show the big ones", AssistantContext.NONE, List.of());
-        String text = "```json\n{\"answer\": \"Big by amount or by risk score?\", \"cited_transactions\": []}\n```";
+        String text = "```json\n{\"kind\": \"CLARIFY\", \"answer\": \"Big by amount or by risk score?\", "
+                + "\"cited_transactions\": []}\n```";
 
         assertNull(task.outputProblem(text));
         assertEquals(List.of(), task.parseAnswer(text, null).claims());
+        assertEquals(AssistantAnswer.Kind.CLARIFY, task.parseAnswer(text, null).kind());
     }
 
     @Test
     void aMissingAnswerIsAFormatProblem() {
         var task = new AssistantTask("q", AssistantContext.NONE, List.of());
 
-        assertNotNull(task.outputProblem("```json\n{\"cited_transactions\": []}\n```"));
+        assertNotNull(task.outputProblem("```json\n{\"kind\": \"ANSWER\", \"cited_transactions\": []}\n```"));
+        assertNotNull(task.outputProblem("```json\n{\"answer\": \"a\", \"cited_transactions\": []}\n```"));
+        assertNotNull(task.outputProblem("```json\n{\"kind\": \"MAYBE\", \"answer\": \"a\", \"cited_transactions\": []}\n```"));
         assertNotNull(task.outputProblem("Just prose."));
     }
 }

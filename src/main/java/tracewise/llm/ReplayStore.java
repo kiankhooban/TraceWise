@@ -67,8 +67,9 @@ public class ReplayStore {
             return request;
         }
         return new LLMRequest(request.systemPrompt(), request.messages().stream()
+                // only successful results (JSON objects) are left out: an error must still match exactly
                 .map(m -> m instanceof LLMMessage.ToolResult r && unmatchedTools.contains(r.toolName())
-                        ? new LLMMessage.ToolResult(r.callId(), r.toolName(), "") : m)
+                        && r.content().startsWith("{") ? new LLMMessage.ToolResult(r.callId(), r.toolName(), "") : m)
                 .toList(), request.tools());
     }
 

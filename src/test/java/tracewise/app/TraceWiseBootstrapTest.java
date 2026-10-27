@@ -45,4 +45,25 @@ class TraceWiseBootstrapTest {
         assertTrue(e.getMessage().contains("unavailable"));
         assertEquals(0, modelsLoaded);
     }
+
+    static tracewise.llm.LLMRequest withResult(String tool, String content) {
+        return new tracewise.llm.LLMRequest("sys", List.of(new tracewise.llm.LLMMessage.User("q"),
+                new tracewise.llm.LLMMessage.Assistant("", List.of(new tracewise.llm.ToolCall("c1", tool, "{}"))),
+                new tracewise.llm.LLMMessage.ToolResult("c1", tool, content)), List.of());
+    }
+
+    @org.junit.jupiter.api.io.TempDir java.nio.file.Path dir;
+
+    @Test
+    void replaysLeaveOutOnlyTheRetrievalResults() {
+        var store = TraceWiseBootstrap.replayStore(dir);
+        var answer = new tracewise.llm.LLMResponse("ok", List.of(), new tracewise.llm.TokenUsage(1, 1));
+        for (String tool : List.of("search_indicators", "similar_cases", "account_history")) {
+            store.save(withResult(tool, "{\"score\":0.831}"), answer);
+        }
+
+        assertTrue(store.find(withResult("search_indicators", "{\"score\":0.830}")).isPresent());
+        assertTrue(store.find(withResult("similar_cases", "{\"cases\":[]}")).isPresent());
+        assertTrue(store.find(withResult("account_history", "{\"score\":0.830}")).isEmpty());
+    }
 }

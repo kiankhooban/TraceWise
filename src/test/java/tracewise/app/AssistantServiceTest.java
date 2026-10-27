@@ -46,7 +46,7 @@ class AssistantServiceTest {
     static String answerCiting(Transaction t, String account) {
         return """
                 ```json
-                {"answer": "%s received a cash deposit of %s CAD.",
+                {"kind": "ANSWER", "answer": "%s received a cash deposit of %s CAD.",
                  "cited_transactions": [{"transaction_id": "%s", "account_id": "%s", "amount_cad": %s, "date": "%s"}]}
                 ```""".formatted(account, t.amountCad().toPlainString(), t.id(), account, t.amountCad().toPlainString(),
                 LocalDate.ofInstant(t.timestamp(), ZoneOffset.UTC));
@@ -123,5 +123,47 @@ class AssistantServiceTest {
             assertThrows(IllegalArgumentException.class, () -> f.ask(" ", AssistantContext.NONE));
         }
         assertEquals(List.of(), model.requests);
+    }
+
+    @Test
+    void anUnreadableAnswerIsAnErrorAndIsNotRemembered() {
+        model.then(AgentRunnerTest.answer("Just prose.")).then(AgentRunnerTest.answer("Still prose."))
+                .then(AgentRunnerTest.answer(citation));
+        try (var f = facade()) {
+            var e = assertThrows(IllegalStateException.class, () -> f.ask("Why is it risky?", AssistantContext.NONE));
+            assertTrue(e.getMessage().contains("required format"), e.getMessage());
+            f.ask("Second question", AssistantContext.NONE);
+        }
+
+        var opening = (LLMMessage.User) model.requests.get(2).messages().get(0);
+        assertFalse(opening.text().contains("Why is it risky?"), opening.text());
+    }
+
+    @Test
+    void aWrongCitationIsReportedAsRejected() {
+        model.then(AgentRunnerTest.answer(citation.replaceFirst("\"amount_cad\": [0-9.]+", "\"amount_cad\": 1.00")));
+        try (var f = facade()) {
+            var answer = f.ask("Why is " + account + " risky?", AssistantContext.NONE);
+
+            assertEquals(VerificationStatus.PARTIALLY_VERIFIED, answer.verification().status());
+            assertEquals(1, answer.verification().rejected().size());
+        }
+    }
+
+    @Test
+    void eachQuestionIsAuditedWithWhoAskedIt() {
+        model.then(AgentRunnerTest.answer(citation));
+        try (var f = facade()) {
+            f.ask("Why is " + account + " risky?", new AssistantContext(null, account));
+        }
+
+        try (var db = Database.open(dir.resolve("t.db"))) {
+            var entries = new tracewise.audit.AuditLog(new tracewise.audit.SqliteAuditRepository(db))
+                    .query(new tracewise.audit.AuditFilter("ASSISTANT_ASKED", account));
+            assertEquals(1, entries.size());
+            assertEquals("kian", entries.get(0).actor().name());
+            assertEquals("Why is " + account + " risky?", entries.get(0).details());
+            assertEquals("COMPLETED", entries.get(0).outcome());
+        }
     }
 }

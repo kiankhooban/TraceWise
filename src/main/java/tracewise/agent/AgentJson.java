@@ -57,7 +57,7 @@ final class AgentJson {
         } catch (IOException e) {
             // reported below
         }
-        throw new IllegalArgumentException("the finding must be one JSON object in a ```json block");
+        throw new IllegalArgumentException("the answer must be one JSON object in a ```json block");
     }
 
     static String requireText(JsonNode node, String field) {

@@ -50,6 +50,7 @@ public class AskCli extends CliCommandBase {
     private static Map<String, Object> toJson(AssistantAnswer a) {
         var out = new LinkedHashMap<String, Object>();
         out.put("status", a.status());
+        out.put("kind", a.kind());
         out.put("answer", a.text());
         out.put("claims", a.claims());
         out.put("totals", a.totals());

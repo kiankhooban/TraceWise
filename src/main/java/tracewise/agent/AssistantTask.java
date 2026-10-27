@@ -10,7 +10,9 @@ import java.util.List;
 import java.util.Set;
 import tracewise.agent.tools.AccountHistoryTool;
 import tracewise.agent.tools.CounterpartiesTool;
+import tracewise.agent.tools.GetCaseTool;
 import tracewise.agent.tools.LinkedAlertsTool;
+import tracewise.agent.tools.QueryAlertsTool;
 import tracewise.agent.tools.QueryCasesTool;
 import tracewise.agent.tools.SearchIndicatorsTool;
 import tracewise.agent.tools.SimilarCasesTool;
@@ -27,8 +29,9 @@ public class AssistantTask implements AgentTask {
             amounts, dates, accounts or cases.
             - Cite every transaction you rely on by its id exactly as a tool returned it, with its amount in CAD, its \
             date (YYYY-MM-DD, the UTC date of its timestamp) and an account involved in it.
-            - To find cases, for example "open structuring cases over $50,000", call query_cases with a filter. If it \
-            reports an invalid filter, correct the filter and call it again.
+            - To find cases, for example "open structuring cases over $50,000", call query_cases with a filter; for \
+            alerts, including those not yet in a case, call query_alerts; to explain a case's decision, call get_case. \
+            If a filter is reported invalid, correct it and call again.
             - If the question is ambiguous, for example "show the big ones", ask one clarifying question instead of \
             guessing.
             - You can only read. If you are asked to change anything (close, escalate, link, watchlist or edit data) \
@@ -42,6 +45,7 @@ public class AssistantTask implements AgentTask {
             Finish with your answer as one JSON object in a ```json block, with nothing after it:
             ```json
             {
+              "kind": "ANSWER | CLARIFY | DECLINE",
               "answer": "The answer for the analyst, in plain words.",
               "cited_transactions": [
                 {"transaction_id": "...", "account_id": "...", "amount_cad": 0.00, "date": "YYYY-MM-DD"}
@@ -51,7 +55,8 @@ public class AssistantTask implements AgentTask {
               ]
             }
             ```
-            Use [] when there is nothing to cite, for example for a clarifying question or a refusal. totals lists \
+            kind is CLARIFY for a clarifying question, DECLINE for a refusal and ANSWER otherwise. Use [] when there \
+            is nothing to cite, for example for a clarifying question or a refusal. totals lists \
             every sum stated in the answer with the transactions that add up to it, each id once; only plain sums \
             belong there.""";
 
@@ -89,7 +94,7 @@ public class AssistantTask implements AgentTask {
     @Override
     public Set<String> toolNames() {
         return Set.of(AccountHistoryTool.NAME, CounterpartiesTool.NAME, LinkedAlertsTool.NAME, SearchIndicatorsTool.NAME,
-                SimilarCasesTool.NAME, QueryCasesTool.NAME);
+                SimilarCasesTool.NAME, QueryCasesTool.NAME, QueryAlertsTool.NAME, GetCaseTool.NAME);
     }
 
     @Override
@@ -102,6 +107,14 @@ public class AssistantTask implements AgentTask {
         }
     }
 
+    private static AssistantAnswer.Kind kind(String value) {
+        try {
+            return AssistantAnswer.Kind.valueOf(value);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("kind must be ANSWER, CLARIFY or DECLINE, not " + value);
+        }
+    }
+
     /**
      * Reads the answer from the agent's final text; throws IllegalArgumentException naming what is wrong. The
      * status comes from the trace's outcome (INCOMPLETE when a limit cut the run short).
@@ -109,6 +122,7 @@ public class AssistantTask implements AgentTask {
     public AssistantAnswer parseAnswer(String text, AgentTrace trace) {
         JsonNode a = readJson(text);
         OutcomeStatus status = trace != null && trace.outcome() != null ? trace.outcome().status() : OutcomeStatus.COMPLETED;
-        return new AssistantAnswer(requireText(a, "answer"), claims(a), totals(a), status, trace);
+        return new AssistantAnswer(kind(requireText(a, "kind")), requireText(a, "answer"), claims(a), totals(a), status,
+                trace);
     }
 }

@@ -89,4 +89,12 @@ class ReplayTest {
 
         assertTrue(store.find(withToolResult("account_history", "{\"amount\":9501}")).isEmpty());
     }
+
+    @Test
+    void aFailedResultOfAnUnmatchedToolDoesNotMatchARecordedSuccess() {
+        var store = new ReplayStore(dir, java.util.Set.of("search_indicators"));
+        store.save(withToolResult("search_indicators", "{\"indicators\":[]}"), ANSWER);
+
+        assertTrue(store.find(withToolResult("search_indicators", "search_indicators failed: corpus missing")).isEmpty());
+    }
 }

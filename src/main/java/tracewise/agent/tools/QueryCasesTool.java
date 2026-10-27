@@ -43,9 +43,11 @@ public class QueryCasesTool implements AgentTool {
     public ToolSchema schema() {
         return new ToolSchema(name(), "Cases matching a filter, each with its status, alerts, total CAD and latest "
                 + "verdict. Every field is optional; leave out what the request does not name.", List.of(
-                new ToolParameter("status", ToolParameter.Type.STRING, "One of " + Arrays.toString(CaseStatus.values()), false),
-                new ToolParameter("rule", ToolParameter.Type.STRING, "Monitoring rule of one of the case's alerts: R1 large "
-                        + "cash, R2 international transfer, R3 structuring, R4 pass-through, R5 fan-in, R6 fan-out", false),
+                new ToolParameter("status", ToolParameter.Type.STRING, "OPEN (any case not decided yet: open, under "
+                        + "investigation or waiting for approval), or exactly one of UNDER_INVESTIGATION, PENDING_APPROVAL, "
+                        + "ESCALATED, CLOSED", false),
+                new ToolParameter("rule", ToolParameter.Type.STRING, "Monitoring rule of one of the case's alerts: " + RULE_HELP,
+                        false),
                 new ToolParameter("account_id", ToolParameter.Type.STRING, "Account of one of the case's alerts", false),
                 new ToolParameter("min_total_cad", ToolParameter.Type.NUMBER, "Smallest total of the case's alerts, CAD", false)));
     }
@@ -53,10 +55,7 @@ public class QueryCasesTool implements AgentTool {
     @Override
     public ToolResult execute(ToolArguments args) {
         CaseStatus status = args.has("status") ? status(args.string("status")) : null;
-        String rule = args.has("rule") ? args.string("rule") : null;
-        if (rule != null && !RULES.contains(rule)) {
-            throw new IllegalArgumentException("'rule' must be one of R1 to R6, not '" + rule + "'");
-        }
+        String rule = args.has("rule") ? rule(args.string("rule")) : null;
         String account = args.has("account_id") ? args.string("account_id") : null;
         BigDecimal minTotal = args.has("min_total_cad") ? args.number("min_total_cad") : null;
         if (minTotal != null && minTotal.signum() < 0) {
@@ -66,7 +65,7 @@ public class QueryCasesTool implements AgentTool {
         for (Case c : cases.findAll().stream().sorted(Comparator.comparing(Case::id)).toList()) {
             List<Alert> caseAlerts = c.alertIds().stream().flatMap(id -> alerts.findById(id).stream()).toList();
             BigDecimal total = caseAlerts.stream().map(Alert::totalCad).reduce(BigDecimal.ZERO, BigDecimal::add);
-            if ((status == null || c.status() == status)
+            if ((status == null || c.status() == status || status == CaseStatus.OPEN && !decided(c))
                     && (rule == null || caseAlerts.stream().anyMatch(a -> a.ruleId().equals(rule)))
                     && (account == null || caseAlerts.stream().anyMatch(a -> a.accountId().equals(account)))
                     && (minTotal == null || total.compareTo(minTotal) >= 0)) {
@@ -80,6 +79,21 @@ public class QueryCasesTool implements AgentTool {
             result.put("message", "Only the first " + MAX_ROWS + " are listed; narrow the filter to see the rest.");
         }
         return ToolResult.json(result);
+    }
+
+    /** The rule id if it is one of the six rules; otherwise an error naming them. */
+    static String rule(String value) {
+        if (!RULES.contains(value)) {
+            throw new IllegalArgumentException("'rule' must be one of R1 to R6, not '" + value + "'");
+        }
+        return value;
+    }
+
+    static final String RULE_HELP = "R1 large cash, R2 international transfer, R3 structuring, R4 pass-through, "
+            + "R5 fan-in, R6 fan-out";
+
+    private static boolean decided(Case c) {
+        return c.status() == CaseStatus.ESCALATED || c.status() == CaseStatus.CLOSED;
     }
 
     private static CaseStatus status(String value) {
@@ -103,6 +117,7 @@ public class QueryCasesTool implements AgentTool {
             alert.put("rule", a.ruleId());
             alert.put("account_id", a.accountId());
             alert.put("total_cad", a.totalCad().toPlainString());
+            alert.put("transaction_ids", a.transactionIds());
             return alert;
         }).toList());
         return row;

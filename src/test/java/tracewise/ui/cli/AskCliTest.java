@@ -48,7 +48,7 @@ class AskCliTest {
         assertEquals(0, run("monitor", "run"));
         var model = new ScriptedModel()
                 .then(AgentRunnerTest.toolCall("query_cases", "{\"status\":\"UNDER_INVESTIGATION\"}"))
-                .then(AgentRunnerTest.answer("```json\n{\"answer\": \"No case is under investigation.\", "
+                .then(AgentRunnerTest.answer("```json\n{\"kind\": \"ANSWER\", \"answer\": \"No case is under investigation.\", "
                         + "\"cited_transactions\": []}\n```"));
         var config = new AppConfig(dir.resolve("t.db"), "rec", ActorType.ANALYST,
                 ModelConfig.of("anthropic", "claude-haiku-5-5", true), dir.resolve("replays"), dir.resolve(".env"));
@@ -64,6 +64,7 @@ class AskCliTest {
 
         var json = new ObjectMapper().readTree(out.toString());
         assertEquals("COMPLETED", json.get("status").asText());
+        assertEquals("ANSWER", json.get("kind").asText());
         assertEquals("No case is under investigation.", json.get("answer").asText());
         assertEquals("UNSUPPORTED", json.get("verification").get("status").asText());
         assertEquals("query_cases", json.get("trace").get("steps").get(0).get("toolName").asText());

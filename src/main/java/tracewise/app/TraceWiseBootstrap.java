@@ -21,10 +21,12 @@ import tracewise.agent.tools.ActionScope;
 import tracewise.agent.tools.AddToWatchlistTool;
 import tracewise.agent.tools.CounterpartiesTool;
 import tracewise.agent.tools.CreateTaskTool;
+import tracewise.agent.tools.GetCaseTool;
 import tracewise.agent.tools.LinkAlertsTool;
 import tracewise.agent.tools.LinkedAlertsTool;
 import tracewise.agent.tools.ProposeCloseTool;
 import tracewise.agent.tools.ProposeEscalationTool;
+import tracewise.agent.tools.QueryAlertsTool;
 import tracewise.agent.tools.QueryCasesTool;
 import tracewise.agent.tools.SearchIndicatorsTool;
 import tracewise.agent.tools.SetPriorityTool;
@@ -100,7 +102,7 @@ public final class TraceWiseBootstrap {
         BigDecimal cadPerUsd = rates.toCad(BigDecimal.ONE, "USD");
         var investigationService = new InvestigationService(db, alerts, cases, runner, scope, approvals, verifier, audit,
                 user, config.model(), cadPerUsd);
-        var assistant = new AssistantService(runner, verifier, audit, config.model(), cadPerUsd);
+        var assistant = new AssistantService(runner, verifier, audit, user, config.model(), cadPerUsd);
         var triageService = new TriageService(alerts, cases, investigationService, audit, user);
         return new TraceWiseFacade(db, importService, monitoringService, investigationService, triageService, approvals,
                 new CaseService(cases), assistant, indicators, memory, user);
@@ -137,6 +139,8 @@ public final class TraceWiseBootstrap {
         tools.register(new SearchIndicatorsTool(indicators));
         tools.register(new SimilarCasesTool(memory));
         tools.register(new QueryCasesTool(cases, alerts));
+        tools.register(new QueryAlertsTool(alerts, cases));
+        tools.register(new GetCaseTool(cases, alerts));
         tools.register(new SetPriorityTool(dispatcher, scope));
         tools.register(new LinkAlertsTool(dispatcher, scope));
         tools.register(new AddToWatchlistTool(dispatcher, scope));

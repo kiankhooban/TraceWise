@@ -9,6 +9,11 @@ import tracewise.verification.VerificationReport;
  */
 public class AssistantAnswer {
 
+    /** ANSWER: an answer from the data; CLARIFY: a clarifying question; DECLINE: a refusal (out of scope or a change). */
+    public enum Kind { ANSWER, CLARIFY, DECLINE }
+
+    private final Kind kind;
+
     private final String text;
     private final List<Claim> claims;
     private final List<TotalClaim> totals;
@@ -16,8 +21,9 @@ public class AssistantAnswer {
     private final AgentTrace trace;
     private VerificationReport verification;
 
-    public AssistantAnswer(String text, List<Claim> claims, List<TotalClaim> totals, OutcomeStatus status,
+    public AssistantAnswer(Kind kind, String text, List<Claim> claims, List<TotalClaim> totals, OutcomeStatus status,
             AgentTrace trace) {
+        this.kind = kind;
         this.text = text;
         this.claims = List.copyOf(claims);
         this.totals = List.copyOf(totals);
@@ -27,6 +33,10 @@ public class AssistantAnswer {
 
     public void attachVerification(VerificationReport report) {
         this.verification = report;
+    }
+
+    public Kind kind() {
+        return kind;
     }
 
     public String text() {
