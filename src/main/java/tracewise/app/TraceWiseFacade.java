@@ -144,6 +144,11 @@ public class TraceWiseFacade implements AutoCloseable {
         caseService.reopen(caseId, reason);
     }
 
+    /** F08: the case's history timeline. */
+    public List<AuditEntry> caseHistory(String caseId) {
+        return caseService.history(caseId);
+    }
+
     public List<Case> listCases() {
         return caseService.listCases();
     }

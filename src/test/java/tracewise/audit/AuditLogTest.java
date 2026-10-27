@@ -63,4 +63,22 @@ class AuditLogTest {
             assertEquals("account_history {\"account_id\":\"C1\"}", entries.get(0).details());
         }
     }
+
+    @Test
+    void entriesAreFilteredByDateRangeAndKindOfActor() {
+        try (var db = Database.open(dir.resolve("a.db"))) {
+            var log = new AuditLog(new SqliteAuditRepository(db));
+            var kian = new tracewise.domain.Actor("kian", tracewise.domain.ActorType.ANALYST);
+            log.append(new AuditEntry(java.time.Instant.parse("2026-09-01T10:00:00Z"), kian, "IMPORT", "a.csv", "d", "OK"));
+            log.append(new AuditEntry(java.time.Instant.parse("2026-09-02T10:00:00Z"), tracewise.domain.Actor.AGENT,
+                    "AGENT_STEP", "ALR-00001", "d", "OK"));
+            log.append(new AuditEntry(java.time.Instant.parse("2026-09-03T10:00:00Z"), kian, "IMPORT", "b.csv", "d", "OK"));
+
+            var september2 = new AuditFilter(null, null, java.time.Instant.parse("2026-09-02T00:00:00Z"),
+                    java.time.Instant.parse("2026-09-03T00:00:00Z"), null);
+            assertEquals(List.of("ALR-00001"), log.query(september2).stream().map(AuditEntry::target).toList());
+            var people = new AuditFilter(null, null, null, null, tracewise.domain.ActorType.ANALYST);
+            assertEquals(List.of("a.csv", "b.csv"), log.query(people).stream().map(AuditEntry::target).toList());
+        }
+    }
 }

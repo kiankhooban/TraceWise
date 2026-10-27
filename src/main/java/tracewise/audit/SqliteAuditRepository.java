@@ -40,9 +40,13 @@ public class SqliteAuditRepository implements AuditRepository {
     public List<AuditEntry> find(AuditFilter filter) {
         try (PreparedStatement ps = db.connection().prepareStatement("SELECT ts, actor_name, actor_type, "
                 + "event_type, target, details, outcome FROM audit_log WHERE (?1 IS NULL OR event_type = ?1) "
-                + "AND (?2 IS NULL OR target = ?2) ORDER BY seq")) {
+                + "AND (?2 IS NULL OR target = ?2) AND (?3 IS NULL OR ts >= ?3) AND (?4 IS NULL OR ts < ?4) "
+                + "AND (?5 IS NULL OR actor_type = ?5) ORDER BY seq")) {
             ps.setString(1, filter.eventType());
             ps.setString(2, filter.target());
+            ps.setObject(3, filter.from() == null ? null : filter.from().toEpochMilli());
+            ps.setObject(4, filter.to() == null ? null : filter.to().toEpochMilli());
+            ps.setString(5, filter.actorType() == null ? null : filter.actorType().name());
             try (ResultSet rs = ps.executeQuery()) {
                 var entries = new ArrayList<AuditEntry>();
                 while (rs.next()) {

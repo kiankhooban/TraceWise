@@ -111,4 +111,17 @@ class CaseManagementTest {
             assertTrue(report.items().stream().anyMatch(i -> i.alertId().equals("ALR-00001")), report.items().toString());
         }
     }
+
+    @Test
+    void theHistoryShowsWhatHappenedToTheCaseAndItsAlertsInOrder() {
+        try (var f = facade()) {
+            f.addNote("CAS-00001", "Called the branch.");
+
+            var events = f.caseHistory("CAS-00001").stream().map(e -> e.eventType()).toList();
+
+            assertEquals("INVESTIGATION_STARTED", events.get(0));
+            assertTrue(events.contains("AGENT_FINISHED"), events.toString());
+            assertEquals("ACTION_EXECUTED", events.get(events.size() - 1));
+        }
+    }
 }

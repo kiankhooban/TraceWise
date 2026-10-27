@@ -1,5 +1,7 @@
 package tracewise.app;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import tracewise.actions.ActionCommand;
 import tracewise.actions.AddNoteCommand;
@@ -9,6 +11,9 @@ import tracewise.actions.CommandDispatcher;
 import tracewise.actions.DispatchResult;
 import tracewise.actions.ProposalStatus;
 import tracewise.actions.ReopenCaseCommand;
+import tracewise.audit.AuditEntry;
+import tracewise.audit.AuditFilter;
+import tracewise.audit.AuditLog;
 import tracewise.cases.state.CaseStatus;
 import tracewise.domain.Actor;
 import tracewise.domain.Case;
@@ -23,13 +28,24 @@ public class CaseService {
     private final CaseRepository cases;
     private final CommandDispatcher dispatcher;
     private final ApprovalQueue approvals;
+    private final AuditLog audit;
     private final Actor user;
 
-    public CaseService(CaseRepository cases, CommandDispatcher dispatcher, ApprovalQueue approvals, Actor user) {
+    public CaseService(CaseRepository cases, CommandDispatcher dispatcher, ApprovalQueue approvals, AuditLog audit,
+            Actor user) {
         this.cases = cases;
         this.dispatcher = dispatcher;
         this.approvals = approvals;
+        this.audit = audit;
         this.user = user;
+    }
+
+    /** The case's timeline: every audit entry about the case or one of its alerts, in the order it happened. */
+    public List<AuditEntry> history(String caseId) {
+        var ids = new ArrayList<String>(List.of(caseId));
+        ids.addAll(getCase(caseId).alertIds());
+        return ids.stream().flatMap(id -> audit.query(new AuditFilter(null, id)).stream())
+                .sorted(Comparator.comparing(AuditEntry::timestamp)).toList();
     }
 
     /** Every case, by id. */
