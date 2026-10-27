@@ -23,6 +23,7 @@ dollar figure shown for development is an API-equivalent estimate, not money spe
 |---|---|---|---|
 | 2026-10-20 | API check (1 call) and 21 live investigations: first checks, two re-recordings of the four sample alerts, the F06 check | Claude Haiku 5.5 | about 0.06 |
 | 2026-10-27 | 4 live investigations: re-recording the four sample alerts with the F04 retrieval tools | Claude Haiku 5.5 | about 0.025 |
+| 2026-10-27 | 5 live assistant questions (F10), recorded for replay | Claude Haiku 5.5 | about 0.004 |
 
 The cost per run is computed by TraceWise from token counts and the published prices (USD 0.10 in /
 0.50 out per million tokens for Haiku 5.5, converted at the Bank of Canada rate); the Anthropic Console

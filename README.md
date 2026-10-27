@@ -16,7 +16,7 @@ ledger before a human analyst approves or dismisses the case.
 | Stage | Content | Status |
 |---|---|---|
 | Stage 1: Design | [Design report](docs/stage1/Stage1-Design-Report.md) ([PDF](docs/stage1/Stage1-Design-Report.pdf)) (UMLet diagrams in [`docs/stage1/umlet`](docs/stage1/umlet)) | Complete (100/100) |
-| Stage 2: Implementation | [Plan and feature status](docs/stage2/PLAN.md), [design changes](docs/stage2/design-changes.md) | In progress: F01 to F07 working from the CLI |
+| Stage 2: Implementation | [Plan and feature status](docs/stage2/PLAN.md), [design changes](docs/stage2/design-changes.md) | In progress: F01 to F07 and F10 working from the CLI |
 | Stage 3: Testing | JUnit tests, KUMA agent behaviour tests | Not started |
 
 ## Quick start
@@ -37,6 +37,7 @@ Prerequisites: Java 21 (JDK). Maven is not needed: the repository includes the M
 ./tracewise approvals approve APR-00001         # or: approvals reject APR-00001 --reason "..."
 ./tracewise indicators search deposits below the reporting threshold   # FINTRAC indicators and past cases
 ./tracewise cases similar CAS-00003             # decided cases with the same indicators
+./tracewise ask "Why is account C1037 risky?"   # the read-only assistant (add --json for scripts)
 ```
 
 Indicator search runs a local embedding model (bge-small-en-v1.5) inside the JVM: no key, no network,
@@ -76,7 +77,11 @@ so on a fresh database built from `data/samples/scenarios.csv` they replay witho
 ./tracewise import data/samples/scenarios.csv && ./tracewise monitor run
 ./tracewise --llm replay --model claude-haiku-5-5 investigate ALR-00001
 ./tracewise --llm replay --model claude-haiku-5-5 triage      # all four, in risk order
+./tracewise --llm replay --model claude-haiku-5-5 ask "Why is account C1037 risky?"   # after the triage
 ```
+
+The recorded assistant questions (after the triage above) are listed in
+`src/test/java/tracewise/app/CommittedReplaysTest.java`.
 
 Replays answer only the recorded requests (same prompt, data and tool results). Retrieval results
 are left out of the match, because the local embedding model's scores differ slightly between Apple
