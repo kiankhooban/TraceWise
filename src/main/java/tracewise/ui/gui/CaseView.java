@@ -58,11 +58,13 @@ final class CaseView implements AgentEventListener {
     private final Button close = new Button("Close...");
     private final Button reopen = new Button("Reopen...");
     private final TabPane detail = new TabPane();
+    private final ReportTab report;
     private Case shown;
     private String running;
 
     CaseView(Gui gui) {
         this.gui = gui;
+        this.report = new ReportTab(gui, this::changed);
     }
 
     Node build() {
@@ -150,7 +152,8 @@ final class CaseView implements AgentEventListener {
                 Gui.column("Details", e -> oneLine(e.details(), 200), 480)));
         detail.getTabs().setAll(new Tab("Finding", new javafx.scene.control.ScrollPane(finding)), new Tab("Agent steps", steps),
                 new Tab("Evidence", evidence), new Tab("Tasks", tasks), new Tab("Notes", notesPane),
-                new Tab("History", history));
+                new Tab("Report", new javafx.scene.control.ScrollPane(report.build())), new Tab("History", history));
+        ((javafx.scene.control.ScrollPane) detail.getTabs().get(5).getContent()).setFitToWidth(true);
         detail.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         ((javafx.scene.control.ScrollPane) detail.getTabs().get(0).getContent()).setFitToWidth(true);
         var right = new BorderPane(detail);
@@ -270,6 +273,7 @@ final class CaseView implements AgentEventListener {
         investigate.setDisable(running != null || decided(c));
         close.setDisable(running != null || c.status() == CaseStatus.CLOSED || c.status() == CaseStatus.ESCALATED);
         reopen.setDisable(running != null || c.status() != CaseStatus.CLOSED);
+        report.show(c);
         notes.getItems().setAll(c.notes().stream().map(n -> Gui.text(n.createdAt()) + "  " + n.author() + ":  " + n.text())
                 .toList());
         gui.run("Loading the history of " + c.id(), () -> gui.facade.caseHistory(c.id()), h -> history.getItems().setAll(h));

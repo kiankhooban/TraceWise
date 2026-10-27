@@ -87,4 +87,23 @@ class CommittedReplaysTest {
             }
         }
     }
+
+    /** F11: report narratives recorded live on 2026-10-27 for the three escalated sample cases. */
+    @Test
+    void theRecordedReportDraftsReplayAfterTheEscalationsAreApproved() throws Exception {
+        try (var facade = replaying()) {
+            assertEquals(4, facade.triage(TriageLimits.DEFAULT, null).processed());
+            for (var p : facade.pendingApprovals()) {
+                facade.approve(p.id());
+            }
+            for (String caseId : java.util.List.of("CAS-00001", "CAS-00002", "CAS-00004")) {
+                var draft = facade.draftReport(caseId);
+                assertEquals(false, draft.transactions().isEmpty(), caseId);
+                assertEquals(java.util.List.of(), draft.finalisationProblems(facade.getCase(caseId).latestFinding()), caseId);
+            }
+            facade.approve(facade.requestFinalisation("CAS-00001").id());
+            assertEquals(2, facade.exportReport("CAS-00001", java.util.EnumSet.allOf(tracewise.reporting.ExportFormat.class),
+                    dir.resolve("out")).size());
+        }
+    }
 }
