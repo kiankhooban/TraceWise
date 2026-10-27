@@ -16,7 +16,7 @@ ledger before a human analyst approves or dismisses the case.
 | Stage | Content | Status |
 |---|---|---|
 | Stage 1: Design | [Design report](docs/stage1/Stage1-Design-Report.md) ([PDF](docs/stage1/Stage1-Design-Report.pdf)) (UMLet diagrams in [`docs/stage1/umlet`](docs/stage1/umlet)) | Complete (100/100) |
-| Stage 2: Implementation | [Plan and feature status](docs/stage2/PLAN.md), [design changes](docs/stage2/design-changes.md) | In progress: F01 to F07 and F10 working from the CLI |
+| Stage 2: Implementation | [Plan and feature status](docs/stage2/PLAN.md), [design changes](docs/stage2/design-changes.md) | In progress: F01 to F08 and F10 working from the CLI and the GUI |
 | Stage 3: Testing | JUnit tests, KUMA agent behaviour tests | Not started |
 
 ## Quick start
@@ -38,6 +38,8 @@ Prerequisites: Java 21 (JDK). Maven is not needed: the repository includes the M
 ./tracewise indicators search deposits below the reporting threshold   # FINTRAC indicators and past cases
 ./tracewise cases similar CAS-00003             # decided cases with the same indicators
 ./tracewise ask "Why is account C1037 risky?"   # the read-only assistant (add --json for scripts)
+./tracewise case show CAS-00001                 # also: case note, case close --reason, case reopen --reason
+./tracewise audit export --from 2026-10-01 --out audit.csv
 ```
 
 Indicator search runs a local embedding model (bge-small-en-v1.5) inside the JVM: no key, no network,
@@ -48,6 +50,21 @@ propose closing or escalating a case, which an analyst approves or rejects.
 
 Every command accepts `--json` for machine-readable output. The database is `tracewise.db` in the
 current directory unless `--db FILE` or `TRACEWISE_DB` says otherwise.
+
+### GUI
+
+```bash
+./mvnw -q package -DskipTests
+./tracewise-gui                                   # same settings as the CLI (TRACEWISE_DB, TRACEWISE_ROLE, ...)
+TRACEWISE_ROLE=supervisor ./tracewise-gui         # a supervisor can change monitoring rules
+TRACEWISE_LLM=replay TRACEWISE_MODEL=claude-haiku-5-5 ./tracewise-gui   # replay the recordings, no key
+```
+
+Screens: **Alerts** (import, monitoring, the queue, the Threshold Report Register, investigate, triage),
+**Cases** (finding with verified claims, the agent's steps live, evidence, tasks, notes, history, close and
+reopen), **Approvals** (decide the agent's proposals), **Admin** (rules, knowledge search, audit log with CSV
+export) and the **Assistant** panel beside every screen. `TRACEWISE_SNAPSHOT=shots ./tracewise-gui` saves a
+PNG of every screen and exits.
 
 ### Configuration and API key
 
