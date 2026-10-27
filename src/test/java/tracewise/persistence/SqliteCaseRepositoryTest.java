@@ -103,4 +103,38 @@ class SqliteCaseRepositoryTest {
         assertEquals(0, saved.trace().costCad().compareTo(t.costCad()));
         assertEquals("claude-sonnet-5-5", t.pricing().modelName());
     }
+
+    @Test
+    void aCaseKeepsItsReportWithTheReportedTransactionsInOrder() {
+        var ledger = new SqliteTransactionRepository(db);
+        var t1 = new tracewise.domain.Transaction("TX-1", Instant.parse("2026-09-01T10:00:00Z"), "CASH", "C1",
+                new BigDecimal("9500.00"), new BigDecimal("9500.00"), "CAD", tracewise.domain.PaymentChannel.CASH, "CA", true);
+        var t2 = new tracewise.domain.Transaction("TX-2", Instant.parse("2026-09-02T10:00:00Z"), "C1", "EXT-1",
+                new BigDecimal("12000.50"), new BigDecimal("9000.00"), "USD", tracewise.domain.PaymentChannel.WIRE, "PA", null);
+        ledger.saveAll(List.of(t1, t2));
+        var c = new Case("CAS-00001", Instant.parse("2026-09-03T00:00:00Z"), List.of("ALR-00001"), CaseStatus.ESCALATED);
+        assertTrue(c.report().isEmpty());
+        c.saveReport(tracewise.reporting.StrReport.draft("CAS-00001", "C1", List.of(t2, t1), "Grounds", "Actions"));
+        repo.save(c);
+
+        var draft = repo.findById("CAS-00001").orElseThrow().report().orElseThrow();
+        assertEquals("C1", draft.subjectAccountId());
+        assertEquals(List.of("TX-2", "TX-1"), draft.transactions().stream().map(tracewise.domain.Transaction::id).toList());
+        assertEquals(0, new BigDecimal("12000.50").compareTo(draft.transactions().get(0).amountCad()));
+        assertEquals("Grounds", draft.groundsForSuspicion());
+        assertEquals("Actions", draft.actionsTaken());
+        assertEquals(tracewise.reporting.ReportStatus.DRAFT, draft.status());
+
+        var edited = draft.withText("New grounds", "New actions");
+        edited.lock(Instant.parse("2026-10-27T12:00:00Z"));
+        var loaded = repo.findById("CAS-00001").orElseThrow();
+        loaded.saveReport(edited);
+        repo.save(loaded);
+
+        var fin = repo.findById("CAS-00001").orElseThrow().report().orElseThrow();
+        assertEquals("New grounds", fin.groundsForSuspicion());
+        assertEquals(tracewise.reporting.ReportStatus.FINAL, fin.status());
+        assertEquals(Instant.parse("2026-10-27T12:00:00Z"), fin.finalisedAt());
+        assertEquals(2, fin.transactions().size());
+    }
 }

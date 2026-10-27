@@ -20,8 +20,11 @@ import tracewise.cases.state.CaseStatus;
 import tracewise.domain.Case;
 import tracewise.domain.CaseNote;
 import tracewise.domain.FollowUpTask;
+import tracewise.domain.Transaction;
 import tracewise.llm.ModelConfig;
 import tracewise.llm.TokenUsage;
+import tracewise.reporting.ReportStatus;
+import tracewise.reporting.StrReport;
 import tracewise.verification.VerificationReport;
 
 /** Cases with their linked alerts; each finding is stored as one JSON document with its trace. */
@@ -57,6 +60,7 @@ public class SqliteCaseRepository implements CaseRepository {
                 Jdbc.update(db, "INSERT INTO case_notes (case_id, position, text, author, created_at) VALUES (?, ?, ?, ?, ?)",
                         c.id(), i, notes.get(i).text(), notes.get(i).author(), notes.get(i).createdAt().toString());
             }
+            c.report().ifPresent(r -> saveReport(c.id(), r));
             int stored = Jdbc.query(db, "SELECT COUNT(*) FROM findings WHERE case_id = ?", rs -> rs.getInt(1), c.id()).get(0);
             List<AgentFinding> findings = c.findings();
             for (AgentFinding f : findings.subList(stored, findings.size())) {
@@ -65,9 +69,33 @@ public class SqliteCaseRepository implements CaseRepository {
         });
     }
 
+    private void saveReport(String caseId, StrReport r) {
+        Jdbc.update(db, "INSERT INTO str_reports (case_id, subject_account, grounds, actions_taken, status, finalised_at) "
+                + "VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (case_id) DO UPDATE SET subject_account = excluded.subject_account, "
+                + "grounds = excluded.grounds, actions_taken = excluded.actions_taken, status = excluded.status, "
+                + "finalised_at = excluded.finalised_at", caseId, r.subjectAccountId(), r.groundsForSuspicion(),
+                r.actionsTaken(), r.status().name(), r.finalisedAt() == null ? null : r.finalisedAt().toString());
+        Jdbc.update(db, "DELETE FROM str_report_transactions WHERE case_id = ?", caseId);
+        List<Transaction> reported = r.transactions();
+        for (int i = 0; i < reported.size(); i++) {
+            Jdbc.update(db, "INSERT INTO str_report_transactions (case_id, position, transaction_id) VALUES (?, ?, ?)",
+                    caseId, i, reported.get(i).id());
+        }
+    }
+
+    private Optional<StrReport> findReport(String caseId) {
+        List<Transaction> reported = Jdbc.query(db, "SELECT " + SqliteTransactionRepository.COLUMNS
+                + " FROM str_report_transactions r JOIN transactions t ON t.id = r.transaction_id WHERE r.case_id = ? "
+                + "ORDER BY r.position", SqliteTransactionRepository::row, caseId);
+        return Jdbc.query(db, "SELECT subject_account, grounds, actions_taken, status, finalised_at FROM str_reports "
+                + "WHERE case_id = ?", rs -> new StrReport(caseId, rs.getString(1), reported, rs.getString(2),
+                        rs.getString(3), ReportStatus.valueOf(rs.getString(4)),
+                        rs.getString(5) == null ? null : Instant.parse(rs.getString(5))), caseId).stream().findFirst();
+    }
+
     @Override
     public Optional<Case> findById(String id) {
-        return Jdbc.query(db, "SELECT id, opened_at, status FROM cases WHERE id = ?", rs -> new Case(rs.getString(1),
+        return Jdbc.query(db, "SELECT id, opened_at, status FROM cases WHERE id = ?", rs -> withReport(new Case(rs.getString(1),
                 Instant.ofEpochMilli(rs.getLong(2)),
                 Jdbc.query(db, "SELECT alert_id FROM case_alerts WHERE case_id = ? ORDER BY alert_id", r -> r.getString(1), id),
                 CaseStatus.valueOf(rs.getString(3)),
@@ -75,8 +103,13 @@ public class SqliteCaseRepository implements CaseRepository {
                 Jdbc.query(db, "SELECT description, done FROM case_tasks WHERE case_id = ? ORDER BY position",
                         r -> new FollowUpTask(r.getString(1), r.getInt(2) == 1), id),
                 Jdbc.query(db, "SELECT text, author, created_at FROM case_notes WHERE case_id = ? ORDER BY position",
-                        r -> new CaseNote(r.getString(1), r.getString(2), Instant.parse(r.getString(3))), id)),
+                        r -> new CaseNote(r.getString(1), r.getString(2), Instant.parse(r.getString(3))), id))),
                 id).stream().findFirst();
+    }
+
+    private Case withReport(Case c) {
+        findReport(c.id()).ifPresent(c::saveReport);
+        return c;
     }
 
     @Override

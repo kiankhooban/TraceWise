@@ -113,3 +113,17 @@ CREATE TABLE IF NOT EXISTS approvals (
     decision_reason TEXT,
     decided_at INTEGER
 );
+CREATE TABLE IF NOT EXISTS str_reports (
+    case_id TEXT PRIMARY KEY REFERENCES cases (id),
+    subject_account TEXT NOT NULL,
+    grounds TEXT NOT NULL,
+    actions_taken TEXT NOT NULL,
+    status TEXT NOT NULL,
+    finalised_at TEXT
+);
+CREATE TABLE IF NOT EXISTS str_report_transactions (
+    case_id TEXT NOT NULL REFERENCES str_reports (case_id),
+    position INTEGER NOT NULL,
+    transaction_id TEXT NOT NULL REFERENCES transactions (id),
+    PRIMARY KEY (case_id, position)
+);

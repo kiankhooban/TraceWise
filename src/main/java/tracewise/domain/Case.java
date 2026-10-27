@@ -6,6 +6,7 @@ import java.util.List;
 import tracewise.agent.AgentFinding;
 import tracewise.cases.state.CaseState;
 import tracewise.cases.state.CaseStatus;
+import tracewise.reporting.StrReport;
 
 /** The investigation behind one or more alerts. Its lifecycle is delegated to its CaseState. */
 public class Case {
@@ -17,6 +18,7 @@ public class Case {
     private final List<FollowUpTask> tasks;
     private final List<CaseNote> notes;
     private CaseState state;
+    private StrReport report;
 
     public Case(String id, Instant openedAt, List<String> alertIds) {
         this(id, openedAt, alertIds, CaseStatus.OPEN, List.of());
@@ -69,6 +71,16 @@ public class Case {
 
     public List<FollowUpTask> tasks() {
         return List.copyOf(tasks);
+    }
+
+    /** F11: the case's suspicious transaction report, if one has been drafted. */
+    public java.util.Optional<StrReport> report() {
+        return java.util.Optional.ofNullable(report);
+    }
+
+    /** Replaces the report; SaveReportDraftCommand and the repository are the callers. */
+    public void saveReport(StrReport report) {
+        this.report = report;
     }
 
     public void addFinding(AgentFinding finding) {

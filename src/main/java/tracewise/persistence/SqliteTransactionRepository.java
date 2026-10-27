@@ -16,10 +16,19 @@ import tracewise.domain.Transaction;
 
 public class SqliteTransactionRepository implements TransactionRepository {
 
-    private static final String COLUMNS = "id, ts, sender, receiver, amount_cad, original_amount, currency, "
+    static final String COLUMNS = "id, ts, sender, receiver, amount_cad, original_amount, currency, "
             + "channel, counterparty_country, laundering_label";
 
     private final Database db;
+
+    /** Reads one row selected with {@link #COLUMNS} (in that order, from any table alias). */
+    static Transaction row(ResultSet rs) throws SQLException {
+        int label = rs.getInt(10);
+        Boolean launderingLabel = rs.wasNull() ? null : label == 1;
+        return new Transaction(rs.getString(1), Instant.ofEpochMilli(rs.getLong(2)), rs.getString(3), rs.getString(4),
+                new BigDecimal(rs.getString(5)), new BigDecimal(rs.getString(6)), rs.getString(7),
+                PaymentChannel.valueOf(rs.getString(8)), rs.getString(9), launderingLabel);
+    }
 
     public SqliteTransactionRepository(Database db) {
         this.db = db;
@@ -113,12 +122,7 @@ public class SqliteTransactionRepository implements TransactionRepository {
             try (ResultSet rs = ps.executeQuery()) {
                 var result = new ArrayList<Transaction>();
                 while (rs.next()) {
-                    int label = rs.getInt(10);
-                    Boolean launderingLabel = rs.wasNull() ? null : label == 1;
-                    result.add(new Transaction(rs.getString(1), Instant.ofEpochMilli(rs.getLong(2)),
-                            rs.getString(3), rs.getString(4), new BigDecimal(rs.getString(5)),
-                            new BigDecimal(rs.getString(6)), rs.getString(7),
-                            PaymentChannel.valueOf(rs.getString(8)), rs.getString(9), launderingLabel));
+                    result.add(row(rs));
                 }
                 return result;
             }
