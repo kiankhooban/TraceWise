@@ -11,7 +11,7 @@ loaded automatically: read it explicitly.
 - Period 1 (Oct 20 to 26) plan is **complete** on Oct 20: 53+ commits pushed (5 needed per period).
   Periods 2 (Oct 27 to Nov 2) and 3 (Nov 3 to 9) still each need 5+ meaningful code commits.
 - 254 tests pass, 1 skipped (the opt-in live API test). Design changes 1 to 29 logged.
-- Period 2 (Oct 27 to Nov 2): 14 code commits on Oct 27 (F04, the replay fix, F10 and their review fixes).
+- Period 2 (Oct 27 to Nov 2): 12 code commits plus 2 records commits on Oct 27 (F04, the replay fix, F10 and their review fixes). No PRs: pushed to main.
 
 | Feature | State | Main code |
 |---|---|---|
