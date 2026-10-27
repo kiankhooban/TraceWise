@@ -92,8 +92,12 @@ public class AgentRunner {
                     return finish(trace, OutcomeStatus.CANCELLED, "Cancelled by the analyst");
                 }
                 long start = System.nanoTime();
-                ToolResult result = i < MAX_TOOL_CALLS_PER_TURN ? tools.execute(call)
-                        : ToolResult.error("Not run: at most " + MAX_TOOL_CALLS_PER_TURN + " tool calls per turn");
+                ToolResult result = i >= MAX_TOOL_CALLS_PER_TURN
+                        ? ToolResult.error("Not run: at most " + MAX_TOOL_CALLS_PER_TURN + " tool calls per turn")
+                        // the registry holds every tool; a task may use only those it offers (the assistant is read-only)
+                        : !task.toolNames().contains(call.name())
+                        ? ToolResult.error("Not run: tool '" + call.name() + "' is not available here")
+                        : tools.execute(call);
                 trace.record(new TraceStep(trace.subject(), turn, call.name(), call.argumentsJson(), result.content(),
                         result.error(), (System.nanoTime() - start) / 1_000_000));
                 messages.add(new LLMMessage.ToolResult(call.id(), call.name(), result.content()));

@@ -151,6 +151,32 @@ public class AgentRunnerTest {
     }
 
     @Test
+    void aToolTheTaskDoesNotOfferIsNotRun() {
+        var other = new HistoryTool() {
+            @Override
+            public String name() {
+                return "close_case";
+            }
+
+            @Override
+            public ToolSchema schema() {
+                return new ToolSchema("close_case", "Not for this task", List.of(
+                        new ToolParameter("account_id", ToolParameter.Type.STRING, "Account id", true)));
+            }
+        };
+        var registry = new ToolRegistry();
+        registry.register(history);
+        registry.register(other);
+        model.then(toolCall("close_case", "{\"account_id\":\"C1\"}")).then(answer("VERDICT: ESCALATE"));
+
+        new AgentRunner(model, registry, AgentLimits.DEFAULT).run(TASK, trace);
+
+        assertEquals(0, other.runs);
+        assertTrue(trace.steps().get(0).error());
+        assertTrue(trace.steps().get(0).result().contains("not available"), trace.steps().get(0).result());
+    }
+
+    @Test
     void callsToolsUntilTheModelAnswers() {
         model.then(toolCall("{\"account_id\":\"C1\"}")).then(answer("VERDICT: ESCALATE"));
         var outcome = runner().run(TASK, trace);
