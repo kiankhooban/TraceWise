@@ -26,6 +26,8 @@ final class Gui {
     final AppConfig config;
     /** Opens a case in the Cases screen; set by TraceWiseApp once the views exist. */
     Consumer<String> openCase = id -> { };
+    /** Starts an investigation of an alert in the Cases screen; set by TraceWiseApp. */
+    Consumer<String> investigate = id -> { };
 
     Gui(TraceWiseFacade facade, GuiWorker worker, Stage stage, AppConfig config) {
         this.facade = facade;

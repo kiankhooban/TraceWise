@@ -1,7 +1,5 @@
 package tracewise.agent.tools;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -18,7 +16,6 @@ public class SearchIndicatorsTool implements AgentTool {
 
     public static final String NAME = "search_indicators";
     static final int MAX_RESULTS = 10;
-    private static final ObjectMapper JSON = new ObjectMapper();
 
     private final Retriever retriever;
 
@@ -59,15 +56,7 @@ public class SearchIndicatorsTool implements AgentTool {
     /** Every indicator this tool returned in the run's successful steps. */
     public static Set<String> returnedIndicators(List<TraceStep> steps) {
         var returned = new HashSet<String>();
-        for (TraceStep step : steps) {
-            if (step.toolName().equals(NAME) && !step.error()) {
-                try {
-                    JSON.readTree(step.result()).path("indicators").forEach(i -> returned.add(i.path("indicator").asText()));
-                } catch (JsonProcessingException e) {
-                    throw new IllegalStateException("unreadable " + NAME + " result", e);
-                }
-            }
-        }
+        retrieved(steps).forEach(p -> returned.add(p.text()));
         return returned;
     }
 
@@ -77,5 +66,10 @@ public class SearchIndicatorsTool implements AgentTool {
         row.put("source", p.source());
         row.put("score", p.score());
         return row;
+    }
+
+    /** The indicators the run's successful searches returned, each once with its best score (the Evidence tab). */
+    public static List<RetrievedPassage> retrieved(List<TraceStep> steps) {
+        return Evidence.read(steps, NAME, "indicators", "indicator", "source");
     }
 }

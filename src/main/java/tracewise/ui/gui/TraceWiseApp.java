@@ -35,7 +35,17 @@ public class TraceWiseApp extends Application {
         worker = new GuiWorker(Platform::runLater);
         var gui = new Gui(facade, worker, stage, config);
         var alerts = new AlertsView(gui);
-        var tabs = new TabPane(new Tab("Alerts", alerts.build()));
+        var caseView = new CaseView(gui);
+        var casesTab = new Tab("Cases", caseView.build());
+        var tabs = new TabPane(new Tab("Alerts", alerts.build()), casesTab);
+        gui.openCase = id -> {
+            tabs.getSelectionModel().select(casesTab);
+            caseView.showCase(id);
+        };
+        gui.investigate = id -> {
+            tabs.getSelectionModel().select(casesTab);
+            caseView.investigate(id);
+        };
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
         var root = new BorderPane(tabs);
@@ -46,6 +56,7 @@ public class TraceWiseApp extends Application {
         stage.setScene(scene);
         stage.show();
         alerts.refresh();
+        caseView.refresh();
         String snapshot = System.getenv("TRACEWISE_SNAPSHOT");
         if (snapshot != null) {
             // queued after the loads above, so the screens show data when captured

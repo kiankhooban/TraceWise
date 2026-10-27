@@ -19,6 +19,11 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.stage.FileChooser;
+import javafx.application.Platform;
+import tracewise.agent.AgentEventListener;
+import tracewise.agent.AgentOutcome;
+import tracewise.agent.TraceStep;
+import tracewise.app.TriageLimits;
 import tracewise.domain.Alert;
 import tracewise.domain.AlertStatus;
 import tracewise.domain.ThresholdReport;
@@ -39,6 +44,10 @@ final class AlertsView {
     private final ComboBox<String> status = new ComboBox<>(FXCollections.observableArrayList(ALL, "NEW", "IN_CASE", "CLOSED"));
     private final TextField minTotal = new TextField();
     private final Label count = new Label();
+    private final TextField maxAlerts = new TextField("50");
+    private final TextField maxCost = new TextField("5.00");
+    private final Button stop = new Button("Stop");
+    private final javafx.scene.control.TextArea activity = new javafx.scene.control.TextArea();
 
     AlertsView(Gui gui) {
         this.gui = gui;
@@ -56,11 +65,33 @@ final class AlertsView {
         var monitor = new Button("Run Monitoring");
         monitor.getStyleClass().add("primary");
         monitor.setOnAction(e -> onRunMonitoring());
+        var investigate = new Button("Investigate");
+        investigate.setOnAction(e -> onInvestigate());
+        maxAlerts.setPrefColumnCount(3);
+        maxCost.setPrefColumnCount(5);
+        var triage = new Button("Triage Queue");
+        triage.getStyleClass().add("primary");
+        triage.setOnAction(e -> onTriage());
+        stop.setDisable(true);
+        stop.setOnAction(e -> gui.facade.stopTriage()); // only sets a flag: safe on the UI thread
         var spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        var toolbar = new HBox(8, importCsv, monitor, spacer, new Label("Rule"), rule, new Label("Status"), status,
+        var toolbar = new HBox(8, importCsv, monitor, investigate, new Label("  Triage: max alerts"), maxAlerts,
+                new Label("max CAD"), maxCost, triage, stop, spacer, new Label("Rule"), rule, new Label("Status"), status,
                 minTotal, apply);
         toolbar.getStyleClass().add("toolbar");
+        activity.setEditable(false);
+        activity.setPrefRowCount(7);
+        activity.setPromptText("Agent activity during triage appears here.");
+        alerts.setRowFactory(t -> {
+            var row = new javafx.scene.control.TableRow<Alert>();
+            row.setOnMouseClicked(e -> {
+                if (e.getClickCount() == 2 && !row.isEmpty()) {
+                    open(row.getItem());
+                }
+            });
+            return row;
+        });
 
         alerts.getColumns().setAll(List.of(Gui.column("Alert", Alert::id, 95), Gui.column("Rule", Alert::ruleId, 50),
                 Gui.column("Account", Alert::accountId, 90), Gui.column("Total CAD", Alert::totalCad, 110),
@@ -81,7 +112,9 @@ final class AlertsView {
         BorderPane.setMargin(count, new Insets(6, 0, 0, 0));
         var tabs = new TabPane(new Tab("Alert queue", queue), new Tab("Threshold Report Register", reports));
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-        var root = new BorderPane(tabs);
+        var root = new BorderPane(new javafx.scene.control.SplitPane(tabs, activity));
+        ((javafx.scene.control.SplitPane) root.getCenter()).setOrientation(javafx.geometry.Orientation.VERTICAL);
+        ((javafx.scene.control.SplitPane) root.getCenter()).setDividerPositions(0.78);
         root.setTop(toolbar);
         root.setPadding(new Insets(10));
         return root;
@@ -124,6 +157,68 @@ final class AlertsView {
                     refresh();
                 });
             }
+        });
+    }
+
+    /** Double-click: an alert in a case opens it; a new alert asks whether to investigate. */
+    private void open(Alert a) {
+        if (a.status() == AlertStatus.NEW) {
+            if (gui.confirm("Investigate " + a.id() + "?", "The agent investigates the alert and proposes actions; "
+                    + "closing or escalating needs your approval.")) {
+                gui.investigate.accept(a.id());
+            }
+        } else {
+            gui.openCase.accept(caseOf(a));
+        }
+    }
+
+    private void onInvestigate() {
+        Alert a = alerts.getSelectionModel().getSelectedItem();
+        if (a == null) {
+            gui.info("Select an alert", "Select the alert to investigate in the queue.");
+        } else {
+            gui.investigate.accept(a.id());
+        }
+    }
+
+    /** A case is named after the alert that opened it; a linked alert is found through the Cases screen. */
+    private static String caseOf(Alert a) {
+        return "CAS-" + a.id().substring(4);
+    }
+
+    private void onTriage() {
+        TriageLimits limits;
+        try {
+            limits = new TriageLimits(Integer.parseInt(maxAlerts.getText().strip()), new BigDecimal(maxCost.getText().strip()),
+                    AlertFilter.ALL);
+        } catch (NumberFormatException e) {
+            gui.info("Invalid limits", "Max alerts must be a whole number and max CAD a number, for example 50 and 5.00.");
+            return;
+        }
+        activity.clear();
+        stop.setDisable(false);
+        var listener = new AgentEventListener() {
+            @Override
+            public void onStep(TraceStep s) {
+                String line = "[" + s.subject() + "] turn " + s.turn() + "  " + s.toolName() + (s.error() ? "  ERROR" : "") + "\n";
+                Platform.runLater(() -> activity.appendText(line));
+            }
+
+            @Override
+            public void onFinished(AgentOutcome o) {
+                Platform.runLater(() -> activity.appendText("[" + o.subject() + "] " + o.status() + "\n"));
+            }
+        };
+        gui.worker.submit("Triaging the alert queue", () -> gui.facade.triage(limits, listener), report -> {
+            stop.setDisable(true);
+            gui.info("Triage " + report.endReason(), report.summary() + "\n\n" + report.items().stream()
+                    .map(i -> i.alertId() + "  " + i.caseId() + "  " + i.status() + (i.verdict() == null ? "" : "  " + i.verdict())
+                            + (i.verification() == null ? "" : "  (" + i.verification() + ")"))
+                    .collect(Collectors.joining("\n")));
+            refresh();
+        }, e -> {
+            stop.setDisable(true);
+            gui.error(e);
         });
     }
 

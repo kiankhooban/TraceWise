@@ -52,4 +52,9 @@ public class SimilarCasesTool implements AgentTool {
         row.put("score", p.score());
         return row;
     }
+
+    /** The past cases the run's successful searches returned, each once with its best score (the Evidence tab). */
+    public static List<RetrievedPassage> retrieved(List<tracewise.agent.TraceStep> steps) {
+        return Evidence.read(steps, NAME, "cases", "summary", "case_id");
+    }
 }

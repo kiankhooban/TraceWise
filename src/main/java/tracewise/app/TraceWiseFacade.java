@@ -118,6 +118,10 @@ public class TraceWiseFacade implements AutoCloseable {
         return approvals.find(pendingId);
     }
 
+    public List<Case> listCases() {
+        return caseService.listCases();
+    }
+
     public Case getCase(String caseId) {
         return caseService.getCase(caseId);
     }

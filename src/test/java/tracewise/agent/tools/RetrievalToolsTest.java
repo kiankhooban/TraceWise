@@ -81,6 +81,21 @@ class RetrievalToolsTest {
     }
 
     @Test
+    void theEvidenceOfARunIsReadBackWithSourcesAndScores() {
+        var indicators = searchIndicators((q, n) -> List.of(new RetrievedPassage("Returned one.", "FINTRAC 7.5, s7", 0.83)),
+                "{\"query\":\"x\"}");
+        var steps = List.of(new TraceStep("ALR-1", 1, SearchIndicatorsTool.NAME, "{}", indicators.content(), false, 1),
+                new TraceStep("ALR-1", 2, SearchIndicatorsTool.NAME, "{}", indicators.content(), false, 1),
+                new TraceStep("ALR-1", 2, SimilarCasesTool.NAME, "{}",
+                        "{\"description\":\"d\",\"cases\":[{\"case_id\":\"CAS-00007\",\"summary\":\"CLOSED. Payroll.\","
+                                + "\"score\":0.81}]}", false, 1));
+
+        assertEquals(List.of(new RetrievedPassage("Returned one.", "FINTRAC 7.5, s7", 0.83)),
+                SearchIndicatorsTool.retrieved(steps), "each indicator once");
+        assertEquals(List.of(new RetrievedPassage("CLOSED. Payroll.", "CAS-00007", 0.81)), SimilarCasesTool.retrieved(steps));
+    }
+
+    @Test
     void searchIndicatorsAsksForAtMostTenResults() {
         searchIndicators((q, n) -> {
             asked.add(String.valueOf(n));

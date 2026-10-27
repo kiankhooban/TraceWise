@@ -1,5 +1,6 @@
 package tracewise.app;
 
+import java.util.List;
 import tracewise.domain.Case;
 import tracewise.persistence.CaseRepository;
 
@@ -10,6 +11,11 @@ public class CaseService {
 
     public CaseService(CaseRepository cases) {
         this.cases = cases;
+    }
+
+    /** Every case, by id. */
+    public List<Case> listCases() {
+        return cases.findAll();
     }
 
     public Case getCase(String caseId) {
