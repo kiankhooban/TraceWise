@@ -285,3 +285,30 @@ per finding) confirmed seven findings, among them that the design's own "open ca
 (cases are never stored as OPEN), that a clarifying question and an unsupported answer looked the same in JSON,
 and that the assistant could not see alerts outside cases. All were fixed test-first and the questions
 re-recorded; three findings were rejected with reasons. 254 tests pass.
+
+---
+
+## Entry 12: Front-loaded plan, the JavaFX GUI and case management (F08) (2026-10-27)
+
+**Task:** Build the GUI for every working feature, then F08, and review both.
+
+**Input/Instruction:** Kian asked to do most of the remaining work this week so there is time to recover if
+something goes wrong, and agreed to keep one real feature (F12) for period 3 instead of splitting a trivial
+change into many commits, which the handout excludes.
+
+**AI Contribution:** Built the JavaFX GUI with the design's five views. Every facade call runs on one background
+worker thread, which keeps the window responsive and settles the concurrency items deferred from the CLI work.
+The terminal had no screen-recording permission, so the app got a screenshot mode that saves a PNG of every
+screen, optionally after a scripted investigation or question; every screen was checked that way, including a
+replayed investigation streaming its steps live. Built F08 from SD8: notes, an analyst's close and reopen with
+reasons, all through the dispatcher with an audit entry, the case history timeline, audit filters by date and
+kind of actor, and CSV export that neutralises spreadsheet formulas.
+
+**Human Contribution:** Set the schedule and the rule against artificial commits.
+
+**Outcome:** A sixth `deep-code-review` (nine reviewers plus Codex, one validator per finding) confirmed twelve
+findings, the most serious that Close or Reopen could act on whichever case was on screen when the worker ran
+rather than the one clicked. Others: a cancel or stop pressed while the job waited was lost, closing the window
+could close the database under a running job, and a linked alert opened the wrong case. All were fixed, the
+testable ones test-first; the assistant's questions were re-recorded because `get_case` now shows notes.
+283 tests pass.

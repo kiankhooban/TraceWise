@@ -36,17 +36,7 @@ Strategy also covers `Retriever` (`EmbeddingRetriever`, context `SearchIndicator
 
 ## 2. Next tasks, in order (plan agreed with Kian 2026-10-27, see PLAN.md "Revised schedule")
 
-1. **GUI + F08 review: fixing** (run dir `/tmp/compound-engineering/ce-code-review/gui-f08-20261027154110`).
-   Codex found nothing; 12 findings validated, all confirmed (`validate-g*.json`). Two test gaps already
-   covered (Evidence best-score merge, inclusive `--to`), uncommitted. To fix, test-first where testable:
-   g1 CaseView close/reopen read `shown` on the worker (capture id at click); g2 cancel/stop while queued lost
-   (InvestigationService remember a pending cancel; TriageService clear stopRequested in finally, not at start);
-   g3 TraceWiseApp.stop closes DB under a running job (stop triage, cancel, close facade only if worker done);
-   g4 second investigate overwrites `running` (refuse while running); g5 GuiWorker catch Throwable;
-   g6 get_case add notes (re-record the 7 assistant questions afterwards); g7 linked alert opens wrong case
-   (facade lookup of the alert's case); g8 env defaults shared constants in AppConfig; g11 AuditCsv guard tab
-   and CR; g12 `case note` arity 1..*; g13 rule editor validation in an OK-button event filter; g14 Snapshots
-   catch, log, exit. Then records (collaboration entry 12, PLAN, design change for g2 and g6).
+1. GUI and F08 are done and reviewed (review 6, commit `4d1c6f7`); 283 tests; design changes 1 to 32.
 2. **F11** STR draft and export (Report tab), **F09** network view (Network tab, JavaFXSmartGraph). This week.
 3. Period 3 (Nov 3 to 6): **F12** dashboard (the real period 3 feature), final review fixes, fresh-clone check.
 4. Records: UMLet class diagram update, stage2-report PDF, demo scripts.
@@ -158,7 +148,7 @@ Replays and live runs:
 - Models: `claude-haiku-5-5` (USD 0.10 / 0.50 per MTok) for development and recordings;
   `claude-sonnet-5-5` (USD 2 / 10) for real demos. `ModelConfig.of` refuses unknown models.
   LangChain4j stays on 1.21.0 (the graded design's version).
-- Runtime API spend so far: about CAD 0.11 (recorded in `docs/ai-usage/ai-tools.md`; add new live runs there).
+- Runtime API spend so far: about CAD 0.12 (recorded in `docs/ai-usage/ai-tools.md`; add new live runs there).
 
 Shell and secrets:
 - NEVER `source` or `.` the `.env` file (a malformed line printed the key on 2026-10-20; that key was

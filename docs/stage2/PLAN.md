@@ -43,7 +43,7 @@ Do almost all the work in period 2 so there is time to recover if something goes
 | F05 Claim Verification | Working (CLI, inside `investigate`) | `verification/*` (`ClaimVerifier`, `VerificationReport`), `agent/Claim`, `agent/TotalClaim` | |
 | F06 Agent Actions and Approval Queue | Working (CLI); GUI pending; report-draft action comes with F11 | `actions/*` (`ActionCommand` and six commands, `CommandDispatcher`, `PermissionPolicy`, `ApprovalQueue`, `PendingAction`), `agent/tools/ActionTool` and six action tools, `persistence/SqliteApprovalRepository`, `ui/cli/ApprovalsCli` | |
 | F07 Autonomous Queue Triage | Working (CLI); GUI pending | `app/TriageService`, `app/TriageLimits`, `agent/TriageReport`, `ui/cli/TriageCli` | |
-| F08 Case Management and Audit Trail | Partly: case states (State pattern) and storage, agent steps audited; case and audit commands pending | `domain/Case`, `cases/state/*`, `persistence/SqliteCaseRepository`, `audit/AuditLog` | |
+| F08 Case Management and Audit Trail | Working (CLI and GUI) | `domain/Case`, `cases/state/*`, `persistence/SqliteCaseRepository`, `audit/AuditLog` | |
 | F09 Money-Flow Network View | Not started | | |
 | F10 Natural-Language Analyst Assistant | Working (CLI, `ask --json`); GUI Assistant panel pending | `agent/{AssistantTask,AssistantAnswer,AssistantContext,ConversationMemory,AgentJson}`, `agent/tools/{QueryCases,QueryAlerts,GetCase}Tool`, `app/AssistantService`, `ui/cli/AskCli` | |
 | F11 Suspicious Transaction Report Drafting and Export | Not started | | |
@@ -92,6 +92,10 @@ Do almost all the work in period 2 so there is time to recover if something goes
 - 2026-10-27 (review 5): `deep-code-review` of the replay fix and F10: answer kind in `ask --json`, `query_alerts`
   and `get_case`, "open" cases match undecided ones, questions audited with the user. Questions re-recorded.
   254 tests. Design change 29.
+- 2026-10-27 (GUI, F08, review 6): JavaFX GUI for F01 to F08 and F10 (Alerts, Cases, Approvals, Admin,
+  Assistant) on one background worker, screenshot mode for checking; F08 notes, analyst close and reopen,
+  history, audit filters and CSV export, CLI `case` and `audit export`. Review fixes: close and reopen target,
+  queued cancel and stop, shutdown order, linked-alert case, notes for the assistant. 283 tests. Changes 30 to 32.
 
 ## Tooling (installed 2026-10-20)
 - `jdtls-lsp` plugin with `jdtls` 1.63.0 (Homebrew): Java diagnostics and navigation.
