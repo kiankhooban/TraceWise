@@ -2,6 +2,7 @@ package tracewise.actions;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.function.Predicate;
 import tracewise.audit.AuditEntry;
 import tracewise.audit.AuditLog;
 import tracewise.cases.state.CaseStatus;
@@ -96,8 +97,13 @@ public class ApprovalQueue {
      * approves an action whose evidence was never produced. Runs in the caller's transaction.
      */
     public void expireUnfinished(String caseId, String reason) {
+        expireWaiting(caseId, command -> true, reason);
+    }
+
+    /** Expires the case's waiting proposals whose command matches. */
+    public void expireWaiting(String caseId, Predicate<ActionCommand> which, String reason) {
         for (PendingAction p : forCase(caseId)) {
-            if (p.status() == ProposalStatus.PENDING) {
+            if (p.status() == ProposalStatus.PENDING && which.test(p.command())) {
                 p.markExpired(reason);
                 repository.save(p);
                 returnToInvestigationIfWaiting(p);

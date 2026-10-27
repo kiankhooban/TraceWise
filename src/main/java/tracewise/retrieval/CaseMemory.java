@@ -59,9 +59,20 @@ public class CaseMemory {
         return Optional.of(new Passage(c.id(), c.status() + ". " + description(f)));
     }
 
-    /** What a case's latest finding says about the pattern, used to find similar cases. */
+    /** What a case's latest finding says about the pattern: its decision is added by passage(). */
     public static String description(AgentFinding f) {
-        return (f.indicators().isEmpty() ? "" : "Indicators: " + String.join("; ", f.indicators()) + ". ")
-                + f.narrative();
+        return f.indicators().isEmpty() ? f.narrative() : pattern(f) + " " + f.narrative();
+    }
+
+    /**
+     * The FINTRAC indicators of a finding, or its narrative if it has none: the query for cases similar to it.
+     * Narratives share one style and are full of figures, so two of them score about 0.85 whatever the pattern.
+     */
+    public static String pattern(AgentFinding f) {
+        if (f.indicators().isEmpty()) {
+            return f.narrative();
+        }
+        String list = String.join("; ", f.indicators());
+        return "Indicators: " + list + (list.endsWith(".") ? "" : ".");
     }
 }

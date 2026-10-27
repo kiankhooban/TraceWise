@@ -26,6 +26,26 @@ import tracewise.tools.ScenarioGenerator;
 class KnowledgeCliTest {
 
     static final String STRUCTURING = "Multiple transactions conducted below the reporting threshold within a short period.";
+    static final String PASS_THROUGH = "Funds transferred in and out of an account on the same day or within a relatively "
+            + "short period of time.";
+
+    /** Narratives from the live Haiku run of 2026-10-27 (ALR-00001 and ALR-00002). */
+    static final String LIVE_STRUCTURING = "C1037 received four cash deposits on four consecutive days: 8673.80 CAD (TX-00121, 2026-09"
+            + "-02), 9016.77 CAD (TX-00183, 2026-09-03), 9555.41 CAD (TX-00186, 2026-09-04) and 9819.55 C"
+            + "AD (TX-00251, 2026-09-05). Each is below the 10,000 CAD reporting threshold and the amount"
+            + "s rise steadily, totalling 37065.53 CAD. The account has no outgoing transactions and its "
+            + "only counterparty is the CASH counter. No payroll or business income explains the funds, a"
+            + "nd no other alerts are linked. This pattern gives reasonable grounds to suspect structurin"
+            + "g to avoid reporting. The depositor's identity and the source of the cash are not in the d"
+            + "ata, so a follow-up task was opened on CAS-00001. Escalation has been proposed for analyst"
+            + " approval.";
+    static final String LIVE_PASS_THROUGH = "C1059 received a 48000.00 CAD wire from EXT-2224 (TX-00454) on 2026-09-16 and sent 45500.0"
+            + "0 CAD by wire to EXT-2137 (TX-00496) the same day, about five hours later. About 94.8% of "
+            + "the inbound funds left the account within hours. The account has no other transactions, so"
+            + " there is no payroll, business income or other activity to explain the flow. Both counterp"
+            + "arties are domestic. No similar precedent was found. Customer profile, source of funds and"
+            + " the purpose of the transfers remain to be obtained (task created on CAS-00002). Escalatio"
+            + "n is proposed for analyst approval.";
 
     @TempDir Path dir;
     StringWriter out;
@@ -42,11 +62,15 @@ class KnowledgeCliTest {
 
     /** The agent investigates the alert, proposes the action and reports the narrative. */
     void agentFinds(String alertId, String tool, String narrative) {
+        agentFinds(alertId, tool, STRUCTURING, narrative);
+    }
+
+    void agentFinds(String alertId, String tool, String indicator, String narrative) {
         String caseId = "CAS-" + alertId.substring(4);
         var model = new ScriptedModel()
                 .then(AgentRunnerTest.toolCall(tool, "{\"case_id\":\"" + caseId + "\",\"justification\":\"Because\"}"))
                 .then(AgentRunnerTest.answer("{\"verdict\":\"ESCALATE\",\"confidence\":0.8,\"indicators\":[\""
-                        + STRUCTURING + "\"],\"cited_transactions\":[],\"totals\":[],\"narrative\":\"" + narrative + "\"}"));
+                        + indicator + "\"],\"cited_transactions\":[],\"totals\":[],\"narrative\":\"" + narrative + "\"}"));
         var config = new AppConfig(dir.resolve("t.db"), "agent-run", ActorType.ANALYST,
                 ModelConfig.of("anthropic", "claude-haiku-5-5", false), dir.resolve("replays"), dir.resolve(".env"));
         try (var facade = TraceWiseBootstrap.create(config, () -> model)) {
@@ -59,9 +83,10 @@ class KnowledgeCliTest {
         Path file = Files.write(dir.resolve("s.csv"), ScenarioGenerator.generate(42));
         assertEquals(0, run("import", file.toString()));
         assertEquals(0, run("monitor", "run"));
-        agentFinds("ALR-00001", "propose_escalation", "Repeated cash deposits just under the reporting threshold.");
+        agentFinds("ALR-00001", "propose_escalation", LIVE_STRUCTURING);
         assertEquals(0, run("approvals", "approve", "APR-00001"));
         agentFinds("ALR-00003", "set_priority", "Cash deposits just below the reporting threshold, repeated within days.");
+        agentFinds("ALR-00002", "set_priority", PASS_THROUGH, LIVE_PASS_THROUGH);
     }
 
     @Test
@@ -92,6 +117,13 @@ class KnowledgeCliTest {
 
         assertTrue(out.toString().contains("CAS-00001"), out.toString());
         assertTrue(out.toString().contains("ESCALATED."), out.toString());
+    }
+
+    @Test
+    void aCaseWithADifferentPatternIsNotSimilar() {
+        assertEquals(0, run("cases", "similar", "CAS-00002"));
+
+        assertTrue(out.toString().contains("Nothing relevant found"), out.toString());
     }
 
     @Test

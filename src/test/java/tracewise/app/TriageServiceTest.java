@@ -167,6 +167,17 @@ class TriageServiceTest {
     }
 
     @Test
+    void aProposalContradictingTheRunsVerdictIsNotCounted() {
+        model.then(AgentRunnerTest.toolCall("propose_close", forCase("CAS-00002")))
+                .then(AgentRunnerTest.answer(answer("INCONCLUSIVE")))
+                .then(AgentRunnerTest.answer(answer("ESCALATE"))).then(AgentRunnerTest.answer(answer("ESCALATE")))
+                .then(AgentRunnerTest.answer(answer("ESCALATE")));
+        var report = triage(TriageLimits.DEFAULT, null);
+
+        assertEquals(0, report.closesProposed(), "the close contradicted INCONCLUSIVE and expired");
+    }
+
+    @Test
     void actionsFromARunThatFailedStillCountButItsProposalsDoNot() {
         model.then(AgentRunnerTest.toolCall("link_alerts", linkFirstAlert("CAS-00002")))
                 .then(AgentRunnerTest.toolCall("set_priority", "{\"alert_id\":\"ALR-00002\",\"priority\":1,\"justification\":\"j\"}"))

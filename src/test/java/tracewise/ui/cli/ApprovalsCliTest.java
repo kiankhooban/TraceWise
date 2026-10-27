@@ -41,12 +41,13 @@ class ApprovalsCliTest {
                 ModelConfig.of("anthropic", "claude-haiku-5-5", false), dir.resolve("replays"), dir.resolve(".env"));
     }
 
-    /** The agent investigates the alert and proposes the given action, then answers without citing anything. */
+    /** The agent investigates the alert, proposes the given action and answers with the matching verdict. */
     void agentProposes(String alertId, String tool) {
         String caseId = "CAS-" + alertId.substring(4);
         var model = new ScriptedModel()
                 .then(AgentRunnerTest.toolCall(tool, "{\"case_id\":\"" + caseId + "\",\"justification\":\"Because\"}"))
-                .then(AgentRunnerTest.answer("{\"verdict\":\"ESCALATE\",\"confidence\":0.7,\"indicators\":[],"
+                .then(AgentRunnerTest.answer("{\"verdict\":\"" + (tool.equals("propose_close") ? "DISMISS" : "ESCALATE")
+                        + "\",\"confidence\":0.7,\"indicators\":[],"
                         + "\"cited_transactions\":[],\"totals\":[],\"narrative\":\"n\"}"));
         try (var facade = TraceWiseBootstrap.create(config(), () -> model)) {
             facade.investigate(alertId, null);

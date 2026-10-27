@@ -270,6 +270,27 @@ class InvestigationServiceTest {
     }
 
     @Test
+    void aCloseProposalContradictingTheAgentsOwnVerdictExpires() {
+        model.then(AgentRunnerTest.toolCall("propose_close", proposeEscalation()))
+                .then(AgentRunnerTest.answer(finding().replace("\"ESCALATE\"", "\"INCONCLUSIVE\"")));
+        service().investigate(structuring.id(), null);
+
+        var p = queue.find("APR-00001");
+        assertEquals(tracewise.actions.ProposalStatus.EXPIRED, p.status());
+        assertTrue(p.decisionReason().contains("INCONCLUSIVE"), p.decisionReason());
+        assertEquals(CaseStatus.UNDER_INVESTIGATION, cases.findByAlert(structuring.id()).orElseThrow().status());
+    }
+
+    @Test
+    void anEscalationProposalContradictingTheAgentsOwnVerdictExpires() {
+        model.then(AgentRunnerTest.toolCall("propose_escalation", proposeEscalation()))
+                .then(AgentRunnerTest.answer(finding().replace("\"ESCALATE\"", "\"DISMISS\"")));
+        service().investigate(structuring.id(), null);
+
+        assertEquals(tracewise.actions.ProposalStatus.EXPIRED, queue.find("APR-00001").status());
+    }
+
+    @Test
     void aReinvestigationTellsTheAgentWhyItsLastProposalWasRejected() {
         model.then(AgentRunnerTest.toolCall("propose_escalation", proposeEscalation()))
                 .then(AgentRunnerTest.answer(finding()));

@@ -124,13 +124,13 @@ public class TraceWiseFacade implements AutoCloseable {
                 .sorted(Comparator.comparingDouble(RetrievedPassage::score).reversed()).toList();
     }
 
-    /** Closed and escalated cases whose pattern resembles the case's latest finding, other than the case itself. */
+    /** Closed and escalated cases matching the indicators of the case's latest finding, other than the case itself. */
     public List<RetrievedPassage> similarCases(String caseId) {
         var finding = getCase(caseId).latestFinding();
         if (finding == null) {
             throw new IllegalArgumentException("Case " + caseId + " has no finding yet, so there is nothing to compare");
         }
-        return memory.similar(CaseMemory.description(finding), 6).stream()
+        return memory.similar(CaseMemory.pattern(finding), 6).stream()
                 .filter(p -> !p.source().equals(caseId)).limit(5).toList();
     }
 

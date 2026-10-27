@@ -63,6 +63,21 @@ class CaseMemoryTest {
     }
 
     @Test
+    void anIndicatorEndingInAFullStopIsNotFollowedByAnother() {
+        var f = new AgentFinding(Verdict.ESCALATE, 0.9, List.of("A.", "B."), List.of(), List.of(), "N.", false, null);
+
+        assertEquals("Indicators: A.; B. N.", CaseMemory.description(f));
+        assertEquals("Indicators: A.; B.", CaseMemory.pattern(f));
+    }
+
+    @Test
+    void theNarrativeDescribesThePatternWhenThereAreNoIndicators() {
+        var f = new AgentFinding(Verdict.INCONCLUSIVE, 0.5, List.of(), List.of(), List.of(), "N.", false, null);
+
+        assertEquals("N.", CaseMemory.pattern(f));
+    }
+
+    @Test
     void aCaseWithoutAFindingIsLeftOut() {
         stored.add(new Case("CAS-4", Instant.parse("2026-09-01T00:00:00Z"), List.of("ALR-1"), CaseStatus.CLOSED));
 

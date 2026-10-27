@@ -4,7 +4,10 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.function.Supplier;
+import tracewise.actions.ActionCommand;
 import tracewise.actions.ApprovalQueue;
+import tracewise.actions.CloseCaseCommand;
+import tracewise.actions.EscalateCaseCommand;
 import tracewise.actions.ProposalStatus;
 import tracewise.agent.AgentEventListener;
 import tracewise.agent.AgentFinding;
@@ -14,6 +17,7 @@ import tracewise.agent.AgentTrace;
 import tracewise.agent.InvestigationResult;
 import tracewise.agent.InvestigationTask;
 import tracewise.agent.OutcomeStatus;
+import tracewise.agent.Verdict;
 import tracewise.agent.tools.ActionScope;
 import tracewise.audit.AuditEntry;
 import tracewise.audit.AuditLog;
@@ -139,11 +143,21 @@ public class InvestigationService {
      * Stores the finding on the case as it is now: the agent's actions may have changed the case during the
      * run (a proposal moves it to Pending Approval), so the copy loaded at the start is not written back.
      */
+    /** Closing fits only a DISMISS verdict and escalating only an ESCALATE verdict. */
+    private static boolean contradicts(ActionCommand command, Verdict verdict) {
+        return command instanceof CloseCaseCommand ? verdict != Verdict.DISMISS
+                : command instanceof EscalateCaseCommand && verdict != Verdict.ESCALATE;
+    }
+
     private InvestigationResult finished(Case started, InvestigationResult result) {
         db.inTransaction(() -> {
             if (result.finding() == null) {
                 approvals.expireUnfinished(started.id(), "the investigation that proposed it ended " + result.status()
                         + " without a finding");
+            } else {
+                Verdict v = result.finding().verdict();
+                approvals.expireWaiting(started.id(), command -> contradicts(command, v),
+                        "it contradicts the investigation's own verdict " + v);
             }
             Case c = cases.findById(started.id()).orElseThrow();
             if (result.finding() != null) {

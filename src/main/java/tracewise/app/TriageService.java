@@ -15,6 +15,7 @@ import tracewise.agent.TraceStep;
 import tracewise.agent.TriageReport;
 import tracewise.agent.TriageReport.EndReason;
 import tracewise.agent.TriageReport.Item;
+import tracewise.agent.Verdict;
 import tracewise.agent.tools.AddToWatchlistTool;
 import tracewise.agent.tools.CreateTaskTool;
 import tracewise.agent.tools.LinkAlertsTool;
@@ -61,7 +62,8 @@ public class TriageService {
         List<Alert> open = alerts.find(limits.filter()).stream().filter(this::needsInvestigation).toList();
         var items = new ArrayList<Item>();
         var actions = new ArrayList<TraceStep>();
-        var proposals = new ArrayList<TraceStep>();
+        int escalations = 0;
+        int closes = 0;
         var triagedCases = new HashSet<String>();
         BigDecimal cost = BigDecimal.ZERO;
         int failuresInARow = 0;
@@ -91,8 +93,11 @@ public class TriageService {
                 cost = cost.add(r.trace().costCad());
                 triagedCases.add(r.caseId());
                 actions.addAll(r.trace().steps()); // autonomous actions took effect whatever the outcome
-                if (r.finding() != null) {
-                    proposals.addAll(r.trace().steps()); // a run without a finding had its proposals expired
+                // proposals from a run without a finding, or contradicting its verdict, were expired
+                if (r.finding() != null && r.finding().verdict() == Verdict.ESCALATE) {
+                    escalations += count(r.trace().steps(), ProposeEscalationTool.NAME);
+                } else if (r.finding() != null && r.finding().verdict() == Verdict.DISMISS) {
+                    closes += count(r.trace().steps(), ProposeCloseTool.NAME);
                 }
                 item = new Item(alert.id(), r.caseId(), r.status(), r.finding() == null ? null : r.finding().verdict(),
                         r.finding() == null ? null : r.finding().verification().summary(), r.message(),
@@ -109,7 +114,7 @@ public class TriageService {
             }
         }
         var report = new TriageReport(end, items, cost, (System.nanoTime() - start) / 1_000_000,
-                count(proposals, ProposeEscalationTool.NAME), count(proposals, ProposeCloseTool.NAME), linkedAlerts(actions),
+                escalations, closes, linkedAlerts(actions),
                 count(actions, SetPriorityTool.NAME) + count(actions, AddToWatchlistTool.NAME)
                         + count(actions, CreateTaskTool.NAME));
         audit.append(new AuditEntry(Instant.now(), user, "TRIAGE_FINISHED", "alert queue", report.summary(), end.name()));
