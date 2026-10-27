@@ -36,7 +36,7 @@ Source: `Project-Stage2-Instruction.pdf` (course handout, read 2026-10-20). Impl
 | F07 Autonomous Queue Triage | Working (CLI); GUI pending | `app/TriageService`, `app/TriageLimits`, `agent/TriageReport`, `ui/cli/TriageCli` | |
 | F08 Case Management and Audit Trail | Partly: case states (State pattern) and storage, agent steps audited; case and audit commands pending | `domain/Case`, `cases/state/*`, `persistence/SqliteCaseRepository`, `audit/AuditLog` | |
 | F09 Money-Flow Network View | Not started | | |
-| F10 Natural-Language Analyst Assistant | Not started | | |
+| F10 Natural-Language Analyst Assistant | Working (CLI, `ask --json`); GUI Assistant panel pending | `agent/{AssistantTask,AssistantAnswer,AssistantContext,ConversationMemory,AgentJson}`, `agent/tools/{QueryCases,QueryAlerts,GetCase}Tool`, `app/AssistantService`, `ui/cli/AskCli` | |
 | F11 Suspicious Transaction Report Drafting and Export | Not started | | |
 | F12 Agent Performance Dashboard | Not started | | |
 
@@ -74,6 +74,15 @@ Source: `Project-Stage2-Instruction.pdf` (course handout, read 2026-10-20). Impl
 - 2026-10-27 (review 4): `deep-code-review` of F04 (ten reviewers plus Codex, each finding validated):
   replays explained and guarded by a test, indicators checked against search results, case memory retries
   failed loads and never changes inside a decision's transaction. 223 tests. Design change 25.
+- 2026-10-27 (checks, F10): checked the replays in an x86 Linux container: they failed there because the
+  embedding scores differ from Apple Silicon in the third decimal, so retrieval results are now left out of
+  replay matching (also fixes replays after approvals); recordings re-keyed without new model calls; the agent
+  loop now runs only the tools a task offers. F10: `query_cases`, the read-only assistant and `tracewise ask
+  [--json]`; five questions recorded live with Haiku 5.5 and replayed in the build on both CPU types.
+  245 tests. Design changes 26 to 28.
+- 2026-10-27 (review 5): `deep-code-review` of the replay fix and F10: answer kind in `ask --json`, `query_alerts`
+  and `get_case`, "open" cases match undecided ones, questions audited with the user. Questions re-recorded.
+  254 tests. Design change 29.
 
 ## Tooling (installed 2026-10-20)
 - `jdtls-lsp` plugin with `jdtls` 1.63.0 (Homebrew): Java diagnostics and navigation.

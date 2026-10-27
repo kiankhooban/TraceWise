@@ -1,6 +1,6 @@
 # Stage 2 handoff (read this first after /compact or in a new session)
 
-Last updated 2026-10-27, after the F04 review (commit `514e897`). Read this file, then `CLAUDE.md` (repo root) and
+Last updated 2026-10-27, after the F10 review (commit `99273b2`). Read this file, then `CLAUDE.md` (repo root) and
 `docs/stage2/PLAN.md`. Sessions often run from `~/Brain`, where the TraceWise `CLAUDE.md` is NOT
 loaded automatically: read it explicitly.
 
@@ -10,8 +10,8 @@ loaded automatically: read it explicitly.
   Kian records the demo videos Nov 8 to 10 (we write a script per feature in week 3).
 - Period 1 (Oct 20 to 26) plan is **complete** on Oct 20: 53+ commits pushed (5 needed per period).
   Periods 2 (Oct 27 to Nov 2) and 3 (Nov 3 to 9) still each need 5+ meaningful code commits.
-- 223 tests pass, 1 skipped (the opt-in live API test). Design changes 1 to 25 logged.
-- Period 2 (Oct 27 to Nov 2): 6 code commits on Oct 27 (F04 and its review fixes).
+- 254 tests pass, 1 skipped (the opt-in live API test). Design changes 1 to 29 logged.
+- Period 2 (Oct 27 to Nov 2): 14 code commits on Oct 27 (F04, the replay fix, F10 and their review fixes).
 
 | Feature | State | Main code |
 |---|---|---|
@@ -23,7 +23,8 @@ loaded automatically: read it explicitly.
 | F07 Triage | CLI done | `app/TriageService`, `app/TriageLimits`, `agent/TriageReport`, `ui/cli/TriageCli` |
 | F08 Case management, audit | partly: case states, storage, audit of every step and action | `domain/Case`, `cases/state/*`, `persistence/SqliteCaseRepository`, `app/CaseService` (only `getCase`) |
 | F04 Retrieval and case memory | CLI and agent tools done | `retrieval/*`, `agent/tools/{SearchIndicators,SimilarCases}Tool`, `ui/cli/{Indicators,Cases}Cli`, `resources/tracewise/fintrac-indicators.tsv` |
-| F09, F10, F11, F12 | not started | |
+| F10 Assistant | CLI done (`ask --json`) | `agent/Assistant*`, `agent/ConversationMemory`, `agent/tools/{QueryCases,QueryAlerts,GetCase}Tool`, `app/AssistantService`, `ui/cli/AskCli` |
+| F09, F11, F12 | not started | |
 | GUI (JavaFX) | not started | every feature needs its screen; the videos must show GUI and CLI |
 
 All nine designed patterns are in code: Facade (`TraceWiseFacade`), Strategy (`DetectionRule`,
@@ -35,11 +36,9 @@ Strategy also covers `Retriever` (`EmbeddingRetriever`, context `SearchIndicator
 
 ## 2. Next tasks, in order
 
-1. **F10** `tracewise ask --json` (SD6 in `docs/stage1/umlet/gen_sequence_diagrams.py`; `AssistantService`,
-   `AssistantTask`, `ConversationMemory`).
-2. **JavaFX shell** with Alerts, Case and Approvals screens, then **F08** case commands (`case show`,
+1. **JavaFX shell** with Alerts, Case and Approvals screens, then **F08** case commands (`case show`,
    notes, reopen, human close and escalate submitted through `CommandDispatcher` as a human actor).
-3. Week 3: F09 network view, F11 STR draft and export (includes `SaveReportDraftCommand`), F12 dashboard,
+2. Week 3: F09 network view, F11 STR draft and export (includes `SaveReportDraftCommand`), F12 dashboard,
    updated UMLet class diagram, `stage2-report` PDF, demo scripts.
 
 Design sources: `docs/stage1/diagrams/src/model.iuml` (full model with every member; grep the class),
@@ -81,7 +80,7 @@ How the reviews were run (cheap and repeatable):
   in the background, from `~/TraceWise`; it writes `adversarial-codex.json`.
 - Validators: one per finding from `references/validator-template.md` (Sonnet). Rejected findings are
   dropped; the ones that are deferred rather than wrong go in section 6 below.
-- Four reviews so far: F03/F05, F06, F07 (2026-10-20), F04 (2026-10-27). See collaboration log Entries 7 to 10.
+- Five reviews so far: F03/F05, F06, F07 (2026-10-20), F04 and F10 (2026-10-27). See collaboration log Entries 7 to 11.
 - Pitfall: quiet test runs (`./mvnw -q test | grep ...`) hide compile errors; always also check `BUILD SUCCESS`.
 
 ## 5. Conventions and pitfalls
@@ -123,10 +122,14 @@ Tests:
   names in anything the agent can read.
 
 Replays and live runs:
-- `data/replays` holds Claude Haiku 5.5 recordings of the four sample alerts (with actions and F04 retrieval,
-  re-recorded 2026-10-27). `CommittedReplaysTest` replays them on the shipped sample data in any order, so a
-  change that breaks them fails the build. They hold only while no case is decided: an approval changes
-  `similar_cases` results, and the replay error says so. They replay
+- `data/replays` holds Claude Haiku 5.5 recordings of the four sample alerts (with actions and F04 retrieval)
+  and five assistant questions asked after the replayed triage (list in `CommittedReplaysTest`). The results of
+  `search_indicators` and `similar_cases` are left out of replay matching (`TraceWiseBootstrap.replayStore`):
+  the quantized embedding model scores differently on ARM and x86. `CommittedReplaysTest` replays everything on
+  the shipped sample data and passes on Apple Silicon and on x86 (checked in Docker:
+  `--platform linux/amd64`, image `maven:3.9-eclipse-temurin-21`; the Maven wrapper's tar fails under that
+  emulation, and copy the tree from `git ls-files` so `.env` never goes in). A rejection still changes the
+  next run's prompt, so re-investigations after a rejection need a live model.
   on a fresh database in any order: `./tracewise --llm replay --model claude-haiku-5-5 investigate ALR-00001`
   or `... triage`. Replay matches whole requests, so after ANY change to the prompt, tool set, tool
   output or sample data: delete `data/replays`, re-record, verify on fresh databases in and out of order,
@@ -140,7 +143,7 @@ Replays and live runs:
 - Models: `claude-haiku-5-5` (USD 0.10 / 0.50 per MTok) for development and recordings;
   `claude-sonnet-5-5` (USD 2 / 10) for real demos. `ModelConfig.of` refuses unknown models.
   LangChain4j stays on 1.21.0 (the graded design's version).
-- Runtime API spend so far: about CAD 0.085 (recorded in `docs/ai-usage/ai-tools.md`; add new live runs there).
+- Runtime API spend so far: about CAD 0.11 (recorded in `docs/ai-usage/ai-tools.md`; add new live runs there).
 
 Shell and secrets:
 - NEVER `source` or `.` the `.env` file (a malformed line printed the key on 2026-10-20; that key was
@@ -183,5 +186,14 @@ From the F04 review (2026-10-27), deferred or accepted with evidence:
   in scope when F08 adds reopen. Case summaries show the decision as a prefix, not a separate field.
 - Case memory is an indirect prompt-injection channel: past narratives (agent output over imported CSV text) reach
   later runs. Bounded by `ActionScope`, human approval, and the prompt rule that precedent is not evidence.
-- Replay scores are rounded to 3 decimals from a quantized ONNX model; another CPU could flip a last digit and miss
-  a recording. Kian records on this Mac; not verified elsewhere.
+
+From the F10 review (2026-10-27), deferred or accepted:
+- The assistant shares the investigation's `AgentRunner` (one cancel flag): with the GUI, cancelling an
+  investigation would cancel a concurrent question. Part of the concurrency work above.
+- Conversation history goes back into the next question as user text, not as earlier assistant turns; each CLI
+  `ask` is its own session, so this matters for the GUI chat only. The context (case, account) of earlier
+  questions is not stored with them.
+- Replayed findings verify indicators against the live search; a cited indicator at the edge of the results
+  could drop out on another CPU (the current recordings pass on x86).
+- `query_cases` sums the alert totals of a case, so alerts over the same transactions would count twice.
+- `ask` failures print only `{"error": ...}` (no trace), unlike `investigate --json`; documented for Stage 3.

@@ -255,3 +255,33 @@ reviewer reproduced it), indicators the search never returned were accepted, a f
 never retried, and the memory update ran inside the approval's transaction. All were fixed test-first,
 or documented with the measured evidence where the design defers tuning to Stage 3 testing. 223 tests
 pass, including a new test that replays the committed recordings.
+
+---
+
+## Entry 11: Checking what was not checked, then the analyst assistant (F10) (2026-10-27)
+
+**Task:** Re-check the items the F04 report left unverified, then build F10 (`tracewise ask`).
+
+**Input/Instruction:** Kian: "first check the things you did not check properly and then start the next task".
+
+**AI Contribution:** Re-ran the full suite with the build result shown (a quiet run had once hidden a compile
+error), proved by mutation that the new replay test really guards the recordings, ran the CLI end to end on a
+fresh jar, and looked up the new ONNX and tokenizer dependencies on osv.dev (no known vulnerabilities). The x86
+check mattered: in an amd64 Linux container every committed replay failed, because the quantized embedding
+model scores differ from Apple Silicon in the third decimal and the fifth search result can change. Retrieval
+results are now left out of replay matching and the recordings were re-keyed from their stored requests, with
+no new model calls; replays now pass on both CPU types and after approvals. Found and closed a gap in the agent
+loop on the way: it ran any registered tool the model named, offered or not, which would have let the
+read-only assistant reach an action tool. Built F10 from the design: `query_cases`, `AssistantTask` (read-only
+tools, clarifying questions, refusals, data never treated as instructions), `AssistantService` with verified
+citations and session memory, and `tracewise ask [--json]`.
+
+**Human Contribution:** Asked for the unchecked items to be closed before new work.
+
+**Outcome:** In the live check Haiku 5.5 explained a risky account with every claim confirmed, searched cases
+with a filter, asked a clarifying question for "show me the big ones", and declined both a request to close a
+case and an instruction to ignore its rules. A fifth `deep-code-review` (ten reviewers plus Codex, one validator
+per finding) confirmed seven findings, among them that the design's own "open cases" example returned nothing
+(cases are never stored as OPEN), that a clarifying question and an unsupported answer looked the same in JSON,
+and that the assistant could not see alerts outside cases. All were fixed test-first and the questions
+re-recorded; three findings were rejected with reasons. 254 tests pass.
