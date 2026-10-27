@@ -16,6 +16,7 @@ import tracewise.actions.AddToWatchlistCommand;
 import tracewise.actions.CloseCaseCommand;
 import tracewise.actions.CreateTaskCommand;
 import tracewise.actions.EscalateCaseCommand;
+import tracewise.actions.FinaliseReportCommand;
 import tracewise.actions.LinkAlertsCommand;
 import tracewise.actions.PendingAction;
 import tracewise.actions.ProposalStatus;
@@ -29,7 +30,7 @@ public class SqliteApprovalRepository implements ApprovalRepository {
     private static final ObjectMapper JSON = ExactJson.mapper();
     private static final Map<String, Class<? extends ActionCommand>> COMMANDS = Stream.of(CloseCaseCommand.class,
             EscalateCaseCommand.class, SetPriorityCommand.class, AddToWatchlistCommand.class, CreateTaskCommand.class,
-            LinkAlertsCommand.class).collect(Collectors.toMap(Class::getSimpleName, Function.identity()));
+            LinkAlertsCommand.class, FinaliseReportCommand.class).collect(Collectors.toMap(Class::getSimpleName, Function.identity()));
     private static final String SELECT = "SELECT id, command_type, command, justification, proposed_by, proposed_by_type, "
             + "proposed_at, status, reviewer, reviewer_type, decision_reason, decided_at FROM approvals ";
 

@@ -29,13 +29,18 @@ public class ApprovalQueue {
         this.audit = audit;
     }
 
-    /** Stores the proposal and moves its case to Pending Approval; the caller's transaction covers both. */
+    /**
+     * Stores the proposal and moves its case to Pending Approval; the caller's transaction covers both. An escalated
+     * case stays escalated: its decision is made, and only its report's finalisation can wait.
+     */
     public PendingAction enqueue(ActionCommand command, Actor actor, String justification) {
         String caseId = command.targetCaseId()
                 .orElseThrow(() -> new IllegalArgumentException("Only actions on a case can wait for approval"));
         Case c = ctx.caseFor(caseId);
-        c.submitForApproval();
-        ctx.cases().save(c);
+        if (c.status() != CaseStatus.ESCALATED) {
+            c.submitForApproval();
+            ctx.cases().save(c);
+        }
         var pending = new PendingAction(repository.nextId(), command, justification, actor, Instant.now());
         repository.save(pending);
         return pending;
