@@ -18,6 +18,13 @@ public class JsonReportExporter implements ReportExporter {
 
     @Override
     public Path export(StrReport report, Path dir) throws IOException {
+        Path file = dir.resolve(report.caseId() + "-STR.json");
+        Files.writeString(file, ExactJson.mapper().writerWithDefaultPrettyPrinter().writeValueAsString(toMap(report)));
+        return file;
+    }
+
+    /** The report's fields in export order; the CLI prints the same map. */
+    public static Map<String, Object> toMap(StrReport report) {
         var body = new LinkedHashMap<String, Object>();
         body.put("case_id", report.caseId());
         body.put("status", report.status().name());
@@ -27,9 +34,7 @@ public class JsonReportExporter implements ReportExporter {
         body.put("grounds_for_suspicion", report.groundsForSuspicion());
         body.put("actions_taken", report.actionsTaken());
         body.put("note", HtmlReportExporter.NOT_SUBMITTED);
-        Path file = dir.resolve(report.caseId() + "-STR.json");
-        Files.writeString(file, ExactJson.mapper().writerWithDefaultPrettyPrinter().writeValueAsString(body));
-        return file;
+        return body;
     }
 
     /** Named fields only: the ground-truth label in the data set never leaves the database. */

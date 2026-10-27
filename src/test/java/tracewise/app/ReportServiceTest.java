@@ -4,8 +4,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.EnumSet;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,18 +12,13 @@ import org.junit.jupiter.api.io.TempDir;
 import tracewise.agent.AgentRunnerTest;
 import tracewise.agent.AgentRunnerTest.ScriptedModel;
 import tracewise.audit.AuditFilter;
-import tracewise.cases.state.CaseStatus;
 import tracewise.domain.ActorType;
 import tracewise.domain.Transaction;
 import tracewise.llm.LLMException;
 import tracewise.llm.LLMMessage;
 import tracewise.llm.ModelConfig;
-import tracewise.monitoring.AlertFilter;
-import tracewise.persistence.Database;
-import tracewise.persistence.SqliteTransactionRepository;
 import tracewise.reporting.ExportFormat;
 import tracewise.reporting.ReportStatus;
-import tracewise.tools.ScenarioGenerator;
 
 /** F11: drafting, editing, finalising through the approval queue, and exporting, through the facade. */
 class ReportServiceTest {
@@ -41,32 +34,12 @@ class ReportServiceTest {
                 () -> model);
     }
 
-    /** CAS-00001 is escalated with a finding that cites one real transaction and one invented one. */
     @BeforeEach
     void anEscalatedCase() throws Exception {
         try (var f = facade()) {
-            f.importTransactions(Files.write(dir.resolve("s.csv"), ScenarioGenerator.generate(42)));
-            f.runMonitoring();
-            var alert = f.listAlerts(AlertFilter.ALL).stream().filter(a -> a.id().equals("ALR-00001")).findFirst()
-                    .orElseThrow();
-            subject = alert.accountId();
-            try (var db = Database.open(dir.resolve("t.db"))) {
-                cited = new SqliteTransactionRepository(db).findTransaction(alert.transactionIds().get(0)).orElseThrow();
-            }
-            model.then(AgentRunnerTest.toolCall("propose_escalation",
-                    "{\"case_id\":\"CAS-00001\",\"justification\":\"Cash deposits under the threshold\"}"))
-                    .then(AgentRunnerTest.answer("""
-                            ```json
-                            {"verdict": "ESCALATE", "confidence": 0.9, "indicators": [],
-                             "cited_transactions": [
-                               {"transaction_id": "%s", "account_id": "%s", "amount_cad": %s, "date": "%s"},
-                               {"transaction_id": "TX-99999", "account_id": "%s", "amount_cad": 9900, "date": "2026-09-01"}],
-                             "totals": [], "narrative": "Repeated deposits under the threshold, including TX-99999."}
-                            ```""".formatted(cited.id(), subject, cited.amountCad().toPlainString(),
-                            LocalDate.ofInstant(cited.timestamp(), ZoneOffset.UTC), subject)));
-            f.investigate("ALR-00001", null);
-            f.approve(f.pendingApprovals().get(0).id());
-            assertEquals(CaseStatus.ESCALATED, f.getCase("CAS-00001").status());
+            var setup = EscalatedCase.create(f, dir, dir.resolve("t.db"), model);
+            subject = setup.subject();
+            cited = setup.cited();
         }
     }
 
