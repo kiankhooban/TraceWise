@@ -25,8 +25,15 @@ class ActionToolsTest {
     void open() {
         f = new ActionsFixture(dir);
         scope = new ActionScope(f.cases);
-        tools = TraceWiseBootstrap.investigationTools(f.accounts, f.alerts, f.cases, f.dispatcher, scope);
+        tools = TraceWiseBootstrap.investigationTools(f.accounts, f.alerts, f.cases, (q, n) -> java.util.List.of(), f.memory,
+                f.dispatcher, scope);
         scope.begin("CAS-00001");
+    }
+
+    @Test
+    void theRegistryHasEveryToolTheInvestigationOffers() {
+        var task = new tracewise.agent.InvestigationTask(f.alerts.findById("ALR-00001").orElseThrow(), "CAS-00001");
+        assertEquals(task.toolNames().size(), tools.schemas(task.toolNames()).size());
     }
 
     @AfterEach

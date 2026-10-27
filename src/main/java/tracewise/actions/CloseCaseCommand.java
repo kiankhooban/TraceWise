@@ -18,6 +18,7 @@ public record CloseCaseCommand(String caseId) implements ActionCommand {
         c.close();
         ctx.cases().save(c);
         c.alertIds().forEach(id -> ctx.alerts().updateStatus(id, AlertStatus.CLOSED));
+        ctx.memory().remember(c);
     }
 
     @Override

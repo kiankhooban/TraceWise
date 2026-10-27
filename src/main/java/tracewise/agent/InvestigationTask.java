@@ -18,7 +18,9 @@ import tracewise.agent.tools.LinkAlertsTool;
 import tracewise.agent.tools.LinkedAlertsTool;
 import tracewise.agent.tools.ProposeCloseTool;
 import tracewise.agent.tools.ProposeEscalationTool;
+import tracewise.agent.tools.SearchIndicatorsTool;
 import tracewise.agent.tools.SetPriorityTool;
+import tracewise.agent.tools.SimilarCasesTool;
 import tracewise.domain.Alert;
 import tracewise.persistence.ExactJson;
 
@@ -48,6 +50,13 @@ public class InvestigationTask implements AgentTask {
             - Look beyond the flagged transactions: check the account's wider history and its counterparties, \
             both for further suspicious activity and for legitimate explanations such as payroll or regular \
             business income.
+            - Use search_indicators to find the FINTRAC money-laundering indicators the evidence matches. Describe \
+            the pattern in FINTRAC's own words, for example "deposits below the reporting threshold" or "funds \
+            transferred in and out of an account within a short period", not in raw figures. List as indicators \
+            only indicators search_indicators returned, word for word, that the evidence supports. If it finds \
+            none, say so in the narrative instead of naming one.
+            - similar_cases shows how past cases with a similar pattern were decided. Treat them as precedent for \
+            your reasoning, never as evidence about this account.
             - If a tool returns an error, correct the arguments or continue with the evidence you have.
             - CASH is the cash counter (deposits and withdrawals). Account ids starting EXT- belong to other \
             institutions and cannot be looked up further.
@@ -67,7 +76,7 @@ public class InvestigationTask implements AgentTask {
             {
               "verdict": "ESCALATE | DISMISS | INCONCLUSIVE",
               "confidence": 0.0,
-              "indicators": ["each money-laundering indicator the evidence matches"],
+              "indicators": ["each FINTRAC indicator from search_indicators that the evidence matches"],
               "cited_transactions": [
                 {"transaction_id": "...", "account_id": "...", "amount_cad": 0.00, "date": "YYYY-MM-DD"}
               ],
@@ -115,8 +124,8 @@ public class InvestigationTask implements AgentTask {
 
     @Override
     public Set<String> toolNames() {
-        return Set.of(AccountHistoryTool.NAME, CounterpartiesTool.NAME, LinkedAlertsTool.NAME, SetPriorityTool.NAME,
-                LinkAlertsTool.NAME, AddToWatchlistTool.NAME, CreateTaskTool.NAME, ProposeCloseTool.NAME,
+        return Set.of(AccountHistoryTool.NAME, CounterpartiesTool.NAME, LinkedAlertsTool.NAME, SearchIndicatorsTool.NAME,
+                SimilarCasesTool.NAME, SetPriorityTool.NAME, LinkAlertsTool.NAME, AddToWatchlistTool.NAME, CreateTaskTool.NAME, ProposeCloseTool.NAME,
                 ProposeEscalationTool.NAME);
     }
 

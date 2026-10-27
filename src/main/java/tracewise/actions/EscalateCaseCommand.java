@@ -16,6 +16,7 @@ public record EscalateCaseCommand(String caseId) implements ActionCommand {
         Case c = ctx.activeCase(caseId);
         c.escalate();
         ctx.cases().save(c);
+        ctx.memory().remember(c);
     }
 
     @Override

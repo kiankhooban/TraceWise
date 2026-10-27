@@ -17,6 +17,9 @@ import tracewise.persistence.SqliteAlertRepository;
 import tracewise.persistence.SqliteApprovalRepository;
 import tracewise.persistence.SqliteCaseRepository;
 import tracewise.persistence.SqliteTransactionRepository;
+import tracewise.retrieval.CaseMemory;
+import tracewise.retrieval.EmbeddingRetriever;
+import tracewise.retrieval.WordCountEmbeddingModel;
 
 /** A database with accounts C1 to C3, alerts ALR-00001 (on C1, in case CAS-00001, under investigation) and ALR-00002. */
 class ActionsFixture implements AutoCloseable {
@@ -26,6 +29,7 @@ class ActionsFixture implements AutoCloseable {
     final SqliteAlertRepository alerts;
     final SqliteCaseRepository cases;
     final AuditLog audit;
+    final CaseMemory memory;
     final CommandContext ctx;
     final ApprovalQueue queue;
     final CommandDispatcher dispatcher;
@@ -43,7 +47,8 @@ class ActionsFixture implements AutoCloseable {
         alerts.save(new Alert(null, "R4", "C1", List.of("t1"), new BigDecimal("100"), 60, 2, AlertStatus.IN_CASE, t));
         alerts.save(new Alert(null, "R5", "C3", List.of("t2"), new BigDecimal("200"), 40, 3, AlertStatus.NEW, t));
         cases.save(new Case("CAS-00001", t, List.of("ALR-00001"), CaseStatus.UNDER_INVESTIGATION));
-        ctx = new CommandContext(cases, alerts, accounts);
+        memory = new CaseMemory(cases, () -> new EmbeddingRetriever(new WordCountEmbeddingModel(), 0.5));
+        ctx = new CommandContext(cases, alerts, accounts, memory);
         queue = new ApprovalQueue(db, new SqliteApprovalRepository(db), ctx, audit);
         dispatcher = new CommandDispatcher(db, ctx, new PermissionPolicy(), queue, audit);
     }

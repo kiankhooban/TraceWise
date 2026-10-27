@@ -7,11 +7,11 @@ import dev.langchain4j.model.output.Response;
 import java.util.List;
 
 /** A fast stand-in for the real model: one dimension per vocabulary word, counting its occurrences. */
-class WordCountEmbeddingModel implements EmbeddingModel {
+public class WordCountEmbeddingModel implements EmbeddingModel {
 
     private static final List<String> WORDS = List.of("cash", "deposit", "threshold", "wire", "transfer", "payroll");
 
-    int calls;
+    public int calls;
 
     @Override
     public Response<List<Embedding>> embedAll(List<TextSegment> segments) {

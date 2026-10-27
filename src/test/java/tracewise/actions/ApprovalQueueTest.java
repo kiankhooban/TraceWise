@@ -2,16 +2,24 @@ package tracewise.actions;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.math.BigDecimal;
 import java.nio.file.Path;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import tracewise.agent.AgentFinding;
+import tracewise.agent.AgentOutcome;
+import tracewise.agent.AgentTrace;
+import tracewise.agent.OutcomeStatus;
+import tracewise.agent.Verdict;
 import tracewise.audit.AuditFilter;
 import tracewise.cases.state.CaseStatus;
 import tracewise.domain.Actor;
 import tracewise.domain.ActorType;
 import tracewise.domain.AlertStatus;
+import tracewise.llm.ModelConfig;
 import tracewise.persistence.SqliteApprovalRepository;
 
 class ApprovalQueueTest {
@@ -46,6 +54,36 @@ class ApprovalQueueTest {
         assertEquals(analyst, p.reviewer());
         assertTrue(f.queue.pending().isEmpty());
         assertEquals(1, f.audit.query(new AuditFilter("PROPOSAL_APPROVED", "CAS-00001")).size());
+    }
+
+    void giveTheCaseAFinding(String narrative) {
+        var c = f.cases.findById("CAS-00001").orElseThrow();
+        var trace = new AgentTrace("ALR-00001", ModelConfig.of("anthropic", "claude-haiku-5-5", false), BigDecimal.ONE);
+        trace.finish(new AgentOutcome("ALR-00001", OutcomeStatus.COMPLETED, "{}"));
+        c.addFinding(new AgentFinding(Verdict.ESCALATE, 0.9, List.of("Structuring"), List.of(), List.of(), narrative,
+                false, trace));
+        f.cases.save(c);
+    }
+
+    @Test
+    void anApprovedEscalationIsRememberedAsAPastCase() {
+        giveTheCaseAFinding("Cash deposits under the threshold.");
+        assertEquals(List.of(), f.memory.similar("cash deposit threshold", 3));
+
+        f.queue.approve(f.dispatcher.submit(new EscalateCaseCommand("CAS-00001"), Actor.AGENT, "Structuring")
+                .pendingId(), analyst);
+
+        assertEquals("CAS-00001", f.memory.similar("cash deposit threshold", 3).get(0).source());
+    }
+
+    @Test
+    void anApprovedCloseIsRememberedAsAPastCase() {
+        giveTheCaseAFinding("Regular payroll.");
+        assertEquals(List.of(), f.memory.similar("payroll", 3));
+
+        f.queue.approve(proposeClose(), analyst);
+
+        assertEquals("CLOSED. Indicators: Structuring. Regular payroll.", f.memory.similar("payroll", 3).get(0).text());
     }
 
     @Test

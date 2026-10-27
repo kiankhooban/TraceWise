@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import tracewise.actions.ApprovalQueue;
 import tracewise.actions.CommandContext;
+import tracewise.retrieval.CaseMemory;
 import tracewise.actions.CommandDispatcher;
 import tracewise.actions.PermissionPolicy;
 import tracewise.agent.AgentEventListener;
@@ -90,10 +91,11 @@ class InvestigationServiceTest {
     }
 
     InvestigationService service(AgentLimits limits) {
-        var ctx = new CommandContext(cases, alerts, transactions);
+        var memory = new CaseMemory(cases, () -> { throw new IllegalStateException("not used"); });
+        var ctx = new CommandContext(cases, alerts, transactions, memory);
         queue = new ApprovalQueue(db, new SqliteApprovalRepository(db), ctx, audit);
         var scope = new ActionScope(cases);
-        var tools = TraceWiseBootstrap.investigationTools(transactions, alerts, cases,
+        var tools = TraceWiseBootstrap.investigationTools(transactions, alerts, cases, (q, n) -> List.of(), memory,
                 new CommandDispatcher(db, ctx, new PermissionPolicy(), queue, audit), scope);
         var runner = new AgentRunner(model, tools, limits);
         return new InvestigationService(db, alerts, cases, () -> runner, scope, queue, new ClaimVerifier(transactions), audit, analyst,
