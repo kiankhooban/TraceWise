@@ -86,4 +86,15 @@ class CaseCliTest {
         assertEquals(0, run("audit", "export", "--actor", "AGENT"));
         assertTrue(out.toString().contains("AGENT_STEP") || out.toString().contains("AGENT_FINISHED"), out.toString());
     }
+
+    @Test
+    void theToDayOfAnExportIsIncluded() {
+        String today = java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString();
+        String yesterday = java.time.LocalDate.now(java.time.ZoneOffset.UTC).minusDays(1).toString();
+
+        assertEquals(0, run("audit", "export", "--event", "IMPORT", "--from", today, "--to", today));
+        assertEquals(2, out.toString().strip().split("\r?\n").length, out.toString());
+        assertEquals(0, run("audit", "export", "--event", "IMPORT", "--to", yesterday));
+        assertEquals(1, out.toString().strip().split("\r?\n").length, out.toString());
+    }
 }

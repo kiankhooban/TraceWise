@@ -96,6 +96,17 @@ class RetrievalToolsTest {
     }
 
     @Test
+    void anIndicatorFoundTwiceKeepsItsBestScoreInEitherOrder() {
+        var low = searchIndicators((q, n) -> List.of(new RetrievedPassage("Same.", "FINTRAC 7.5, s7", 0.72)), "{\"query\":\"a\"}");
+        var high = searchIndicators((q, n) -> List.of(new RetrievedPassage("Same.", "FINTRAC 7.5, s7", 0.91)), "{\"query\":\"b\"}");
+        var lowStep = new TraceStep("ALR-1", 1, SearchIndicatorsTool.NAME, "{}", low.content(), false, 1);
+        var highStep = new TraceStep("ALR-1", 2, SearchIndicatorsTool.NAME, "{}", high.content(), false, 1);
+
+        assertEquals(0.91, SearchIndicatorsTool.retrieved(List.of(lowStep, highStep)).get(0).score());
+        assertEquals(0.91, SearchIndicatorsTool.retrieved(List.of(highStep, lowStep)).get(0).score());
+    }
+
+    @Test
     void searchIndicatorsAsksForAtMostTenResults() {
         searchIndicators((q, n) -> {
             asked.add(String.valueOf(n));

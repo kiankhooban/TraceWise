@@ -36,11 +36,17 @@ Strategy also covers `Retriever` (`EmbeddingRetriever`, context `SearchIndicator
 
 ## 2. Next tasks, in order (plan agreed with Kian 2026-10-27, see PLAN.md "Revised schedule")
 
-1. **Review of GUI + F08 in progress** (2026-10-27): deep-code-review run dir
-   `/tmp/compound-engineering/ce-code-review/gui-f08-20261027154110` (base `a9dc992`; reviewer JSON files and
-   `adversarial-codex.json` land there). Next: validate each finding (`validate-*.md` from
-   `references/validator-template.md`), fix confirmed ones test-first, records (collaboration entry 12, PLAN).
-   F08 is otherwise done (CLI, GUI, design changes 30 and 31, README).
+1. **GUI + F08 review: fixing** (run dir `/tmp/compound-engineering/ce-code-review/gui-f08-20261027154110`).
+   Codex found nothing; 12 findings validated, all confirmed (`validate-g*.json`). Two test gaps already
+   covered (Evidence best-score merge, inclusive `--to`), uncommitted. To fix, test-first where testable:
+   g1 CaseView close/reopen read `shown` on the worker (capture id at click); g2 cancel/stop while queued lost
+   (InvestigationService remember a pending cancel; TriageService clear stopRequested in finally, not at start);
+   g3 TraceWiseApp.stop closes DB under a running job (stop triage, cancel, close facade only if worker done);
+   g4 second investigate overwrites `running` (refuse while running); g5 GuiWorker catch Throwable;
+   g6 get_case add notes (re-record the 7 assistant questions afterwards); g7 linked alert opens wrong case
+   (facade lookup of the alert's case); g8 env defaults shared constants in AppConfig; g11 AuditCsv guard tab
+   and CR; g12 `case note` arity 1..*; g13 rule editor validation in an OK-button event filter; g14 Snapshots
+   catch, log, exit. Then records (collaboration entry 12, PLAN, design change for g2 and g6).
 2. **F11** STR draft and export (Report tab), **F09** network view (Network tab, JavaFXSmartGraph). This week.
 3. Period 3 (Nov 3 to 6): **F12** dashboard (the real period 3 feature), final review fixes, fresh-clone check.
 4. Records: UMLet class diagram update, stage2-report PDF, demo scripts.
