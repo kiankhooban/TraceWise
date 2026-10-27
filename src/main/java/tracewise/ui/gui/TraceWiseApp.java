@@ -23,6 +23,7 @@ public class TraceWiseApp extends Application {
     private AppConfig config;
     private TraceWiseFacade facade;
     private GuiWorker worker;
+    private CaseView caseView;
 
     @Override
     public void init() {
@@ -35,7 +36,7 @@ public class TraceWiseApp extends Application {
         worker = new GuiWorker(Platform::runLater);
         var gui = new Gui(facade, worker, stage, config);
         var alerts = new AlertsView(gui);
-        var caseView = new CaseView(gui);
+        caseView = new CaseView(gui);
         var approvals = new ApprovalsView(gui);
         var admin = new AdminView(gui);
         var assistant = new AssistantView(gui, caseView::currentCaseId);
@@ -114,9 +115,15 @@ public class TraceWiseApp extends Application {
         return bar;
     }
 
+    /** Asks running agent work to stop, waits for the worker, and closes the database only once nothing uses it. */
     @Override
     public void stop() throws Exception {
-        worker.close();
-        facade.close();
+        facade.stopTriage();
+        if (caseView.runningAlert() != null) {
+            facade.cancelInvestigation(caseView.runningAlert());
+        }
+        if (worker.shutdown()) {
+            facade.close();
+        }
     }
 }

@@ -305,4 +305,15 @@ class InvestigationServiceTest {
         assertTrue(opening.text().contains("REJECTED") && opening.text().contains("Check the source of the cash first"),
                 opening.text());
     }
+
+    @Test
+    void aCancelSentBeforeTheRunStartsIsHonouredOnce() {
+        var service = service();
+        service.cancel(structuring.id());
+
+        assertEquals(OutcomeStatus.CANCELLED, service.investigate(structuring.id(), null).status());
+        assertTrue(model.requests.isEmpty());
+        model.then(AgentRunnerTest.answer(finding()));
+        assertEquals(OutcomeStatus.COMPLETED, service.investigate(structuring.id(), null).status());
+    }
 }

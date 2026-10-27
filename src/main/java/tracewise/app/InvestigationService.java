@@ -50,6 +50,7 @@ public class InvestigationService {
     private final ModelConfig pricing;
     private final BigDecimal cadPerUsd;
     private volatile String running;
+    private volatile String cancelRequested;
 
     /** runner is supplied lazily so commands that never call the model work without an API key. */
     public InvestigationService(Database db, AlertRepository alerts, CaseRepository cases, Supplier<AgentRunner> runner,
@@ -72,6 +73,13 @@ public class InvestigationService {
         Alert alert = alerts.findById(alertId).orElseThrow(() -> new IllegalArgumentException("No alert " + alertId));
         if (alert.status() == AlertStatus.CLOSED) {
             throw new IllegalStateException("Alert " + alertId + " is closed");
+        }
+        if (alertId.equals(cancelRequested)) {
+            cancelRequested = null; // cancelled while it waited to start: nothing is run or changed
+            var trace = new AgentTrace(alertId, pricing, cadPerUsd);
+            trace.finish(new AgentOutcome(alertId, OutcomeStatus.CANCELLED, "Cancelled before it started"));
+            return new InvestigationResult(cases.findByAlert(alertId).map(Case::id).orElse(null), OutcomeStatus.CANCELLED,
+                    null, trace, "Cancelled before it started");
         }
         AgentRunner agent = runner.get();
         Case c = openCase(alert);
@@ -121,10 +129,12 @@ public class InvestigationService {
                 .toList();
     }
 
-    /** Stops the investigation of this alert after its current step, if it is running. */
+    /** Stops the investigation of this alert after its current step, or before it starts if it is still waiting. */
     public void cancel(String alertId) {
         if (alertId.equals(running)) {
             runner.get().cancel();
+        } else {
+            cancelRequested = alertId;
         }
     }
 

@@ -13,13 +13,18 @@ import tracewise.llm.ModelConfig;
 public record AppConfig(Path databasePath, String userName, ActorType userRole, ModelConfig model, Path replayDir,
         Path envFile) {
 
+    public static final String DEFAULT_DB = "tracewise.db";
+    public static final String DEFAULT_ROLE = "ANALYST";
+    public static final String DEFAULT_PROVIDER = "anthropic";
+    public static final String DEFAULT_MODEL = "claude-sonnet-5-5";
+
     /** The settings the CLI reads from its environment variables, with the same defaults (used by the GUI). */
     public static AppConfig fromEnvironment(Map<String, String> env, String userName) {
         Path home = Path.of(env.getOrDefault("TRACEWISE_HOME", "."));
-        return new AppConfig(Path.of(env.getOrDefault("TRACEWISE_DB", "tracewise.db")), userName,
-                ActorType.valueOf(env.getOrDefault("TRACEWISE_ROLE", "ANALYST").toUpperCase(Locale.ROOT)),
-                ModelConfig.of(env.getOrDefault("TRACEWISE_LLM", "anthropic"),
-                        env.getOrDefault("TRACEWISE_MODEL", "claude-sonnet-5-5"),
+        return new AppConfig(Path.of(env.getOrDefault("TRACEWISE_DB", DEFAULT_DB)), userName,
+                ActorType.valueOf(env.getOrDefault("TRACEWISE_ROLE", DEFAULT_ROLE).toUpperCase(Locale.ROOT)),
+                ModelConfig.of(env.getOrDefault("TRACEWISE_LLM", DEFAULT_PROVIDER),
+                        env.getOrDefault("TRACEWISE_MODEL", DEFAULT_MODEL),
                         Boolean.parseBoolean(env.getOrDefault("TRACEWISE_RECORD", "false"))),
                 home.resolve("data/replays"), home.resolve(".env"));
     }

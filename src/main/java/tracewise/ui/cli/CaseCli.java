@@ -65,7 +65,7 @@ public class CaseCli {
         @Parameters(index = "0", description = "The case id.")
         String caseId;
 
-        @Parameters(index = "1..*", description = "The note text.")
+        @Parameters(index = "1..*", arity = "1..*", description = "The note text.")
         List<String> words;
 
         @Override

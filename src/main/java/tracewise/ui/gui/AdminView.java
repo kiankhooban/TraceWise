@@ -105,8 +105,23 @@ final class AdminView {
             grid.add(new Label(p.getKey()), 0, row);
             grid.add(field, 1, row++);
         }
+        var problem = new Label();
+        problem.getStyleClass().add("verdict-ESCALATE");
+        grid.add(problem, 0, row, 2, 1);
         dialog.getDialogPane().setContent(grid);
         dialog.getDialogPane().getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
+        // checked before the dialog closes, so a bad value keeps it open with a message
+        dialog.getDialogPane().lookupButton(ButtonType.OK).addEventFilter(javafx.event.ActionEvent.ACTION, e -> {
+            for (var f : fields.entrySet()) {
+                try {
+                    new BigDecimal(f.getValue().getText().strip());
+                } catch (NumberFormatException ex) {
+                    problem.setText(f.getKey() + " must be a number");
+                    e.consume();
+                    return;
+                }
+            }
+        });
         dialog.setResultConverter(b -> {
             if (b != ButtonType.OK) {
                 return null;
@@ -115,14 +130,10 @@ final class AdminView {
             fields.forEach((name, f) -> parameters.put(name, new BigDecimal(f.getText().strip())));
             return new RuleConfig(enabled.isSelected(), parameters);
         });
-        try {
-            dialog.showAndWait().ifPresent(config -> gui.run("Saving " + rule.id(), () -> {
-                gui.facade.updateRule(rule.id(), config);
-                return null;
-            }, r -> refresh()));
-        } catch (NumberFormatException e) {
-            gui.info("Invalid value", "Every parameter must be a number.");
-        }
+        dialog.showAndWait().ifPresent(config -> gui.run("Saving " + rule.id(), () -> {
+            gui.facade.updateRule(rule.id(), config);
+            return null;
+        }, r -> refresh()));
     }
 
     private Node knowledgePane() {

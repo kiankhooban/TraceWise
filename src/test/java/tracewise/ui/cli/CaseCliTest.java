@@ -97,4 +97,10 @@ class CaseCliTest {
         assertEquals(0, run("audit", "export", "--event", "IMPORT", "--to", yesterday));
         assertEquals(1, out.toString().strip().split("\r?\n").length, out.toString());
     }
+
+    @Test
+    void aNoteNeedsText() {
+        assertEquals(2, run("case", "note", "CAS-00001"));
+        assertTrue(err.toString().contains("Missing"), err.toString());
+    }
 }

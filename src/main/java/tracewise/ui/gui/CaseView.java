@@ -99,17 +99,22 @@ final class CaseView implements AgentEventListener {
         var spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         close.setDisable(true);
-        close.setOnAction(e -> withReason("Close " + shown.id() + " as a false alarm", "Why is it a false alarm?",
-                reason -> gui.run("Closing " + shown.id(), () -> {
-                    gui.facade.closeCase(shown.id(), reason);
-                    return shown.id();
-                }, this::changed)));
+        // the id is captured at click time: the worker may run later, when another case is on screen
+        close.setOnAction(e -> {
+            String id = shown.id();
+            withReason("Close " + id + " as a false alarm", "Why is it a false alarm?", reason -> gui.run("Closing " + id, () -> {
+                gui.facade.closeCase(id, reason);
+                return id;
+            }, this::changed));
+        });
         reopen.setDisable(true);
-        reopen.setOnAction(e -> withReason("Reopen " + shown.id(), "Why is it reopened (for example new evidence)?",
-                reason -> gui.run("Reopening " + shown.id(), () -> {
-                    gui.facade.reopenCase(shown.id(), reason);
-                    return shown.id();
-                }, this::changed)));
+        reopen.setOnAction(e -> {
+            String id = shown.id();
+            withReason("Reopen " + id, "Why is it reopened (for example new evidence)?", reason -> gui.run("Reopening " + id, () -> {
+                gui.facade.reopenCase(id, reason);
+                return id;
+            }, this::changed));
+        });
         var buttons = new HBox(8, investigate, cancel, spacer, close, reopen);
         var header = new VBox(4, title, subtitle, buttons);
         header.getStyleClass().add("toolbar");
@@ -159,6 +164,11 @@ final class CaseView implements AgentEventListener {
     }
 
     /** The case on screen, or null: the assistant's context. */
+    /** The alert being investigated, or null: what Cancel and window close act on. */
+    String runningAlert() {
+        return running;
+    }
+
     String currentCaseId() {
         return shown == null ? null : shown.id();
     }
@@ -181,6 +191,10 @@ final class CaseView implements AgentEventListener {
 
     /** Runs the agent on the alert; its steps appear live, then the case is shown with the finding. */
     void investigate(String alertId) {
+        if (running != null) {
+            gui.info("An investigation is running", "Wait for " + running + " to finish, or cancel it, first.");
+            return;
+        }
         running = alertId;
         steps.getItems().clear();
         detail.getSelectionModel().select(1);
@@ -200,8 +214,10 @@ final class CaseView implements AgentEventListener {
             gui.info("Investigation ended " + r.status(), r.message());
         }
         refresh();
-        showCase(r.caseId());
-        detail.getSelectionModel().select(r.finding() == null ? 1 : 0);
+        if (r.caseId() != null) {
+            showCase(r.caseId());
+            detail.getSelectionModel().select(r.finding() == null ? 1 : 0);
+        }
     }
 
     private void ended() {

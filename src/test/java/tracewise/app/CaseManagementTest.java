@@ -124,4 +124,12 @@ class CaseManagementTest {
             assertEquals("ACTION_EXECUTED", events.get(events.size() - 1));
         }
     }
+
+    @Test
+    void anAlertIsFoundInTheCaseItBelongsTo() {
+        try (var f = facade()) {
+            assertEquals("CAS-00001", f.caseOfAlert("ALR-00001").orElseThrow());
+            assertTrue(f.caseOfAlert("ALR-00002").isEmpty(), "not investigated yet");
+        }
+    }
 }

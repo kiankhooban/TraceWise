@@ -23,8 +23,8 @@ public final class AuditCsv {
         if (value == null) {
             return "";
         }
-        // details can hold text from imported data: a leading = + - @ would run as a formula in a spreadsheet
-        String safe = !value.isEmpty() && "=+-@".indexOf(value.charAt(0)) >= 0 ? "'" + value : value;
+        // details can hold text from imported data: a leading = + - @ (or tab or CR, OWASP) can run as a formula
+        String safe = !value.isEmpty() && "=+-@\t\r".indexOf(value.charAt(0)) >= 0 ? "'" + value : value;
         return safe.contains(",") || safe.contains("\"") || safe.contains("\n") || safe.contains("\r")
                 ? "\"" + safe.replace("\"", "\"\"") + "\"" : safe;
     }

@@ -31,4 +31,14 @@ class AuditCsvTest {
         assertEquals("2026-09-01T10:00:00Z,TraceWise agent,AGENT,AGENT_STEP,\"'=HYPERLINK(\"\"x\"\")\",'+1,'-\r\n",
                 out.toString().split("\r\n", 2)[1]);
     }
+
+    @Test
+    void aLeadingTabOrCarriageReturnIsNeutralisedToo() throws Exception {
+        var out = new StringWriter();
+        AuditCsv.write(List.of(new AuditEntry(Instant.parse("2026-09-01T10:00:00Z"), Actor.AGENT, "AGENT_STEP",
+                "\t=1+1", "\r=1+1", "@x")), out);
+
+        String row = out.toString().split("\r\n", 2)[1];
+        assertEquals(true, row.contains("'\t=1+1") && row.contains("'\r=1+1") && row.contains("'@x"), row);
+    }
 }

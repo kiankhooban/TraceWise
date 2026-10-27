@@ -60,7 +60,14 @@ final class Snapshots {
     /** Runs after a short pause, which lets tables and layouts settle. */
     private static void later(Runnable r) {
         var pause = new PauseTransition(Duration.millis(600));
-        pause.setOnFinished(e -> r.run());
+        pause.setOnFinished(e -> {
+            try {
+                r.run();
+            } catch (RuntimeException ex) {
+                System.err.println("Screenshot mode failed: " + ex.getMessage());
+                javafx.application.Platform.exit(); // never leave the window open waiting
+            }
+        });
         pause.play();
     }
 

@@ -147,6 +147,7 @@ class AssistantToolsTest {
         assertEquals("Nine senders paid C3 within four days.", c.get("latest_finding").get("narrative").asText());
         assertEquals("ALR-00003", c.get("alerts").get(0).get("alert_id").asText());
         assertEquals("t3", c.get("alerts").get(0).get("transaction_ids").get(0).asText());
+        assertEquals(0, c.get("notes").size(), "the analyst's notes are part of the case");
         assertTrue(call(GetCaseTool.NAME, "{\"case_id\":\"CAS-00001\"}").get("latest_finding").isNull());
         assertTrue(registry.execute(new ToolCall("c1", GetCaseTool.NAME, "{\"case_id\":\"CAS-09999\"}")).error());
     }

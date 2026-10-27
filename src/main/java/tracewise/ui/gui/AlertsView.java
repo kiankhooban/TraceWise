@@ -168,7 +168,8 @@ final class AlertsView {
                 gui.investigate.accept(a.id());
             }
         } else {
-            gui.openCase.accept(caseOf(a));
+            gui.run("Finding the case of " + a.id(), () -> gui.facade.caseOfAlert(a.id()),
+                    id -> id.ifPresentOrElse(gui.openCase, () -> gui.info("No case", a.id() + " is not in a case.")));
         }
     }
 
@@ -179,11 +180,6 @@ final class AlertsView {
         } else {
             gui.investigate.accept(a.id());
         }
-    }
-
-    /** A case is named after the alert that opened it; a linked alert is found through the Cases screen. */
-    private static String caseOf(Alert a) {
-        return "CAS-" + a.id().substring(4);
     }
 
     private void onTriage() {

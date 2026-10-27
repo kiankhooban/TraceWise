@@ -38,7 +38,9 @@ final class GuiWorker implements AutoCloseable {
             try {
                 T result = work.call();
                 ui.execute(() -> onDone.accept(result));
-            } catch (Exception e) {
+            } catch (Throwable t) {
+                // an Error (a native library that failed to load, out of memory) must still reach the screen
+                Exception e = t instanceof Exception ex ? ex : new IllegalStateException(t.toString(), t);
                 ui.execute(() -> onError.accept(e));
             } finally {
                 ui.execute(() -> status.accept(""));
@@ -46,10 +48,17 @@ final class GuiWorker implements AutoCloseable {
         });
     }
 
-    /** Finishes the queued tasks (waiting up to a minute), then stops the thread. */
+    /**
+     * Finishes the queued tasks, waiting up to 30 seconds (a stopped run ends after its current step); returns
+     * whether the worker is done, so the caller knows whether the database can be closed.
+     */
+    boolean shutdown() throws InterruptedException {
+        worker.shutdown();
+        return worker.awaitTermination(30, TimeUnit.SECONDS);
+    }
+
     @Override
     public void close() throws InterruptedException {
-        worker.shutdown();
-        worker.awaitTermination(1, TimeUnit.MINUTES);
+        shutdown();
     }
 }

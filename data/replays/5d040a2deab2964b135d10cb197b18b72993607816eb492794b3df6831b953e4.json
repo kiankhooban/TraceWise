@@ -6,14 +6,25 @@
     }, {
       "text" : "",
       "toolCalls" : [ {
-        "id" : "toolu_01C28efJdzY3uztpnXBT79z9",
+        "id" : "toolu_01LNCfPKUXvrFEuk61UUmWCP",
         "name" : "query_cases",
         "argumentsJson" : "{\n  \"rule\" : \"R3\",\n  \"status\" : \"PENDING_APPROVAL\",\n  \"min_total_cad\" : 30000\n}"
       } ]
     }, {
-      "callId" : "toolu_01C28efJdzY3uztpnXBT79z9",
+      "callId" : "toolu_01LNCfPKUXvrFEuk61UUmWCP",
       "toolName" : "query_cases",
       "content" : "{\"count\":1,\"cases\":[{\"case_id\":\"CAS-00001\",\"status\":\"PENDING_APPROVAL\",\"total_cad\":\"37065.53\",\"latest_verdict\":\"ESCALATE\",\"alerts\":[{\"alert_id\":\"ALR-00001\",\"rule\":\"R3\",\"account_id\":\"C1037\",\"total_cad\":\"37065.53\",\"transaction_ids\":[\"TX-00121\",\"TX-00183\",\"TX-00186\",\"TX-00251\"]}]}]}"
+    }, {
+      "text" : "",
+      "toolCalls" : [ {
+        "id" : "toolu_014tBtEobZr5drwNCE97C8LJ",
+        "name" : "get_case",
+        "argumentsJson" : "{\n  \"case_id\" : \"CAS-00001\"\n}"
+      } ]
+    }, {
+      "callId" : "toolu_014tBtEobZr5drwNCE97C8LJ",
+      "toolName" : "get_case",
+      "content" : "{\"case_id\":\"CAS-00001\",\"status\":\"PENDING_APPROVAL\",\"alerts\":[{\"alert_id\":\"ALR-00001\",\"rule\":\"R3\",\"account_id\":\"C1037\",\"total_cad\":\"37065.53\",\"transaction_ids\":[\"TX-00121\",\"TX-00183\",\"TX-00186\",\"TX-00251\"]}],\"tasks\":[\"Establish the identity of the person(s) making the cash deposits TX-00121, TX-00183, TX-00186 and TX-00251 at the branch, and the source and purpose of the 37065.53 CAD. Check whether the deposits were made by a third party or on behalf of someone else, and whether the client has knowledge of or asked about reporting thresholds.\"],\"notes\":[],\"latest_finding\":{\"verdict\":\"ESCALATE\",\"confidence\":0.85,\"indicators\":[\"Multiple transactions conducted below the reporting threshold within a short period.\"],\"narrative\":\"C1037 received four cash deposits on four consecutive days: 8673.80 CAD (TX-00121, 2026-09-02), 9016.77 CAD (TX-00183, 2026-09-03), 9555.41 CAD (TX-00186, 2026-09-04) and 9819.55 CAD (TX-00251, 2026-09-05). Each is below the 10,000 CAD reporting threshold and the amounts rise steadily, totalling 37065.53 CAD. The account has no outgoing transactions and its only counterparty is the CASH counter. No payroll or business income explains the funds, and no other alerts are linked. This pattern gives reasonable grounds to suspect structuring to avoid reporting. The depositor's identity and the source of the cash are not in the data, so a follow-up task was opened on CAS-00001. Escalation has been proposed for analyst approval.\",\"verification\":\"6 of 6 claims confirmed\"}}"
     } ],
     "tools" : [ {
       "name" : "account_history",
@@ -135,7 +146,7 @@
       } ]
     }, {
       "name" : "get_case",
-      "description" : "One case: status, alerts, follow-up tasks, and its latest finding (verdict, confidence, indicators, narrative and verification).",
+      "description" : "One case: status, alerts, follow-up tasks, the analysts' notes, and its latest finding (verdict, confidence, indicators, narrative and verification).",
       "parameters" : [ {
         "name" : "case_id",
         "type" : "STRING",
@@ -145,11 +156,11 @@
     } ]
   },
   "response" : {
-    "text" : "One case matches: **CAS-00001**, status PENDING_APPROVAL, total alerts CAD 37,065.53, latest verdict ESCALATE. It has one R3 (structuring) alert, ALR-00001, on account C1037.\n\n```json\n{\n  \"kind\": \"ANSWER\",\n  \"answer\": \"One structuring case is waiting for approval with more than CAD 30,000 in alerts: CAS-00001. It has one R3 alert (ALR-00001) on account C1037, totalling CAD 37,065.53. The latest verdict is ESCALATE. I have not cited individual transactions because I did not pull their amounts and dates.\",\n  \"cited_transactions\": [],\n  \"totals\": [\n    {\"description\": \"Total alerts in CAS-00001 (ALR-00001, account C1037)\", \"amount_cad\": 37065.53, \"transaction_ids\": []}\n  ]\n}\n```",
+    "text" : "One case matches: **CAS-00001**, a structuring case (R3) pending approval, with 37,065.53 CAD in alerts. It is on account C1037.\n\n- **Alert ALR-00001 (R3, C1037):** four cash deposits on consecutive days, each just under the 10,000 CAD reporting threshold and rising steadily:\n  - TX-00121: 8,673.80 CAD on 2026-09-02\n  - TX-00183: 9,016.77 CAD on 2026-09-03\n  - TX-00186: 9,555.41 CAD on 2026-09-04\n  - TX-00251: 9,819.55 CAD on 2026-09-05\n- **Finding:** The verdict is ESCALATE, with 0.85 confidence. The account has no outgoing transactions, and its only counterparty is the CASH counter. No payroll or business income explains the funds, and no other alerts are linked. The narrative was verified (6 of 6 claims confirmed).\n- **Open task:** Establish who made the deposits and the source and purpose of the funds. Check whether a third party made them and whether the client asked about reporting thresholds.\n\nEscalation is proposed and awaits analyst approval.\n\n```json\n{\n  \"kind\": \"ANSWER\",\n  \"answer\": \"One structuring case (CAS-00001) is pending approval with more than 30,000 CAD in alerts. It concerns account C1037, which made four cash deposits on consecutive days, each just under the 10,000 CAD reporting threshold, totalling 37,065.53 CAD. The finding verdict is ESCALATE (confidence 0.85). An open task asks analysts to identify the depositor(s) and the source and purpose of the funds.\",\n  \"cited_transactions\": [\n    {\"transaction_id\": \"TX-00121\", \"account_id\": \"C1037\", \"amount_cad\": 8673.80, \"date\": \"2026-09-02\"},\n    {\"transaction_id\": \"TX-00183\", \"account_id\": \"C1037\", \"amount_cad\": 9016.77, \"date\": \"2026-09-03\"},\n    {\"transaction_id\": \"TX-00186\", \"account_id\": \"C1037\", \"amount_cad\": 9555.41, \"date\": \"2026-09-04\"},\n    {\"transaction_id\": \"TX-00251\", \"account_id\": \"C1037\", \"amount_cad\": 9819.55, \"date\": \"2026-09-05\"}\n  ],\n  \"totals\": [\n    {\"description\": \"Total of the four cash deposits in alert ALR-00001 (CAS-00001)\", \"amount_cad\": 37065.53, \"transaction_ids\": [\"TX-00121\", \"TX-00183\", \"TX-00186\", \"TX-00251\"]}\n  ]\n}\n```",
     "toolCalls" : [ ],
     "usage" : {
-      "inputTokens" : 2903,
-      "outputTokens" : 461
+      "inputTokens" : 3584,
+      "outputTokens" : 996
     }
   }
 }

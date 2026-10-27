@@ -160,6 +160,11 @@ public class TraceWiseFacade implements AutoCloseable {
         return caseService.history(caseId);
     }
 
+    /** The case an alert belongs to (an alert linked into another case belongs to that case), if any. */
+    public java.util.Optional<String> caseOfAlert(String alertId) {
+        return caseService.caseOfAlert(alertId);
+    }
+
     public List<Case> listCases() {
         return caseService.listCases();
     }

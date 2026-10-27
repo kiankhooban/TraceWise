@@ -211,4 +211,18 @@ class TriageServiceTest {
                     "the model could not be reached, so no alert or case was touched");
         }
     }
+
+    @Test
+    void aStopSentBeforeTriageStartsIsHonouredOnce() {
+        model.then(AgentRunnerTest.answer(answer("ESCALATE")));
+        try (var f = facade()) {
+            f.stopTriage();
+            var stopped = f.triage(TriageLimits.DEFAULT, null);
+            assertEquals(TriageReport.EndReason.STOPPED, stopped.endReason());
+            assertEquals(0, stopped.processed());
+
+            assertEquals(1, f.triage(new TriageLimits(1, new java.math.BigDecimal("5"), tracewise.monitoring.AlertFilter.ALL),
+                    null).processed(), "the stop applied to one triage only");
+        }
+    }
 }

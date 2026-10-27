@@ -53,6 +53,10 @@ public class CaseService {
         return cases.findAll();
     }
 
+    public java.util.Optional<String> caseOfAlert(String alertId) {
+        return cases.findByAlert(alertId).map(Case::id);
+    }
+
     public Case getCase(String caseId) {
         return cases.findById(caseId).orElseThrow(() -> new IllegalArgumentException("No case " + caseId));
     }

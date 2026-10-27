@@ -63,4 +63,16 @@ class GuiWorkerTest {
         assertEquals(List.of("Investigating ALR-00001", ""), statuses);
         assertTrue(uiThreads.size() >= 3, "status and result callbacks go through the UI executor");
     }
+
+    @Test
+    void anErrorReachesTheErrorCallbackToo() throws Exception {
+        try (var worker = new GuiWorker(ui)) {
+            worker.submit("broken", () -> {
+                throw new ExceptionInInitializerError("native library failed to load");
+            }, r -> log.add("done"), e -> log.add("error: " + e.getMessage()));
+        }
+
+        assertEquals(1, log.size());
+        assertTrue(log.get(0).contains("native library failed to load"), log.toString());
+    }
 }

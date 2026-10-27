@@ -29,7 +29,7 @@ public class GetCaseTool implements AgentTool {
 
     @Override
     public ToolSchema schema() {
-        return new ToolSchema(name(), "One case: status, alerts, follow-up tasks, and its latest finding (verdict, "
+        return new ToolSchema(name(), "One case: status, alerts, follow-up tasks, the analysts' notes, and its latest finding (verdict, "
                 + "confidence, indicators, narrative and verification).", List.of(
                 new ToolParameter("case_id", ToolParameter.Type.STRING, "The case, for example CAS-00001", true)));
     }
@@ -51,6 +51,13 @@ public class GetCaseTool implements AgentTool {
             return alert;
         }).toList());
         result.put("tasks", c.tasks().stream().map(t -> t.description() + (t.done() ? " (done)" : "")).toList());
+        result.put("notes", c.notes().stream().map(n -> {
+            var note = new LinkedHashMap<String, Object>();
+            note.put("author", n.author());
+            note.put("at", n.createdAt().toString());
+            note.put("text", n.text());
+            return note;
+        }).toList());
         AgentFinding f = c.latestFinding();
         if (f == null) {
             result.put("latest_finding", null);

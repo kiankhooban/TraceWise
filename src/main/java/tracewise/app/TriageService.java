@@ -56,7 +56,14 @@ public class TriageService {
 
     /** listener (may be null) sees every agent step and the end of each alert's run. */
     public TriageReport triage(TriageLimits limits, AgentEventListener listener) {
-        stopRequested = false;
+        try {
+            return run(limits, listener);
+        } finally {
+            stopRequested = false; // cleared when triage ends: a stop sent while it was still queued is not lost
+        }
+    }
+
+    private TriageReport run(TriageLimits limits, AgentEventListener listener) {
         long start = System.nanoTime();
         List<Alert> open = alerts.find(limits.filter()).stream().filter(this::needsInvestigation).toList();
         var items = new ArrayList<Item>();

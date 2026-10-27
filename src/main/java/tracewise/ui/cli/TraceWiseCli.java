@@ -20,19 +20,19 @@ import tracewise.llm.ModelConfig;
 public class TraceWiseCli {
 
     @Option(names = "--db", description = "SQLite database file (default: ${DEFAULT-VALUE}).",
-            defaultValue = "${env:TRACEWISE_DB:-tracewise.db}")
+            defaultValue = "${env:TRACEWISE_DB:-" + AppConfig.DEFAULT_DB + "}")
     Path database;
 
     @Option(names = "--role", description = "Who is working: ANALYST or SUPERVISOR (default: ${DEFAULT-VALUE}).",
-            defaultValue = "${env:TRACEWISE_ROLE:-ANALYST}")
+            defaultValue = "${env:TRACEWISE_ROLE:-" + AppConfig.DEFAULT_ROLE + "}")
     ActorType role;
 
     @Option(names = "--llm", description = "anthropic, or replay to answer from recorded runs without a key "
-            + "(default: ${DEFAULT-VALUE}).", defaultValue = "${env:TRACEWISE_LLM:-anthropic}")
+            + "(default: ${DEFAULT-VALUE}).", defaultValue = "${env:TRACEWISE_LLM:-" + AppConfig.DEFAULT_PROVIDER + "}")
     String provider;
 
     @Option(names = "--model", description = "Model id (default: ${DEFAULT-VALUE}).",
-            defaultValue = "${env:TRACEWISE_MODEL:-claude-sonnet-5-5}")
+            defaultValue = "${env:TRACEWISE_MODEL:-" + AppConfig.DEFAULT_MODEL + "}")
     String model;
 
     @Option(names = "--record", description = "Save every model answer so the run can be replayed.",
