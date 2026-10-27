@@ -99,7 +99,7 @@ public final class TraceWiseBootstrap {
                 new ClaimVerifier(transactions), audit, user, config.model(), rates.toCad(BigDecimal.ONE, "USD"));
         var triageService = new TriageService(alerts, cases, investigationService, audit, user);
         return new TraceWiseFacade(db, importService, monitoringService, investigationService, triageService, approvals,
-                new CaseService(cases), user);
+                new CaseService(cases), indicators, memory, user);
     }
 
     /** The key from .env, else from the environment; null when replaying, which needs none. */

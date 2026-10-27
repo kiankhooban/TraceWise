@@ -1,7 +1,9 @@
 package tracewise.app;
 
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Stream;
 import tracewise.actions.ApprovalQueue;
 import tracewise.actions.PendingAction;
 import tracewise.agent.AgentEventListener;
@@ -18,6 +20,9 @@ import tracewise.monitoring.DetectionRule;
 import tracewise.monitoring.MonitoringSummary;
 import tracewise.monitoring.RuleConfig;
 import tracewise.persistence.Database;
+import tracewise.retrieval.CaseMemory;
+import tracewise.retrieval.RetrievedPassage;
+import tracewise.retrieval.Retriever;
 
 /** Facade: the single entry point the GUI and the CLI use; one method per user operation. */
 public class TraceWiseFacade implements AutoCloseable {
@@ -29,11 +34,13 @@ public class TraceWiseFacade implements AutoCloseable {
     private final TriageService triageService;
     private final ApprovalQueue approvals;
     private final CaseService caseService;
+    private final Retriever knowledge;
+    private final CaseMemory memory;
     private final Actor user;
 
     TraceWiseFacade(Database database, ImportService importService, MonitoringService monitoringService,
             InvestigationService investigationService, TriageService triageService, ApprovalQueue approvals,
-            CaseService caseService, Actor user) {
+            CaseService caseService, Retriever knowledge, CaseMemory memory, Actor user) {
         this.database = database;
         this.importService = importService;
         this.monitoringService = monitoringService;
@@ -41,6 +48,8 @@ public class TraceWiseFacade implements AutoCloseable {
         this.triageService = triageService;
         this.approvals = approvals;
         this.caseService = caseService;
+        this.knowledge = knowledge;
+        this.memory = memory;
         this.user = user;
     }
 
@@ -107,6 +116,22 @@ public class TraceWiseFacade implements AutoCloseable {
 
     public Case getCase(String caseId) {
         return caseService.getCase(caseId);
+    }
+
+    /** The analyst's search (UC16): FINTRAC indicators and past cases matching the text, best first. */
+    public List<RetrievedPassage> searchKnowledge(String query) {
+        return Stream.concat(knowledge.search(query, 5).stream(), memory.similar(query, 5).stream())
+                .sorted(Comparator.comparingDouble(RetrievedPassage::score).reversed()).toList();
+    }
+
+    /** Closed and escalated cases whose pattern resembles the case's latest finding, other than the case itself. */
+    public List<RetrievedPassage> similarCases(String caseId) {
+        var finding = getCase(caseId).latestFinding();
+        if (finding == null) {
+            throw new IllegalArgumentException("Case " + caseId + " has no finding yet, so there is nothing to compare");
+        }
+        return memory.similar(CaseMemory.description(finding), 6).stream()
+                .filter(p -> !p.source().equals(caseId)).limit(5).toList();
     }
 
     @Override
