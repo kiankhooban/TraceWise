@@ -37,3 +37,11 @@
 .verdict-ESCALATE { -fx-text-fill: #a12f2f; -fx-font-weight: bold; }
 .verdict-DISMISS { -fx-text-fill: #2f7a45; -fx-font-weight: bold; }
 .verdict-INCONCLUSIVE { -fx-text-fill: #8a6d1f; -fx-font-weight: bold; }
+.chat {
+    -fx-padding: 8;
+    -fx-background-radius: 6;
+}
+.chat-user { -fx-background-color: #e3ebf5; }
+.chat-assistant { -fx-background-color: white; -fx-border-color: #d9dee5; -fx-border-radius: 6; }
+.chat-error { -fx-background-color: #f8e3e3; }
+.chat-name { -fx-font-weight: bold; -fx-font-size: 12px; }

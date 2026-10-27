@@ -126,6 +126,11 @@ final class CaseView implements AgentEventListener {
         return root;
     }
 
+    /** The case on screen, or null: the assistant's context. */
+    String currentCaseId() {
+        return shown == null ? null : shown.id();
+    }
+
     void refresh() {
         String status = statusFilter.getValue();
         gui.run("Loading cases", gui.facade::listCases, all -> {

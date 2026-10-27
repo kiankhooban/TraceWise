@@ -36,8 +36,25 @@ public class TraceWiseApp extends Application {
         var gui = new Gui(facade, worker, stage, config);
         var alerts = new AlertsView(gui);
         var caseView = new CaseView(gui);
+        var approvals = new ApprovalsView(gui);
+        var admin = new AdminView(gui);
+        var assistant = new AssistantView(gui, caseView::currentCaseId);
+        var alertsTab = new Tab("Alerts", alerts.build());
         var casesTab = new Tab("Cases", caseView.build());
-        var tabs = new TabPane(new Tab("Alerts", alerts.build()), casesTab);
+        var approvalsTab = new Tab("Approvals", approvals.build());
+        var adminTab = new Tab("Admin", admin.build());
+        var tabs = new TabPane(alertsTab, casesTab, approvalsTab, adminTab);
+        tabs.getSelectionModel().selectedItemProperty().addListener((o, old, tab) -> {
+            if (tab == alertsTab) {
+                alerts.refresh();
+            } else if (tab == casesTab) {
+                caseView.refresh();
+            } else if (tab == approvalsTab) {
+                approvals.refresh();
+            } else {
+                admin.refresh();
+            }
+        });
         gui.openCase = id -> {
             tabs.getSelectionModel().select(casesTab);
             caseView.showCase(id);
@@ -48,7 +65,9 @@ public class TraceWiseApp extends Application {
         };
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
-        var root = new BorderPane(tabs);
+        var split = new javafx.scene.control.SplitPane(tabs, assistant.build());
+        split.setDividerPositions(0.74);
+        var root = new BorderPane(split);
         root.setTop(statusBar());
         var scene = new Scene(root, 1280, 800);
         scene.getStylesheets().add(TraceWiseApp.class.getResource("/tracewise/gui.css").toExternalForm());

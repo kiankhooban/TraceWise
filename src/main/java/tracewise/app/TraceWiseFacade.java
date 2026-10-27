@@ -11,6 +11,9 @@ import tracewise.agent.AssistantAnswer;
 import tracewise.agent.AssistantContext;
 import tracewise.agent.InvestigationResult;
 import tracewise.agent.TriageReport;
+import tracewise.audit.AuditEntry;
+import tracewise.audit.AuditFilter;
+import tracewise.audit.AuditLog;
 import tracewise.domain.Actor;
 import tracewise.domain.Alert;
 import tracewise.domain.Case;
@@ -37,13 +40,15 @@ public class TraceWiseFacade implements AutoCloseable {
     private final ApprovalQueue approvals;
     private final CaseService caseService;
     private final AssistantService assistant;
+    private final AuditLog audit;
     private final Retriever knowledge;
     private final CaseMemory memory;
     private final Actor user;
 
     TraceWiseFacade(Database database, ImportService importService, MonitoringService monitoringService,
             InvestigationService investigationService, TriageService triageService, ApprovalQueue approvals,
-            CaseService caseService, AssistantService assistant, Retriever knowledge, CaseMemory memory, Actor user) {
+            CaseService caseService, AssistantService assistant, AuditLog audit, Retriever knowledge, CaseMemory memory,
+            Actor user) {
         this.database = database;
         this.importService = importService;
         this.monitoringService = monitoringService;
@@ -52,6 +57,7 @@ public class TraceWiseFacade implements AutoCloseable {
         this.approvals = approvals;
         this.caseService = caseService;
         this.assistant = assistant;
+        this.audit = audit;
         this.knowledge = knowledge;
         this.memory = memory;
         this.user = user;
@@ -116,6 +122,11 @@ public class TraceWiseFacade implements AutoCloseable {
     public PendingAction reject(String pendingId, String reason) {
         approvals.reject(pendingId, user, reason);
         return approvals.find(pendingId);
+    }
+
+    /** F08: the audit trail in the order it happened, filtered by event type and target. */
+    public List<AuditEntry> queryAudit(AuditFilter filter) {
+        return audit.query(filter);
     }
 
     public List<Case> listCases() {
