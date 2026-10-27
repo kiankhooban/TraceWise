@@ -78,6 +78,15 @@ public class TraceWiseApp extends Application {
         caseView.refresh();
         String snapshot = System.getenv("TRACEWISE_SNAPSHOT");
         if (snapshot != null) {
+            // optional scripted steps through the same code as the buttons, for checking and report screenshots
+            String investigate = System.getenv("TRACEWISE_SNAPSHOT_INVESTIGATE");
+            if (investigate != null) {
+                gui.investigate.accept(investigate);
+            }
+            String ask = System.getenv("TRACEWISE_SNAPSHOT_ASK");
+            if (ask != null) {
+                assistant.onSubmit(ask);
+            }
             // queued after the loads above, so the screens show data when captured
             worker.submit("Saving screenshots", () -> null,
                     r -> Snapshots.ofTabs(scene, tabs, java.nio.file.Path.of(snapshot), Platform::exit), gui::error);

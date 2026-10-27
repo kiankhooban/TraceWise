@@ -72,7 +72,6 @@ final class CaseView implements AgentEventListener {
         var listBar = new HBox(8, new Label("Status"), statusFilter, reload);
         listBar.getStyleClass().add("toolbar");
         cases.getColumns().setAll(List.of(Gui.column("Case", Case::id, 85), Gui.column("Status", Case::status, 150),
-                Gui.column("Alerts", c -> String.join(", ", c.alertIds()), 90),
                 Gui.column("Verdict", c -> c.latestFinding() == null ? "" : c.latestFinding().verdict(), 105)));
         cases.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         cases.setPlaceholder(new Label("No cases yet. Investigate an alert."));
@@ -83,6 +82,7 @@ final class CaseView implements AgentEventListener {
         });
         var left = new BorderPane(cases);
         left.setTop(listBar);
+        left.setMinWidth(340);
 
         title.getStyleClass().add("section-title");
         subtitle.getStyleClass().add("muted");
