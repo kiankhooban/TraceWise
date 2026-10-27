@@ -1,0 +1,115 @@
+# FINTRAC, "Money laundering and terrorist financing indicators: Financial entities", section
+# "General ML/TF indicators" (sections 1 to 10), copied verbatim on 2026-10-27 from
+# https://fintrac-canafe.canada.ca/guidance-directives/transaction-operation/indicators-indicateurs/fin_mltf-eng
+# Government of Canada content, reproduced for non-commercial use with attribution.
+# Columns (tab separated): id, section, indicator text.
+1.1	ML/TF indicators related to identifying the person or entity	There is an inability to properly identify the client or there are questions surrounding the client's identity.
+1.2	ML/TF indicators related to identifying the person or entity	When opening an account, the client refuses or tries to avoid providing information required by the financial institution, or provides information that is misleading, vague, or difficult to verify.
+1.3	ML/TF indicators related to identifying the person or entity	The client refuses to provide information regarding the beneficial owners of an account opened for an entity, or provides information that is false, conflicting, misleading or substantially incorrect.
+1.4	ML/TF indicators related to identifying the person or entity	The identification document presented by the client cannot be authenticated.
+1.5	ML/TF indicators related to identifying the person or entity	There are inconsistencies in the identification documents or different identifiers provided by the client, such as name, address, date of birth or phone number.
+1.6	ML/TF indicators related to identifying the person or entity	Client produces seemingly false information or identification that appears to be counterfeited, altered or inaccurate.
+1.7	ML/TF indicators related to identifying the person or entity	Client displays a pattern of name variations from one transaction to another or uses aliases.
+1.8	ML/TF indicators related to identifying the person or entity	Client alters the transaction after being asked for identity documents.
+1.9	ML/TF indicators related to identifying the person or entity	The client provides only a non-civic address or disguises a post office box as a civic address for the purpose of concealing their physical residence.
+1.10	ML/TF indicators related to identifying the person or entity	Common identifiers (e.g. addresses, phone numbers, etc.) are used by multiple clients that do not appear to be related.
+1.11	ML/TF indicators related to identifying the person or entity	Common identifiers (e.g. addresses, phone numbers, etc.) are used by multiple clients conducting similar transactions.
+1.12	ML/TF indicators related to identifying the person or entity	Use of the same hotel address by one or more clients.
+1.13	ML/TF indicators related to identifying the person or entity	Transactions involve persons or entities identified by the media, law enforcement and/or intelligence agencies as being linked to criminal activities.
+1.14	ML/TF indicators related to identifying the person or entity	Attempts to verify the information provided by a new or prospective client are difficult.
+2.1	ML/TF indicators related to client behaviour	Client makes statements about involvement in criminal activities.
+2.2	ML/TF indicators related to client behaviour	Client conducts transactions at different physical locations, or approaches different tellers.
+2.3	ML/TF indicators related to client behaviour	Evidence of untruthfulness on behalf of the client (e.g. providing false or misleading information).
+2.4	ML/TF indicators related to client behaviour	Client exhibits nervous behaviour.
+2.5	ML/TF indicators related to client behaviour	Client refuses to provide information when required, or is reluctant to provide information.
+2.6	ML/TF indicators related to client behaviour	Client has a defensive stance to questioning.
+2.7	ML/TF indicators related to client behaviour	Client presents confusing details about the transaction or knows few details about its purpose.
+2.8	ML/TF indicators related to client behaviour	Client avoids contact with reporting entity employees.
+2.9	ML/TF indicators related to client behaviour	Client refuses to identify a source of funds or provides information that is false, misleading, or substantially incorrect.
+2.10	ML/TF indicators related to client behaviour	Client exhibits a lack of concern about higher than normal transaction costs or fees.
+2.11	ML/TF indicators related to client behaviour	Client makes enquiries/statements indicating a desire to avoid reporting or tries to persuade the reporting entity not to file/maintain required reports.
+2.12	ML/TF indicators related to client behaviour	Insufficient explanation for the source of funds.
+2.13	ML/TF indicators related to client behaviour	Client closes account after an initial deposit is made without a reasonable explanation.
+3.1	ML/TF indicators surrounding the financial transactions in relation to the person/entity profile	The transactional activity far exceeds the projected activity at the time of the account opening or the beginning of the relationship.
+3.2	ML/TF indicators surrounding the financial transactions in relation to the person/entity profile	The transactional activity (level or volume) is inconsistent with the client's apparent financial standing, their usual pattern of activities or occupational information (e.g. student, unemployed, social assistance, etc.).
+3.3	ML/TF indicators surrounding the financial transactions in relation to the person/entity profile	The volume of transactional activity exceeds the norm for geographical area.
+3.4	ML/TF indicators surrounding the financial transactions in relation to the person/entity profile	The transactional activity is inconsistent with what is expected from a declared business (e.g. business account has no normal business-related activities, such as the payment of payrolls or invoices).
+3.5	ML/TF indicators surrounding the financial transactions in relation to the person/entity profile	Client appears to be living beyond their means.
+3.6	ML/TF indicators surrounding the financial transactions in relation to the person/entity profile	Large and/or rapid movement of funds not commensurate with the client's financial profile.
+3.7	ML/TF indicators surrounding the financial transactions in relation to the person/entity profile	Rounded sum transactions atypical of what would be expected from the client.
+3.8	ML/TF indicators surrounding the financial transactions in relation to the person/entity profile	Size or type of transactions atypical of what is expected from the client.
+3.9	ML/TF indicators surrounding the financial transactions in relation to the person/entity profile	Opening accounts when the client's address or employment address is outside the local service area without a reasonable explanation.
+3.10	ML/TF indicators surrounding the financial transactions in relation to the person/entity profile	There is a sudden change in the client's financial profile, pattern of activity or transactions.
+3.11	ML/TF indicators surrounding the financial transactions in relation to the person/entity profile	Client uses notes, monetary instruments, or products and/or services that are unusual for such a client.
+4.1	ML/TF indicators related to products and services	Holding multiple accounts at several financial institutions for no apparent reason.
+4.2	ML/TF indicators related to products and services	Suspected use of a personal account for business purposes, or vice-versa.
+4.3	ML/TF indicators related to products and services	Client appears to have recently established a series of new relationships with different financial entities.
+4.4	ML/TF indicators related to products and services	A product and/or service opened on behalf of a person or entity that is inconsistent based on what you know about that client.
+4.5	ML/TF indicators related to products and services	Frequent use of safety deposit box.
+4.6	ML/TF indicators related to products and services	Accounts used for pass-through activities (e.g. to receive and subsequently send funds to beneficiaries).
+4.7	ML/TF indicators related to products and services	Use of multiple foreign bank accounts for no apparent reason.
+4.8	ML/TF indicators related to products and services	Credit card transactions and payments are exceptionally high for what is expected of the client including an excessive amount of cash advance usage, balance transfer requests or transactions involving luxury items.
+4.9	ML/TF indicators related to products and services	Client frequently makes credit card overpayments and then requests a cash advance.
+4.10	ML/TF indicators related to products and services	Frequent and/or atypical transfers between the client's products and accounts for no apparent reason.
+4.11	ML/TF indicators related to products and services	The same person holds signing authority for accounts held by multiple entities where there is no legal reason or sufficient explanation for such an arrangement.
+4.12	ML/TF indicators related to products and services	Accounts held by multiple entities either headquartered at the same location or having the same directors/signing authorities for no apparent reason.
+5.1	ML/TF indicators related to change in account activity	A business account has a change in ownership structure with increases in transactional activity and no apparent explanation.
+5.2	ML/TF indicators related to change in account activity	An inactive account begins to see financial activity (e.g. deposits, wire transfers, withdrawals).
+5.3	ML/TF indicators related to change in account activity	Accounts that receive relevant periodical deposits and are inactive at other periods without a logical explanation.
+5.4	ML/TF indicators related to change in account activity	A sudden increase in credit card usage or applications for new credit.
+5.5	ML/TF indicators related to change in account activity	Abrupt change in account activity.
+6.1	ML/TF indicators based on atypical transactional activity	The client has multiple products, atypical of what would be expected.
+6.2	ML/TF indicators based on atypical transactional activity	A series of complicated transfers of funds that seems to be an attempt to hide the source and intended use of the funds.
+6.3	ML/TF indicators based on atypical transactional activity	Transactions displaying financial connections between persons or entities that are not usually connected (e.g. a food importer dealing with an automobile parts exporter).
+6.4	ML/TF indicators based on atypical transactional activity	Transaction is unnecessarily complex for its stated purpose.
+6.5	ML/TF indicators based on atypical transactional activity	Client presents notes or financial instruments that are packed, transported or wrapped in an uncommon way.
+6.6	ML/TF indicators based on atypical transactional activity	A client's transactions have no apparent business or economic purpose.
+6.7	ML/TF indicators based on atypical transactional activity	Transaction is consistent with a publicly known trend in criminal activity.
+6.8	ML/TF indicators based on atypical transactional activity	Client deposits musty, odd smelling or extremely dirty bills.
+6.9	ML/TF indicators based on atypical transactional activity	Transaction involves a suspected shell entity (an entity that does not have an economical or logical reason to exist).
+6.10	ML/TF indicators based on atypical transactional activity	Client frequently exchanges small bills for larger bills.
+6.11	ML/TF indicators based on atypical transactional activity	Suspicious pattern emerges from a client's transactions (e.g. transactions take place at the same time of day).
+6.12	ML/TF indicators based on atypical transactional activity	Atypical transfers by a client on an in-and-out basis, or other methods of moving funds quickly, such as a cash deposit followed immediately by a wire transfer of the funds out.
+6.13	ML/TF indicators based on atypical transactional activity	Funds transferred in and out of an account on the same day or within a relatively short period of time.
+7.1	ML/TF indicators related to transactions structured below the reporting or identification requirements	You become aware of the structuring of deposits at multiple branches or institutions.
+7.2	ML/TF indicators related to transactions structured below the reporting or identification requirements	Client appears to be structuring amounts to avoid client identification or reporting thresholds.
+7.3	ML/TF indicators related to transactions structured below the reporting or identification requirements	Client appears to be collaborating with others to avoid client identification or reporting thresholds.
+7.4	ML/TF indicators related to transactions structured below the reporting or identification requirements	The structuring of deposits through multiple branches of the same financial institution or by groups of persons who enter a single branch at the same time.
+7.5	ML/TF indicators related to transactions structured below the reporting or identification requirements	Multiple transactions conducted below the reporting threshold within a short period.
+7.6	ML/TF indicators related to transactions structured below the reporting or identification requirements	Client makes enquiries that would indicate a desire to avoid reporting.
+7.7	ML/TF indicators related to transactions structured below the reporting or identification requirements	Client conducts transactions at different physical locations or with different representatives in an apparent attempt to avoid detection.
+7.8	ML/TF indicators related to transactions structured below the reporting or identification requirements	Client exhibits knowledge of reporting thresholds.
+8.1	ML/TF indicators involving wire transfers (including electronic funds transfers)	Client is unaware of details surrounding incoming wire transfers, such as the ordering client details, amounts or reasons.
+8.2	ML/TF indicators involving wire transfers (including electronic funds transfers)	Client does not appear to know the sender of the wire transfer from whom the wire transfer was received, or the recipient to whom they are sending the wire transfer.
+8.3	ML/TF indicators involving wire transfers (including electronic funds transfers)	Client frequents multiple locations utilizing cash, prepaid credit cards or money orders/cheques/drafts to send wire transfers overseas.
+8.4	ML/TF indicators involving wire transfers (including electronic funds transfers)	The client sends wire transfers or receives wire transfers to or from multiple beneficiaries that do not correspond to the expected use of the account type or business account.
+8.5	ML/TF indicators involving wire transfers (including electronic funds transfers)	Client is accompanied by persons who appear to be instructing the sending or receiving of wire transfers on their behalf.
+8.6	ML/TF indicators involving wire transfers (including electronic funds transfers)	Multiple persons are sending wire transfers that are similar in amounts, receiver names, security questions, addresses or destination country.
+8.7	ML/TF indicators involving wire transfers (including electronic funds transfers)	Client attempts to specify the routing of an international wire transfer.
+8.8	ML/TF indicators involving wire transfers (including electronic funds transfers)	Client conducts wire transfers that do not include theirs or the beneficiary's requisite information.
+8.9	ML/TF indicators involving wire transfers (including electronic funds transfers)	Client utilizes structured cash transactions to send wire transfers in an effort to avoid record keeping requirements.
+8.10	ML/TF indicators involving wire transfers (including electronic funds transfers)	Funds are deposited or received into several accounts and then consolidated into one before transferring the funds outside the country.
+8.11	ML/TF indicators involving wire transfers (including electronic funds transfers)	Immediately after transferred funds have cleared, the client moves funds, to another account or to another person or entity.
+8.12	ML/TF indicators involving wire transfers (including electronic funds transfers)	Multiple clients have sent wire transfers over a short period of time to the same recipient.
+8.13	ML/TF indicators involving wire transfers (including electronic funds transfers)	Large wire transfers or high volume of wire transfers are conducted or received through the account that does not fit the expected pattern of that account.
+8.14	ML/TF indicators involving wire transfers (including electronic funds transfers)	Large and/or frequent wire transfers between senders and receivers with no apparent relationship.
+8.15	ML/TF indicators involving wire transfers (including electronic funds transfers)	Client sending to, or receiving wire transfers from, multiple clients.
+9.1	ML/TF indicators related to transactions that involve non-Canadian jurisdictions	Transactions with jurisdictions that are known to produce or transit drugs or precursor chemicals, or are sources of other types of criminality.
+9.2	ML/TF indicators related to transactions that involve non-Canadian jurisdictions	Transactions with jurisdictions that are known to be at a higher risk of ML/TF.
+9.3	ML/TF indicators related to transactions that involve non-Canadian jurisdictions	Transaction/business activity involving locations of concern, which can include jurisdictions where there are ongoing conflicts (and periphery areas), countries with weak ML/TF controls, or countries with highly secretive banking or other transactional laws.
+9.4	ML/TF indicators related to transactions that involve non-Canadian jurisdictions	Transactions involving any countries deemed high risk or non-cooperative by the FATF.
+9.5	ML/TF indicators related to transactions that involve non-Canadian jurisdictions	Client makes frequent overseas transfers, not in line with their financial profile.
+10.1	ML/TF indicators related to the use of other parties / Use of third party	Multiple deposits which are made to an account by non-account holders.
+10.2	ML/TF indicators related to the use of other parties / Use of third party	Unrelated parties sending email money transfers or other forms of electronic transfers to the same beneficiary with no apparent relation to the recipient.
+10.3	ML/TF indicators related to the use of other parties / Use of third party	A client conducts a transaction while accompanied, overseen or directed by another party.
+10.4	ML/TF indicators related to the use of other parties / Use of third party	A client makes numerous outgoing payments to unrelated parties shortly after they receive incoming funds.
+10.5	ML/TF indicators related to the use of other parties / Use of third party	Wire transfers, deposits or payments to or from unrelated parties (foreign or domestic).
+10.6	ML/TF indicators related to the use of other parties / Use of third party	Client appears to be or states they are acting on behalf of another party.
+10.7	ML/TF indicators related to the use of other parties / Use of third party	Account is linked to seemingly unconnected parties.
+10.8	ML/TF indicators related to the use of other parties / Use of nominee	A person maintains multiple accounts, or maintains accounts in the names of family members or corporate entities with no apparent business or other purpose.
+10.9	ML/TF indicators related to the use of other parties / Use of nominee	A person or entity other than the stated account holder conducts the majority of the transaction activity, which seems unnecessary or excessive.
+10.10	ML/TF indicators related to the use of other parties / Use of nominee	Client is involved in transactions or account activities that are suspicious, but refuses or is unable to answer questions related to the account or transactions.
+10.11	ML/TF indicators related to the use of other parties / Use of gatekeeper	Gatekeeper avoids identifying their client or disclosing their client's identity when such identification would be normal during the course of a transaction.
+10.12	ML/TF indicators related to the use of other parties / Use of gatekeeper	Gatekeeper is willing to pay higher fees and seeks to conduct the transaction quickly when there is no apparent need for such expediency.
+10.13	ML/TF indicators related to the use of other parties / Use of gatekeeper	Gatekeeper is utilizing their account for transactions not typical of their business (e.g. pass through account, excessive amount of cash, payment to non-clients or parties of transactions).
+10.14	ML/TF indicators related to the use of other parties / Use of gatekeeper	Apparent misuse of correspondent accounts by gatekeeper to obscure the origin and/or destination of funds.
