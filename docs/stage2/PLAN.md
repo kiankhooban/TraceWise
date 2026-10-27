@@ -24,6 +24,15 @@ Source: `Project-Stage2-Instruction.pdf` (course handout, read 2026-10-20). Impl
 | 3: Nov 3-9 | Network view (F09), STR draft and export (F11), dashboard (F12), remaining GUI, fixes. Feature freeze Nov 7 | updated UMLet class diagram, report draft, demo scripts |
 | Nov 8-10 | Fresh-clone README check, secret scan of history | Kian records videos; report PDF and demo index |
 
+## Revised schedule (agreed with Kian, 2026-10-27)
+Do almost all the work in period 2 so there is time to recover if something goes wrong:
+- Now to Nov 2: JavaFX GUI shell with the concurrency fixes, every working feature on screen, F08 case
+  management, F11 STR drafts and export, F09 network view, report draft.
+- Nov 3 to 6 (period 3): F12 performance dashboard, a real self-contained feature (metrics, IBM sample,
+  CLI, GUI screen, tests: naturally 5 or more commits), plus fixes from the final review and the
+  fresh-clone check. Commits are never split artificially: the handout excludes them.
+- Nov 7 to 10: feature freeze, Kian records the videos, report finished. Submission Nov 10.
+
 ## Feature status
 | Feature | Status | Implemented in | Video |
 |---|---|---|---|
