@@ -1,6 +1,6 @@
 # Stage 2 handoff (read this first after /compact or in a new session)
 
-Last updated 2026-10-27, after the F10 review (commit `99273b2`). Read this file, then `CLAUDE.md` (repo root) and
+Last updated 2026-10-27, during the GUI and F08 work (commit `9ab8e5d`). Read this file, then `CLAUDE.md` (repo root) and
 `docs/stage2/PLAN.md`. Sessions often run from `~/Brain`, where the TraceWise `CLAUDE.md` is NOT
 loaded automatically: read it explicitly.
 
@@ -10,7 +10,7 @@ loaded automatically: read it explicitly.
   Kian records the demo videos Nov 8 to 10 (we write a script per feature in week 3).
 - Period 1 (Oct 20 to 26) plan is **complete** on Oct 20: 53+ commits pushed (5 needed per period).
   Periods 2 (Oct 27 to Nov 2) and 3 (Nov 3 to 9) still each need 5+ meaningful code commits.
-- 254 tests pass, 1 skipped (the opt-in live API test). Design changes 1 to 29 logged.
+- 272 tests pass, 1 skipped (the opt-in live API test). Design changes 1 to 29 logged (GUI and F08 changes still to log).
 - Period 2 (Oct 27 to Nov 2): 12 code commits plus 2 records commits on Oct 27 (F04, the replay fix, F10 and their review fixes). No PRs: pushed to main.
 
 | Feature | State | Main code |
@@ -21,11 +21,11 @@ loaded automatically: read it explicitly.
 | F05 Claim verification | done (inside investigate) | `verification/*`, `agent/Claim`, `agent/TotalClaim` |
 | F06 Actions and approval queue | CLI done | `actions/*`, `agent/tools/ActionTool` and 6 action tools, `agent/tools/ActionScope`, `ui/cli/ApprovalsCli` |
 | F07 Triage | CLI done | `app/TriageService`, `app/TriageLimits`, `agent/TriageReport`, `ui/cli/TriageCli` |
-| F08 Case management, audit | partly: case states, storage, audit of every step and action | `domain/Case`, `cases/state/*`, `persistence/SqliteCaseRepository`, `app/CaseService` (only `getCase`) |
+| F08 Case management, audit | core done: notes, analyst close, reopen, history, audit filters and CSV; CLI and GUI pieces in progress | `actions/{AddNote,ReopenCase}Command`, `app/CaseService`, `audit/{AuditFilter,AuditCsv}`, `domain/CaseNote` |
 | F04 Retrieval and case memory | CLI and agent tools done | `retrieval/*`, `agent/tools/{SearchIndicators,SimilarCases}Tool`, `ui/cli/{Indicators,Cases}Cli`, `resources/tracewise/fintrac-indicators.tsv` |
 | F10 Assistant | CLI done (`ask --json`) | `agent/Assistant*`, `agent/ConversationMemory`, `agent/tools/{QueryCases,QueryAlerts,GetCase}Tool`, `app/AssistantService`, `ui/cli/AskCli` |
 | F09, F11, F12 | not started | |
-| GUI (JavaFX) | not started | every feature needs its screen; the videos must show GUI and CLI |
+| GUI (JavaFX 21) | Alerts (import, monitoring, queue, register, investigate, triage), Cases (finding, live steps, evidence, tasks), Approvals, Admin (rules, knowledge, audit log), Assistant panel | `ui/gui/*`; launch `./tracewise-gui` |
 
 All nine designed patterns are in code: Facade (`TraceWiseFacade`), Strategy (`DetectionRule`,
 `TransactionFormat`), Template Method (`WindowedRule`, `CliCommandBase`), Adapter (`LangChain4jClient`),
@@ -34,12 +34,15 @@ Decorator (`LLMClientDecorator`: retry, record), Factory Method (`LLMClientFacto
 State (`CaseState` and 5 states), Command (`ActionCommand`, `CommandDispatcher`, `ApprovalQueue`).
 Strategy also covers `Retriever` (`EmbeddingRetriever`, context `SearchIndicatorsTool`).
 
-## 2. Next tasks, in order
+## 2. Next tasks, in order (plan agreed with Kian 2026-10-27, see PLAN.md "Revised schedule")
 
-1. **JavaFX shell** with Alerts, Case and Approvals screens, then **F08** case commands (`case show`,
-   notes, reopen, human close and escalate submitted through `CommandDispatcher` as a human actor).
-2. Week 3: F09 network view, F11 STR draft and export (includes `SaveReportDraftCommand`), F12 dashboard,
-   updated UMLet class diagram, `stage2-report` PDF, demo scripts.
+1. **F08 finish**: CLI `case show|note|reopen|close` and `audit export --from --to [--actor] [--out]`; GUI case
+   view: Notes and History tabs, Reopen and Close buttons; Admin audit log: date and actor filters, Export CSV.
+   Then log design changes (GUI threading, launcher, screenshot mode, CaseService through the dispatcher,
+   AuditFilter fields, human close but no direct human escalate), README GUI section, review (deep-code-review).
+2. **F11** STR draft and export (Report tab), **F09** network view (Network tab, JavaFXSmartGraph). This week.
+3. Period 3 (Nov 3 to 6): **F12** dashboard (the real period 3 feature), final review fixes, fresh-clone check.
+4. Records: UMLet class diagram update, stage2-report PDF, demo scripts.
 
 Design sources: `docs/stage1/diagrams/src/model.iuml` (full model with every member; grep the class),
 `docs/stage1/Stage1-Design-Report.md` (feature sections F01 to F12, use cases UC01 to UC17, Task 3
@@ -103,6 +106,11 @@ Code:
   Only `Actor.isHuman()` can approve or reject. Linking into a case waiting for approval is refused.
   A run that ends without a finding expires its proposals; re-runs see earlier decisions.
 - Tools expose `NAME` constants; use them instead of string literals.
+- GUI: every facade call goes through `GuiWorker` (one background thread, in order; results via
+  Platform.runLater), so the single DB connection is never shared; cancel and stop only set flags and are called
+  directly. Views get a `Gui` context (facade, worker, stage, dialogs). Verify screens without screen access:
+  `TRACEWISE_SNAPSHOT=<dir> [TRACEWISE_SNAPSHOT_INVESTIGATE=ALR-00001] [TRACEWISE_SNAPSHOT_ASK="..."] ./tracewise-gui`
+  saves a PNG of every tab and sub-tab, then exits (Read the PNGs). The terminal has no screen-recording permission.
 - Retrieval: the bge-small model loads lazily (about 2 s) through `TraceWiseBootstrap.indicatorRetriever` and
   `CaseMemory`; unit tests use `retrieval/WordCountEmbeddingModel`, never the ONNX model (only
   `FintracRetrievalTest`, `KnowledgeCliTest` and `CommittedReplaysTest` load the real one). Minimum score 0.70,
