@@ -1,6 +1,6 @@
 # Stage 2 handoff (read this first after /compact or in a new session)
 
-Last updated 2026-10-20, after commit `e30eb8e`. Read this file, then `CLAUDE.md` (repo root) and
+Last updated 2026-10-27, after the F04 review (commit `514e897`). Read this file, then `CLAUDE.md` (repo root) and
 `docs/stage2/PLAN.md`. Sessions often run from `~/Brain`, where the TraceWise `CLAUDE.md` is NOT
 loaded automatically: read it explicitly.
 
@@ -10,7 +10,8 @@ loaded automatically: read it explicitly.
   Kian records the demo videos Nov 8 to 10 (we write a script per feature in week 3).
 - Period 1 (Oct 20 to 26) plan is **complete** on Oct 20: 53+ commits pushed (5 needed per period).
   Periods 2 (Oct 27 to Nov 2) and 3 (Nov 3 to 9) still each need 5+ meaningful code commits.
-- 181 tests pass, 1 skipped (the opt-in live API test). Design changes 1 to 20 logged.
+- 223 tests pass, 1 skipped (the opt-in live API test). Design changes 1 to 25 logged.
+- Period 2 (Oct 27 to Nov 2): 6 code commits on Oct 27 (F04 and its review fixes).
 
 | Feature | State | Main code |
 |---|---|---|
@@ -21,7 +22,8 @@ loaded automatically: read it explicitly.
 | F06 Actions and approval queue | CLI done | `actions/*`, `agent/tools/ActionTool` and 6 action tools, `agent/tools/ActionScope`, `ui/cli/ApprovalsCli` |
 | F07 Triage | CLI done | `app/TriageService`, `app/TriageLimits`, `agent/TriageReport`, `ui/cli/TriageCli` |
 | F08 Case management, audit | partly: case states, storage, audit of every step and action | `domain/Case`, `cases/state/*`, `persistence/SqliteCaseRepository`, `app/CaseService` (only `getCase`) |
-| F04, F09, F10, F11, F12 | not started | |
+| F04 Retrieval and case memory | CLI and agent tools done | `retrieval/*`, `agent/tools/{SearchIndicators,SimilarCases}Tool`, `ui/cli/{Indicators,Cases}Cli`, `resources/tracewise/fintrac-indicators.tsv` |
+| F09, F10, F11, F12 | not started | |
 | GUI (JavaFX) | not started | every feature needs its screen; the videos must show GUI and CLI |
 
 All nine designed patterns are in code: Facade (`TraceWiseFacade`), Strategy (`DetectionRule`,
@@ -29,22 +31,15 @@ All nine designed patterns are in code: Facade (`TraceWiseFacade`), Strategy (`D
 Decorator (`LLMClientDecorator`: retry, record), Factory Method (`LLMClientFactory`,
 `ActionTool.createCommand`), Observer (`AgentTrace` and `AgentEventListener`, `AuditLog` listens),
 State (`CaseState` and 5 states), Command (`ActionCommand`, `CommandDispatcher`, `ApprovalQueue`).
+Strategy also covers `Retriever` (`EmbeddingRetriever`, context `SearchIndicatorsTool`).
 
 ## 2. Next tasks, in order
 
-1. **F04 retrieval**: FINTRAC indicators and similar past cases with local embeddings
-   (bge-small-en-v1.5 quantized, in-process through LangChain4j). The artifact
-   `langchain4j-embeddings-bge-small-en-v15-q` is in `~/.m2` but NOT yet in `pom.xml`: add it at a
-   version matching LangChain4j 1.21.0 (check with context7). Design: F04 sections of
-   `docs/stage1/Stage1-Design-Report.md` (around lines 502 and 1889), `model.iuml` package
-   `tracewise.retrieval` (around line 529: `Retriever`, `EmbeddingRetriever`, `CaseMemory`), tools
-   `SearchIndicatorsTool` and `SimilarCasesTool`. Adding tools changes the agent's requests, so
-   re-record `data/replays` afterwards.
-2. **F10** `tracewise ask --json` (SD6 in `docs/stage1/umlet/gen_sequence_diagrams.py`; `AssistantService`,
+1. **F10** `tracewise ask --json` (SD6 in `docs/stage1/umlet/gen_sequence_diagrams.py`; `AssistantService`,
    `AssistantTask`, `ConversationMemory`).
-3. **JavaFX shell** with Alerts, Case and Approvals screens, then **F08** case commands (`case show`,
+2. **JavaFX shell** with Alerts, Case and Approvals screens, then **F08** case commands (`case show`,
    notes, reopen, human close and escalate submitted through `CommandDispatcher` as a human actor).
-4. Week 3: F09 network view, F11 STR draft and export (includes `SaveReportDraftCommand`), F12 dashboard,
+3. Week 3: F09 network view, F11 STR draft and export (includes `SaveReportDraftCommand`), F12 dashboard,
    updated UMLet class diagram, `stage2-report` PDF, demo scripts.
 
 Design sources: `docs/stage1/diagrams/src/model.iuml` (full model with every member; grep the class),
@@ -86,13 +81,14 @@ How the reviews were run (cheap and repeatable):
   in the background, from `~/TraceWise`; it writes `adversarial-codex.json`.
 - Validators: one per finding from `references/validator-template.md` (Sonnet). Rejected findings are
   dropped; the ones that are deferred rather than wrong go in section 6 below.
-- Three reviews so far (2026-10-20): F03/F05, F06, F07. See collaboration log Entries 7 to 9.
+- Four reviews so far: F03/F05, F06, F07 (2026-10-20), F04 (2026-10-27). See collaboration log Entries 7 to 10.
+- Pitfall: quiet test runs (`./mvnw -q test | grep ...`) hide compile errors; always also check `BUILD SUCCESS`.
 
 ## 5. Conventions and pitfalls
 
 Code:
 - Packages: `domain, ingest, monitoring, persistence, audit, app, llm, agent, agent.tools, actions,
-  cases.state, verification, ui.cli, tools`.
+  cases.state, verification, retrieval, ui.cli, tools`.
 - New user operations: service in `app`, method on `TraceWiseFacade`, wiring in `TraceWiseBootstrap.create`.
   `TraceWiseBootstrap.create(config, llmSupplier)` lets tests record through the real wiring;
   `investigationTools(...)` is the single place the agent's tools are registered.
@@ -108,6 +104,13 @@ Code:
   Only `Actor.isHuman()` can approve or reject. Linking into a case waiting for approval is refused.
   A run that ends without a finding expires its proposals; re-runs see earlier decisions.
 - Tools expose `NAME` constants; use them instead of string literals.
+- Retrieval: the bge-small model loads lazily (about 2 s) through `TraceWiseBootstrap.indicatorRetriever` and
+  `CaseMemory`; unit tests use `retrieval/WordCountEmbeddingModel`, never the ONNX model (only
+  `FintracRetrievalTest`, `KnowledgeCliTest` and `CommittedReplaysTest` load the real one). Minimum score 0.70,
+  measured (design change 21). `CaseMemory.remember()` only marks the memory stale; it rebuilds from storage.
+- A run's waiting close or escalation that its own verdict does not support expires (`Verdict.supportsClose()`,
+  `supportsEscalation()`); claim verification also checks the finding's indicators against what
+  `search_indicators` returned.
 - Parties outside the bank: account `CASH` or prefix `EXT-`. Session role: `--role` or `TRACEWISE_ROLE`.
 
 Tests:
@@ -120,7 +123,10 @@ Tests:
   names in anything the agent can read.
 
 Replays and live runs:
-- `data/replays` holds Claude Haiku 5.5 recordings of the four sample alerts (with actions). They replay
+- `data/replays` holds Claude Haiku 5.5 recordings of the four sample alerts (with actions and F04 retrieval,
+  re-recorded 2026-10-27). `CommittedReplaysTest` replays them on the shipped sample data in any order, so a
+  change that breaks them fails the build. They hold only while no case is decided: an approval changes
+  `similar_cases` results, and the replay error says so. They replay
   on a fresh database in any order: `./tracewise --llm replay --model claude-haiku-5-5 investigate ALR-00001`
   or `... triage`. Replay matches whole requests, so after ANY change to the prompt, tool set, tool
   output or sample data: delete `data/replays`, re-record, verify on fresh databases in and out of order,
@@ -134,7 +140,7 @@ Replays and live runs:
 - Models: `claude-haiku-5-5` (USD 0.10 / 0.50 per MTok) for development and recordings;
   `claude-sonnet-5-5` (USD 2 / 10) for real demos. `ModelConfig.of` refuses unknown models.
   LangChain4j stays on 1.21.0 (the graded design's version).
-- Runtime API spend so far: about CAD 0.06 (recorded in `docs/ai-usage/ai-tools.md`; add new live runs there).
+- Runtime API spend so far: about CAD 0.085 (recorded in `docs/ai-usage/ai-tools.md`; add new live runs there).
 
 Shell and secrets:
 - NEVER `source` or `.` the `.env` file (a malformed line printed the key on 2026-10-20; that key was
@@ -165,3 +171,17 @@ Accepted for now; revisit if they start to matter:
   aggregates, query cases) are still to build.
 - `OpenAiCompatibleLLMClient` from the design is not built: build it or log it as a design change.
 - Triage would skip a case reopened later (F08) because it already has a finding.
+
+From the F04 review (2026-10-27), deferred or accepted with evidence:
+- Case memory can return a related but different pattern above 0.70 (a fan-out query scored 0.72 against a
+  pass-through case; unrelated patterns 0.59 to 0.65). Precedent is shown with its score and the prompt says it is
+  not evidence. The design plans retrieval tuning (keyword or hybrid behind `Retriever`) after Stage 3 testing.
+- If the agent proposes a close and then concludes ESCALATE, its escalation proposal is refused (one proposal per
+  case) and the close expires: the case is left Under Investigation with an ESCALATE finding and nothing waiting.
+  The analyst sees the finding; F08's human escalation covers it.
+- Re-investigating a decided case (F08 reopen) would let `similar_cases` return the case itself: exclude the case
+  in scope when F08 adds reopen. Case summaries show the decision as a prefix, not a separate field.
+- Case memory is an indirect prompt-injection channel: past narratives (agent output over imported CSV text) reach
+  later runs. Bounded by `ActionScope`, human approval, and the prompt rule that precedent is not evidence.
+- Replay scores are rounded to 3 decimals from a quantized ONNX model; another CPU could flip a last digit and miss
+  a recording. Kian records on this Mac; not verified elsewhere.

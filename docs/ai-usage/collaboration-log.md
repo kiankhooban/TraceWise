@@ -223,3 +223,35 @@ investigate an alert the agent had just linked into another case (four reviewers
 from failed runs out of the summary (five agreed), and would keep calling an unreachable model for
 every alert. All three were fixed test-first; four other findings were rejected by their validators
 with reasons recorded. 181 tests pass.
+
+---
+
+## Entry 10: Indicator retrieval and case memory (F04) (2026-10-27)
+
+**Task:** Build F04: retrieval of FINTRAC indicators and similar past cases with a local embedding model.
+
+**Input/Instruction:** Kian asked to start F04 from the handoff, with the usual loop: tests first,
+a live check, a full review, and the records kept current.
+
+**AI Contribution:** Copied FINTRAC's 110 general money-laundering indicators verbatim, with source and
+date, as the corpus. Before choosing the minimum similarity score, measured the real model on it: a query
+in FINTRAC's own words ranked the right indicator first (0.83), the same pattern in raw figures did not
+(as the Stage 1 pre-design test had found), and unrelated text stayed below 0.66, so 0.70 was chosen from
+data. Built the `Retriever` strategy, `EmbeddingRetriever`, `CaseMemory` fed by approved closes and
+escalations, the agent tools `search_indicators` and `similar_cases`, and the CLI commands `indicators
+search` and `cases similar`, loading the model only when a command first needs it. In the live run with
+Haiku 5.5 the agent searched in FINTRAC's vocabulary and cited the returned indicators word for word on
+all four sample alerts. The same run exposed two problems, both fixed test-first: the agent proposed
+closing a case it had itself judged INCONCLUSIVE (such proposals now expire), and comparing two cases by
+their whole narratives scored any pair about 0.85 (cases are now compared by their indicators, measured
+before and after on the live findings).
+
+**Human Contribution:** Set the order and the review standard; owns the decisions recorded in design
+changes 21 to 25.
+
+**Outcome:** A fourth `deep-code-review` (ten reviewers plus Codex, one validator per finding) confirmed
+eight findings and rejected one. The most important: replays broke after any approval (the adversarial
+reviewer reproduced it), indicators the search never returned were accepted, a failed memory load was
+never retried, and the memory update ran inside the approval's transaction. All were fixed test-first,
+or documented with the measured evidence where the design defers tuning to Stage 3 testing. 223 tests
+pass, including a new test that replays the committed recordings.

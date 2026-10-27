@@ -16,7 +16,7 @@ ledger before a human analyst approves or dismisses the case.
 | Stage | Content | Status |
 |---|---|---|
 | Stage 1: Design | [Design report](docs/stage1/Stage1-Design-Report.md) ([PDF](docs/stage1/Stage1-Design-Report.pdf)) (UMLet diagrams in [`docs/stage1/umlet`](docs/stage1/umlet)) | Complete (100/100) |
-| Stage 2: Implementation | [Plan and feature status](docs/stage2/PLAN.md), [design changes](docs/stage2/design-changes.md) | In progress: F01, F02, F03, F05, F06 and F07 working from the CLI |
+| Stage 2: Implementation | [Plan and feature status](docs/stage2/PLAN.md), [design changes](docs/stage2/design-changes.md) | In progress: F01 to F07 working from the CLI |
 | Stage 3: Testing | JUnit tests, KUMA agent behaviour tests | Not started |
 
 ## Quick start
@@ -35,7 +35,12 @@ Prerequisites: Java 21 (JDK). Maven is not needed: the repository includes the M
 ./tracewise triage --max-alerts 50 --max-cost 5.00  # the agent works through the open alerts, highest risk first
 ./tracewise approvals list                      # closes and escalations the agent proposed
 ./tracewise approvals approve APR-00001         # or: approvals reject APR-00001 --reason "..."
+./tracewise indicators search deposits below the reporting threshold   # FINTRAC indicators and past cases
+./tracewise cases similar CAS-00003             # decided cases with the same indicators
 ```
+
+Indicator search runs a local embedding model (bge-small-en-v1.5) inside the JVM: no key, no network,
+about 2 seconds the first time a command needs it.
 
 The agent sets priorities, links alerts, watchlists accounts and creates tasks on its own; it can only
 propose closing or escalating a case, which an analyst approves or rejects.
@@ -72,6 +77,10 @@ so on a fresh database built from `data/samples/scenarios.csv` they replay witho
 ./tracewise --llm replay --model claude-haiku-5-5 investigate ALR-00001
 ./tracewise --llm replay --model claude-haiku-5-5 triage      # all four, in risk order
 ```
+
+Replays reproduce the recorded requests only. Approving or rejecting a proposal changes what later
+runs see (past decisions and similar cases), so after a decision further investigations need a live
+model; the replay error says so.
 
 Each investigation prints its token usage and cost in CAD.
 

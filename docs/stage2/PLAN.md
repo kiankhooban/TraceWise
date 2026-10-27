@@ -29,8 +29,8 @@ Source: `Project-Stage2-Instruction.pdf` (course handout, read 2026-10-20). Impl
 |---|---|---|---|
 | F01 Transaction Data Import | Working (CLI); GUI pending | `ingest/*`, `app/ImportService`, `persistence/SqliteTransactionRepository`, `ui/cli/ImportCli` | |
 | F02 Rule-Based Monitoring, Threshold Reporting and Alert Queue | Working (CLI); GUI pending | `monitoring/*` (six rules, `WindowedRule`, `RiskScorer`), `app/MonitoringService`, alert, register and rule-config repositories, `ui/cli/{Monitor,Alerts,ThresholdReports,Rules}Cli` | |
-| F03 Autonomous Alert Investigation | Working (CLI); GUI pending; retrieval tools come with F04 | `agent/*` (`AgentRunner`, `AgentTrace`, `InvestigationTask`), `agent/tools/*` (`ToolRegistry`, read tools), `llm/*` (retry, record, replay decorators, factory), `app/InvestigationService`, `ui/cli/InvestigateCli` | |
-| F04 Indicator Retrieval and Case Memory | Not started | | |
+| F03 Autonomous Alert Investigation | Working (CLI); GUI pending | `agent/*` (`AgentRunner`, `AgentTrace`, `InvestigationTask`), `agent/tools/*` (`ToolRegistry`, read tools), `llm/*` (retry, record, replay decorators, factory), `app/InvestigationService`, `ui/cli/InvestigateCli` | |
+| F04 Indicator Retrieval and Case Memory | Working (CLI and agent tools); GUI Evidence tab and Knowledge screen pending | `retrieval/*` (`Retriever`, `EmbeddingRetriever`, `CaseMemory`, `IndicatorCorpus`), `agent/tools/{SearchIndicators,SimilarCases}Tool`, `resources/tracewise/fintrac-indicators.tsv`, `ui/cli/{Indicators,Cases}Cli` | |
 | F05 Claim Verification | Working (CLI, inside `investigate`) | `verification/*` (`ClaimVerifier`, `VerificationReport`), `agent/Claim`, `agent/TotalClaim` | |
 | F06 Agent Actions and Approval Queue | Working (CLI); GUI pending; report-draft action comes with F11 | `actions/*` (`ActionCommand` and six commands, `CommandDispatcher`, `PermissionPolicy`, `ApprovalQueue`, `PendingAction`), `agent/tools/ActionTool` and six action tools, `persistence/SqliteApprovalRepository`, `ui/cli/ApprovalsCli` | |
 | F07 Autonomous Queue Triage | Working (CLI); GUI pending | `app/TriageService`, `app/TriageLimits`, `agent/TriageReport`, `ui/cli/TriageCli` | |
@@ -65,6 +65,15 @@ Source: `Project-Stage2-Instruction.pdf` (course handout, read 2026-10-20). Impl
   CLI (design change 19). A full triage of the sample alerts replays offline. 178 tests.
 - 2026-10-20 (review 3): triage re-checks each alert, stops after 3 failures in a row, counts actions
   from every run (design change 20). 181 tests. Period 1 commits pushed: well over 5.
+- 2026-10-27 (F04): period 2 opened. FINTRAC indicator corpus (110 indicators, verbatim), local
+  bge-small-en-v1.5 retrieval behind the `Retriever` strategy, case memory fed by approved closes and
+  escalations, `search_indicators` and `similar_cases` tools, `indicators search` and `cases similar`.
+  Live check with Haiku 5.5 on the four sample alerts: FINTRAC-vocabulary queries, indicators cited word
+  for word, every claim confirmed; recordings re-made. Fixes from the live check: similar cases matched by
+  indicators, proposals that contradict the agent's own verdict expire. 216 tests. Design changes 21 to 24.
+- 2026-10-27 (review 4): `deep-code-review` of F04 (ten reviewers plus Codex, each finding validated):
+  replays explained and guarded by a test, indicators checked against search results, case memory retries
+  failed loads and never changes inside a decision's transaction. 223 tests. Design change 25.
 
 ## Tooling (installed 2026-10-20)
 - `jdtls-lsp` plugin with `jdtls` 1.63.0 (Homebrew): Java diagnostics and navigation.
