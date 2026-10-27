@@ -96,11 +96,14 @@ public final class TraceWiseBootstrap {
         var scope = new ActionScope(cases);
         var tools = investigationTools(transactions, alerts, cases, indicators, memory, dispatcher, scope);
         Supplier<AgentRunner> runner = once(() -> new AgentRunner(llm.get(), tools, AgentLimits.DEFAULT));
-        var investigationService = new InvestigationService(db, alerts, cases, runner, scope, approvals,
-                new ClaimVerifier(transactions), audit, user, config.model(), rates.toCad(BigDecimal.ONE, "USD"));
+        var verifier = new ClaimVerifier(transactions);
+        BigDecimal cadPerUsd = rates.toCad(BigDecimal.ONE, "USD");
+        var investigationService = new InvestigationService(db, alerts, cases, runner, scope, approvals, verifier, audit,
+                user, config.model(), cadPerUsd);
+        var assistant = new AssistantService(runner, verifier, audit, config.model(), cadPerUsd);
         var triageService = new TriageService(alerts, cases, investigationService, audit, user);
         return new TraceWiseFacade(db, importService, monitoringService, investigationService, triageService, approvals,
-                new CaseService(cases), indicators, memory, user);
+                new CaseService(cases), assistant, indicators, memory, user);
     }
 
     /**

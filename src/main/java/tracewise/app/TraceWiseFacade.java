@@ -7,6 +7,8 @@ import java.util.stream.Stream;
 import tracewise.actions.ApprovalQueue;
 import tracewise.actions.PendingAction;
 import tracewise.agent.AgentEventListener;
+import tracewise.agent.AssistantAnswer;
+import tracewise.agent.AssistantContext;
 import tracewise.agent.InvestigationResult;
 import tracewise.agent.TriageReport;
 import tracewise.domain.Actor;
@@ -34,13 +36,14 @@ public class TraceWiseFacade implements AutoCloseable {
     private final TriageService triageService;
     private final ApprovalQueue approvals;
     private final CaseService caseService;
+    private final AssistantService assistant;
     private final Retriever knowledge;
     private final CaseMemory memory;
     private final Actor user;
 
     TraceWiseFacade(Database database, ImportService importService, MonitoringService monitoringService,
             InvestigationService investigationService, TriageService triageService, ApprovalQueue approvals,
-            CaseService caseService, Retriever knowledge, CaseMemory memory, Actor user) {
+            CaseService caseService, AssistantService assistant, Retriever knowledge, CaseMemory memory, Actor user) {
         this.database = database;
         this.importService = importService;
         this.monitoringService = monitoringService;
@@ -48,6 +51,7 @@ public class TraceWiseFacade implements AutoCloseable {
         this.triageService = triageService;
         this.approvals = approvals;
         this.caseService = caseService;
+        this.assistant = assistant;
         this.knowledge = knowledge;
         this.memory = memory;
         this.user = user;
@@ -132,6 +136,11 @@ public class TraceWiseFacade implements AutoCloseable {
         }
         return memory.similar(CaseMemory.pattern(finding), 6).stream()
                 .filter(p -> !p.source().equals(caseId)).limit(5).toList();
+    }
+
+    /** F10: a free-text question, optionally about the case or account the analyst is looking at. */
+    public AssistantAnswer ask(String question, AssistantContext context) {
+        return assistant.ask(question, context);
     }
 
     @Override
