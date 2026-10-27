@@ -1,11 +1,12 @@
 package tracewise.agent;
 
+import static tracewise.agent.AgentJson.claims;
+import static tracewise.agent.AgentJson.readJson;
+import static tracewise.agent.AgentJson.requireArray;
+import static tracewise.agent.AgentJson.requireText;
+import static tracewise.agent.AgentJson.totals;
+
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -22,12 +23,9 @@ import tracewise.agent.tools.SearchIndicatorsTool;
 import tracewise.agent.tools.SetPriorityTool;
 import tracewise.agent.tools.SimilarCasesTool;
 import tracewise.domain.Alert;
-import tracewise.persistence.ExactJson;
 
 /** F03: investigate one alert and answer with a structured finding. */
 public class InvestigationTask implements AgentTask {
-
-    private static final ObjectMapper JSON = ExactJson.mapper();
 
     /** What each rule looks for, without numbers: supervisors can change the thresholds. */
     private static final Map<String, String> RULES = Map.of(
@@ -162,72 +160,9 @@ public class InvestigationTask implements AgentTask {
         for (JsonNode i : requireArray(f, "indicators")) {
             indicators.add(i.asText());
         }
-        var claims = new ArrayList<Claim>();
-        for (JsonNode c : requireArray(f, "cited_transactions")) {
-            claims.add(new Claim(requireText(c, "transaction_id"), requireText(c, "account_id"),
-                    requireAmount(c), requireDate(c)));
-        }
-        var totals = new ArrayList<TotalClaim>();
-        for (JsonNode t : f.has("totals") ? requireArray(f, "totals") : List.<JsonNode>of()) {
-            var ids = new ArrayList<String>();
-            requireArray(t, "transaction_ids").forEach(id -> ids.add(id.asText()));
-            totals.add(new TotalClaim(requireText(t, "description"), requireAmount(t), ids));
-        }
+        List<Claim> claims = claims(f);
+        List<TotalClaim> totals = totals(f);
         return new AgentFinding(v, confidence.asDouble(), indicators, claims, totals, requireText(f, "narrative"),
                 incomplete, trace);
-    }
-
-    /** The ```json block if there is one, otherwise everything from the first { to the last }. */
-    private static JsonNode readJson(String text) {
-        String body = text;
-        int fence = text.indexOf("```json");
-        if (fence >= 0) {
-            int end = text.indexOf("```", fence + 7);
-            body = text.substring(fence + 7, end < 0 ? text.length() : end);
-        } else if (text.indexOf('{') >= 0 && text.lastIndexOf('}') > text.indexOf('{')) {
-            body = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
-        }
-        try {
-            JsonNode node = JSON.readTree(body);
-            if (node != null && node.isObject()) {
-                return node;
-            }
-        } catch (IOException e) {
-            // reported below
-        }
-        throw new IllegalArgumentException("the finding must be one JSON object in a ```json block");
-    }
-
-    private static String requireText(JsonNode node, String field) {
-        JsonNode v = node.get(field);
-        if (v == null || !v.isTextual() || v.asText().isBlank()) {
-            throw new IllegalArgumentException("'" + field + "' must be a non-empty string");
-        }
-        return v.asText();
-    }
-
-    private static JsonNode requireArray(JsonNode node, String field) {
-        JsonNode v = node.get(field);
-        if (v == null || !v.isArray()) {
-            throw new IllegalArgumentException("'" + field + "' must be a list");
-        }
-        return v;
-    }
-
-    private static BigDecimal requireAmount(JsonNode node) {
-        JsonNode v = node.get("amount_cad");
-        if (v == null || !v.isNumber()) {
-            throw new IllegalArgumentException("'amount_cad' must be a number");
-        }
-        return v.decimalValue();
-    }
-
-    private static LocalDate requireDate(JsonNode node) {
-        String date = requireText(node, "date");
-        try {
-            return LocalDate.parse(date);
-        } catch (DateTimeParseException e) {
-            throw new IllegalArgumentException("'date' must be YYYY-MM-DD, not " + date);
-        }
     }
 }
