@@ -1,6 +1,7 @@
 package tracewise.retrieval;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -47,10 +48,39 @@ class CaseMemoryTest {
     @Test
     void aCaseDecidedAfterTheMemoryLoadedIsRemembered() {
         memory.similar("payroll", 3);
+        int callsBefore = model.calls;
+
+        var c = decided("CAS-3", CaseStatus.CLOSED, "Regular payroll.");
+        stored.add(c);
+        memory.remember(c);
+
+        assertEquals(callsBefore, model.calls, "remember() runs inside the decision's transaction, so it embeds nothing");
+        assertEquals("CAS-3", memory.similar("payroll", 3).get(0).source());
+    }
+
+    @Test
+    void aDecisionThatWasNeverStoredIsNotRemembered() {
+        memory.similar("payroll", 3);
 
         memory.remember(decided("CAS-3", CaseStatus.CLOSED, "Regular payroll."));
 
-        assertEquals("CAS-3", memory.similar("payroll", 3).get(0).source());
+        assertEquals(List.of(), memory.similar("payroll", 3), "its transaction rolled back");
+    }
+
+    @Test
+    void aFailedLoadIsTriedAgainOnTheNextSearch() {
+        stored.add(decided("CAS-3", CaseStatus.CLOSED, "Regular payroll."));
+        int[] attempts = {0};
+        var flaky = new CaseMemory(new ListCases(), () -> {
+            if (attempts[0]++ == 0) {
+                throw new IllegalStateException("model could not load");
+            }
+            return new EmbeddingRetriever(model, 0.5);
+        });
+
+        assertThrows(IllegalStateException.class, () -> flaky.similar("payroll", 3));
+
+        assertEquals("CAS-3", flaky.similar("payroll", 3).get(0).source());
     }
 
     @Test

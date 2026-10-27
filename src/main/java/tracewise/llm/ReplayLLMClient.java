@@ -12,7 +12,9 @@ public class ReplayLLMClient implements LLMClient {
     @Override
     public LLMResponse chat(LLMRequest request) {
         return store.find(request).orElseThrow(() -> new LLMException(
-                "No recorded response for this request; run once with recording on to create it", false, null));
+                "No recorded response for this request. A recording only answers the same request: the same "
+                        + "data, and no case decided since it was recorded (similar_cases would differ). Run once with "
+                        + "recording on to create it", false, null));
     }
 
     @Override

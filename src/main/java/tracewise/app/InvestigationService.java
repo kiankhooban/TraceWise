@@ -19,6 +19,7 @@ import tracewise.agent.InvestigationTask;
 import tracewise.agent.OutcomeStatus;
 import tracewise.agent.Verdict;
 import tracewise.agent.tools.ActionScope;
+import tracewise.agent.tools.SearchIndicatorsTool;
 import tracewise.audit.AuditEntry;
 import tracewise.audit.AuditLog;
 import tracewise.domain.Actor;
@@ -105,7 +106,8 @@ public class InvestigationService {
             return finished(c, new InvestigationResult(c.id(), OutcomeStatus.FAILED, null, trace,
                     "The agent's answer is not a valid finding: " + e.getMessage()));
         }
-        finding.attachVerification(verifier.verify(finding.claims(), finding.totals()));
+        finding.attachVerification(verifier.verify(finding.claims(), finding.totals(), finding.indicators(),
+                SearchIndicatorsTool.returnedIndicators(trace.steps())));
         return finished(c, new InvestigationResult(c.id(), outcome.status(), finding, trace,
                 finding.verification().summary()));
     }
@@ -139,16 +141,16 @@ public class InvestigationService {
         return c;
     }
 
+    /** A close or escalation proposal the finding's verdict does not support. */
+    private static boolean contradicts(ActionCommand command, Verdict verdict) {
+        return command instanceof CloseCaseCommand ? !verdict.supportsClose()
+                : command instanceof EscalateCaseCommand && !verdict.supportsEscalation();
+    }
+
     /**
      * Stores the finding on the case as it is now: the agent's actions may have changed the case during the
      * run (a proposal moves it to Pending Approval), so the copy loaded at the start is not written back.
      */
-    /** Closing fits only a DISMISS verdict and escalating only an ESCALATE verdict. */
-    private static boolean contradicts(ActionCommand command, Verdict verdict) {
-        return command instanceof CloseCaseCommand ? verdict != Verdict.DISMISS
-                : command instanceof EscalateCaseCommand && verdict != Verdict.ESCALATE;
-    }
-
     private InvestigationResult finished(Case started, InvestigationResult result) {
         db.inTransaction(() -> {
             if (result.finding() == null) {

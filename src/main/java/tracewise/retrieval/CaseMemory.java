@@ -9,9 +9,9 @@ import tracewise.domain.Case;
 import tracewise.persistence.CaseRepository;
 
 /**
- * Past cases and how they ended, searchable by similarity. Closed and escalated cases are read from storage
- * on first use; cases decided after that are added through remember(). The embedding model is only loaded
- * once there is a case to index.
+ * Past cases and how they ended, searchable by similarity. The closed and escalated cases are read from
+ * storage on the first search and again after a decision, so only committed decisions are remembered. The
+ * embedding model is only loaded once there is a case to index.
  */
 public class CaseMemory {
 
@@ -25,17 +25,21 @@ public class CaseMemory {
         this.newRetriever = newRetriever;
     }
 
-    /** Called when a case is closed or escalated. Before the first search it is left to the load from storage. */
+    /**
+     * Called when a case is closed or escalated, inside that decision's transaction. It embeds nothing, so it
+     * cannot fail the decision: the next search rebuilds from storage, which leaves out a rolled-back decision.
+     */
     public synchronized void remember(Case decidedCase) {
-        if (loaded) {
-            add(passage(decidedCase).stream().toList());
+        if (passage(decidedCase).isPresent()) {
+            loaded = false;
         }
     }
 
     public synchronized List<RetrievedPassage> similar(String description, int maxResults) {
         if (!loaded) {
-            loaded = true;
+            retriever = null;
             add(cases.findAll().stream().flatMap(c -> passage(c).stream()).toList());
+            loaded = true; // only after success: a failed load is tried again on the next search
         }
         return retriever == null ? List.of() : retriever.search(description, maxResults);
     }

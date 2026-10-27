@@ -1,8 +1,13 @@
 package tracewise.agent.tools;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import tracewise.agent.TraceStep;
 import tracewise.llm.ToolParameter;
 import tracewise.llm.ToolSchema;
 import tracewise.retrieval.RetrievedPassage;
@@ -13,6 +18,7 @@ public class SearchIndicatorsTool implements AgentTool {
 
     public static final String NAME = "search_indicators";
     static final int MAX_RESULTS = 10;
+    private static final ObjectMapper JSON = new ObjectMapper();
 
     private final Retriever retriever;
 
@@ -41,12 +47,28 @@ public class SearchIndicatorsTool implements AgentTool {
         int n = Math.max(1, Math.min(MAX_RESULTS, args.integer("max_results", 5)));
         var result = new LinkedHashMap<String, Object>();
         result.put("query", query);
-        result.put("indicators", retriever.search(query, n).stream().map(SearchIndicatorsTool::row).toList());
-        if (((List<?>) result.get("indicators")).isEmpty()) {
+        var rows = retriever.search(query, n).stream().map(SearchIndicatorsTool::row).toList();
+        result.put("indicators", rows);
+        if (rows.isEmpty()) {
             result.put("message", "No indicator matches this description closely enough. Do not cite an indicator "
                     + "for it: describe the pattern in other words or continue without one.");
         }
         return ToolResult.json(result);
+    }
+
+    /** Every indicator this tool returned in the run's successful steps. */
+    public static Set<String> returnedIndicators(List<TraceStep> steps) {
+        var returned = new HashSet<String>();
+        for (TraceStep step : steps) {
+            if (step.toolName().equals(NAME) && !step.error()) {
+                try {
+                    JSON.readTree(step.result()).path("indicators").forEach(i -> returned.add(i.path("indicator").asText()));
+                } catch (JsonProcessingException e) {
+                    throw new IllegalStateException("unreadable " + NAME + " result", e);
+                }
+            }
+        }
+        return returned;
     }
 
     private static Map<String, Object> row(RetrievedPassage p) {

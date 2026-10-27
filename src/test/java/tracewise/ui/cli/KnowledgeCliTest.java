@@ -19,6 +19,7 @@ import tracewise.agent.AgentRunnerTest.ScriptedModel;
 import tracewise.app.AppConfig;
 import tracewise.app.TraceWiseBootstrap;
 import tracewise.domain.ActorType;
+import tracewise.llm.LLMException;
 import tracewise.llm.ModelConfig;
 import tracewise.tools.ScenarioGenerator;
 
@@ -71,11 +72,14 @@ class KnowledgeCliTest {
                 .then(AgentRunnerTest.toolCall(tool, "{\"case_id\":\"" + caseId + "\",\"justification\":\"Because\"}"))
                 .then(AgentRunnerTest.answer("{\"verdict\":\"ESCALATE\",\"confidence\":0.8,\"indicators\":[\""
                         + indicator + "\"],\"cited_transactions\":[],\"totals\":[],\"narrative\":\"" + narrative + "\"}"));
-        var config = new AppConfig(dir.resolve("t.db"), "agent-run", ActorType.ANALYST,
-                ModelConfig.of("anthropic", "claude-haiku-5-5", false), dir.resolve("replays"), dir.resolve(".env"));
-        try (var facade = TraceWiseBootstrap.create(config, () -> model)) {
+        try (var facade = TraceWiseBootstrap.create(config(), () -> model)) {
             facade.investigate(alertId, null);
         }
+    }
+
+    AppConfig config() {
+        return new AppConfig(dir.resolve("t.db"), "agent-run", ActorType.ANALYST,
+                ModelConfig.of("anthropic", "claude-haiku-5-5", false), dir.resolve("replays"), dir.resolve(".env"));
     }
 
     @BeforeEach
@@ -124,6 +128,17 @@ class KnowledgeCliTest {
         assertEquals(0, run("cases", "similar", "CAS-00002"));
 
         assertTrue(out.toString().contains("Nothing relevant found"), out.toString());
+    }
+
+    @Test
+    void aCaseWithoutAFindingCannotBeCompared() {
+        var failing = new ScriptedModel().then(new LLMException("invalid request", false, null));
+        try (var facade = TraceWiseBootstrap.create(config(), () -> failing)) {
+            facade.investigate("ALR-00004", null);
+        }
+
+        assertEquals(1, run("cases", "similar", "CAS-00004"));
+        assertTrue(err.toString().contains("has no finding yet"), err.toString());
     }
 
     @Test

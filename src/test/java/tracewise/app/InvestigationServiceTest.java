@@ -143,7 +143,8 @@ class InvestigationServiceTest {
         assertEquals(Verdict.ESCALATE, result.finding().verdict());
         var report = result.finding().verification();
         assertEquals(VerificationStatus.PARTIALLY_VERIFIED, report.status());
-        assertEquals(1, report.rejected().size());
+        assertEquals(2, report.rejected().size(), "a made-up transaction, and an indicator no search returned");
+        assertTrue(report.rejected().get(1).claim().contains("Structuring"), report.rejected().toString());
         assertEquals(1, listener.steps.size());
         assertEquals(OutcomeStatus.COMPLETED, listener.outcome.status());
 

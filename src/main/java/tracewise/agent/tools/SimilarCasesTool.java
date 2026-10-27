@@ -37,8 +37,9 @@ public class SimilarCasesTool implements AgentTool {
         String description = args.string("description");
         var result = new LinkedHashMap<String, Object>();
         result.put("description", description);
-        result.put("cases", memory.similar(description, 3).stream().map(SimilarCasesTool::row).toList());
-        if (((List<?>) result.get("cases")).isEmpty()) {
+        var rows = memory.similar(description, 3).stream().map(SimilarCasesTool::row).toList();
+        result.put("cases", rows);
+        if (rows.isEmpty()) {
             result.put("message", "No closed or escalated case is similar enough, or none has been decided yet.");
         }
         return ToolResult.json(result);

@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -13,9 +14,14 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import tracewise.agent.AgentFinding;
+import tracewise.agent.AgentOutcome;
+import tracewise.agent.AgentTrace;
+import tracewise.agent.TraceStep;
+import tracewise.agent.OutcomeStatus;
 import tracewise.agent.Verdict;
 import tracewise.cases.state.CaseStatus;
 import tracewise.domain.Case;
+import tracewise.llm.ModelConfig;
 import tracewise.llm.ToolCall;
 import tracewise.persistence.Database;
 import tracewise.persistence.SqliteCaseRepository;
@@ -63,6 +69,18 @@ class RetrievalToolsTest {
     }
 
     @Test
+    void theIndicatorsASearchReturnedAreReadBackFromTheTrace() {
+        Retriever retriever = (q, n) -> List.of(new RetrievedPassage("Returned one.", "FINTRAC 7.5, s7", 0.83));
+        var ok = searchIndicators(retriever, "{\"query\":\"x\"}");
+        var steps = List.of(
+                new TraceStep("ALR-1", 1, SearchIndicatorsTool.NAME, "{}", ok.content(), false, 1),
+                new TraceStep("ALR-1", 1, SearchIndicatorsTool.NAME, "{}", "search_indicators failed: x", true, 1),
+                new TraceStep("ALR-1", 1, "account_history", "{}", "{\"indicators\":[{\"indicator\":\"No.\"}]}", false, 1));
+
+        assertEquals(java.util.Set.of("Returned one."), SearchIndicatorsTool.returnedIndicators(steps));
+    }
+
+    @Test
     void searchIndicatorsAsksForAtMostTenResults() {
         searchIndicators((q, n) -> {
             asked.add(String.valueOf(n));
@@ -94,18 +112,22 @@ class RetrievalToolsTest {
     @Test
     void similarCasesReturnsPastDecisions() throws Exception {
         var db = Database.open(dir.resolve("t.db"));
-        var memory = new CaseMemory(new SqliteCaseRepository(db),
-                () -> new EmbeddingRetriever(new WordCountEmbeddingModel(), 0.5));
+        var cases = new SqliteCaseRepository(db);
+        var memory = new CaseMemory(cases, () -> new EmbeddingRetriever(new WordCountEmbeddingModel(), 0.5));
         assertEquals(0, json(call(null, memory, SimilarCasesTool.NAME, "{\"description\":\"payroll\"}"))
                 .get("cases").size());
-        var finding = new AgentFinding(Verdict.DISMISS, 0.9, List.of(), List.of(), List.of(), "Regular payroll.", false, null);
-        memory.remember(new Case("CAS-00007", Instant.parse("2026-09-01T00:00:00Z"), List.of("ALR-1"), CaseStatus.CLOSED,
-                List.of(finding)));
+        var trace = new AgentTrace("ALR-1", ModelConfig.of("anthropic", "claude-haiku-5-5", false), BigDecimal.ONE);
+        trace.finish(new AgentOutcome("ALR-1", OutcomeStatus.COMPLETED, "{}"));
+        var finding = new AgentFinding(Verdict.DISMISS, 0.9, List.of(), List.of(), List.of(), "Regular payroll.", false, trace);
+        var decided = new Case("CAS-00007", Instant.parse("2026-09-01T00:00:00Z"), List.of("ALR-1"), CaseStatus.CLOSED,
+                List.of(finding));
+        cases.save(decided);
+        memory.remember(decided);
 
-        var cases = json(call(null, memory, SimilarCasesTool.NAME, "{\"description\":\"payroll\"}")).get("cases");
+        var found = json(call(null, memory, SimilarCasesTool.NAME, "{\"description\":\"payroll\"}")).get("cases");
 
-        assertEquals("CAS-00007", cases.get(0).get("case_id").asText());
-        assertEquals("CLOSED. Regular payroll.", cases.get(0).get("summary").asText());
+        assertEquals("CAS-00007", found.get(0).get("case_id").asText());
+        assertEquals("CLOSED. Regular payroll.", found.get(0).get("summary").asText());
         db.close();
     }
 

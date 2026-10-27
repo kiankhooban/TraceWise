@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import tracewise.agent.Claim;
 import tracewise.agent.TotalClaim;
@@ -17,6 +18,16 @@ class ClaimVerifierTest {
 
     static Claim claim(String tx, String account, String amount, String date) {
         return new Claim(tx, account, new BigDecimal(amount), LocalDate.parse(date));
+    }
+
+    @Test
+    void indicatorsMustBeOnesTheSearchReturned() {
+        var report = verifier.verify(List.of(), List.of(), List.of("Returned one.", "Made up."), Set.of("Returned one."));
+
+        assertEquals(VerificationStatus.PARTIALLY_VERIFIED, report.status());
+        assertEquals(1, report.rejected().size());
+        assertTrue(report.rejected().get(0).claim().contains("Made up."));
+        assertTrue(report.rejected().get(0).reason().contains("search_indicators"));
     }
 
     @Test

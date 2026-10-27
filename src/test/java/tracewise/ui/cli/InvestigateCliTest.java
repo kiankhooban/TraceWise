@@ -57,7 +57,7 @@ class InvestigateCliTest {
             accountId = alert.accountId();
             finding = """
                     ```json
-                    {"verdict": "ESCALATE", "confidence": 0.9, "indicators": ["Structuring"],
+                    {"verdict": "ESCALATE", "confidence": 0.9, "indicators": [],
                      "cited_transactions": [{"transaction_id": "%s", "account_id": "%s", "amount_cad": %s,
                        "date": "%s"}], "totals": [], "narrative": "Deposits under the threshold."}
                     ```""".formatted(t.id(), accountId, t.amountCad().toPlainString(),

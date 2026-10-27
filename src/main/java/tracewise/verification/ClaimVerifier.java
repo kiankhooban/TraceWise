@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import tracewise.agent.Claim;
 import tracewise.agent.TotalClaim;
 import tracewise.domain.Transaction;
@@ -24,9 +25,20 @@ public class ClaimVerifier {
     }
 
     public VerificationReport verify(List<Claim> claims, List<TotalClaim> totals) {
+        return verify(claims, totals, List.of(), Set.of());
+    }
+
+    /** Also checks that each indicator is one the indicator search returned during the run, word for word. */
+    public VerificationReport verify(List<Claim> claims, List<TotalClaim> totals, List<String> indicators,
+            Set<String> retrievedIndicators) {
         var checks = new ArrayList<ClaimCheck>();
         claims.forEach(c -> checks.add(check(c)));
         totals.forEach(t -> checks.add(check(t)));
+        for (String indicator : indicators) {
+            checks.add(retrievedIndicators.contains(indicator.strip())
+                    ? new ClaimCheck("Indicator: " + indicator, true, "")
+                    : rejected("Indicator: " + indicator, "search_indicators did not return it in this investigation"));
+        }
         VerificationStatus status = checks.isEmpty() ? VerificationStatus.UNSUPPORTED
                 : checks.stream().allMatch(ClaimCheck::confirmed) ? VerificationStatus.VERIFIED
                 : VerificationStatus.PARTIALLY_VERIFIED;

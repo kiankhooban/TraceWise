@@ -15,7 +15,6 @@ import tracewise.agent.TraceStep;
 import tracewise.agent.TriageReport;
 import tracewise.agent.TriageReport.EndReason;
 import tracewise.agent.TriageReport.Item;
-import tracewise.agent.Verdict;
 import tracewise.agent.tools.AddToWatchlistTool;
 import tracewise.agent.tools.CreateTaskTool;
 import tracewise.agent.tools.LinkAlertsTool;
@@ -94,9 +93,10 @@ public class TriageService {
                 triagedCases.add(r.caseId());
                 actions.addAll(r.trace().steps()); // autonomous actions took effect whatever the outcome
                 // proposals from a run without a finding, or contradicting its verdict, were expired
-                if (r.finding() != null && r.finding().verdict() == Verdict.ESCALATE) {
+                if (r.finding() != null && r.finding().verdict().supportsEscalation()) {
                     escalations += count(r.trace().steps(), ProposeEscalationTool.NAME);
-                } else if (r.finding() != null && r.finding().verdict() == Verdict.DISMISS) {
+                }
+                if (r.finding() != null && r.finding().verdict().supportsClose()) {
                     closes += count(r.trace().steps(), ProposeCloseTool.NAME);
                 }
                 item = new Item(alert.id(), r.caseId(), r.status(), r.finding() == null ? null : r.finding().verdict(),
