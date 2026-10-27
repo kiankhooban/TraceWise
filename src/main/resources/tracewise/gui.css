@@ -1,0 +1,39 @@
+/* TraceWise GUI: one quiet theme; colour is kept for status and the primary action. */
+.root {
+    -fx-font-family: "System";
+    -fx-font-size: 13px;
+    -fx-base: #f4f5f7;
+    -fx-accent: #2f5d8a;
+    -fx-focus-color: #2f5d8a;
+}
+.status-bar {
+    -fx-background-color: #1f2a37;
+    -fx-alignment: center-left;
+}
+.status-bar .label {
+    -fx-text-fill: #d6dde6;
+}
+.status-bar .brand {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-padding: 0 12 0 0;
+}
+.toolbar {
+    -fx-alignment: center-left;
+    -fx-padding: 0 0 10 0;
+}
+.button.primary {
+    -fx-base: #2f5d8a;
+    -fx-text-fill: white;
+}
+.section-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+.muted {
+    -fx-text-fill: #5b6675;
+}
+.verdict-ESCALATE { -fx-text-fill: #a12f2f; -fx-font-weight: bold; }
+.verdict-DISMISS { -fx-text-fill: #2f7a45; -fx-font-weight: bold; }
+.verdict-INCONCLUSIVE { -fx-text-fill: #8a6d1f; -fx-font-weight: bold; }

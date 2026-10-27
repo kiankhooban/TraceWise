@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+# Runs the TraceWise GUI. Build it first with: ./mvnw -q package -DskipTests
+# Settings come from the same environment variables as the CLI (TRACEWISE_DB, TRACEWISE_ROLE, TRACEWISE_LLM, ...).
+dir=$(cd "$(dirname "$0")" && pwd)
+export TRACEWISE_HOME="$dir"
+exec java -cp "$dir/target/tracewise.jar" tracewise.ui.gui.GuiMain "$@"

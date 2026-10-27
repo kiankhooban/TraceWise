@@ -1,6 +1,8 @@
 package tracewise.app;
 
 import java.nio.file.Path;
+import java.util.Locale;
+import java.util.Map;
 import tracewise.domain.ActorType;
 import tracewise.llm.ModelConfig;
 
@@ -10,4 +12,15 @@ import tracewise.llm.ModelConfig;
  */
 public record AppConfig(Path databasePath, String userName, ActorType userRole, ModelConfig model, Path replayDir,
         Path envFile) {
+
+    /** The settings the CLI reads from its environment variables, with the same defaults (used by the GUI). */
+    public static AppConfig fromEnvironment(Map<String, String> env, String userName) {
+        Path home = Path.of(env.getOrDefault("TRACEWISE_HOME", "."));
+        return new AppConfig(Path.of(env.getOrDefault("TRACEWISE_DB", "tracewise.db")), userName,
+                ActorType.valueOf(env.getOrDefault("TRACEWISE_ROLE", "ANALYST").toUpperCase(Locale.ROOT)),
+                ModelConfig.of(env.getOrDefault("TRACEWISE_LLM", "anthropic"),
+                        env.getOrDefault("TRACEWISE_MODEL", "claude-sonnet-5-5"),
+                        Boolean.parseBoolean(env.getOrDefault("TRACEWISE_RECORD", "false"))),
+                home.resolve("data/replays"), home.resolve(".env"));
+    }
 }
