@@ -85,7 +85,7 @@ class ReportTab {
         return pane;
     }
 
-    /** The case on screen (null for none); busy disables everything while an investigation runs. */
+    /** The case on screen, or null for none. */
     void show(Case c) {
         shown = c;
         StrReport r = c == null ? null : c.report().orElse(null);
@@ -114,7 +114,7 @@ class ReportTab {
             return;
         }
         status.setText("The agent is drafting the report...");
-        gui.run("Drafting the report for " + id, () -> gui.facade.draftReport(id), r -> changed.accept(id));
+        gui.run("Drafting the report for " + id, () -> gui.facade.draftReport(id, true), r -> changed.accept(id));
     }
 
     private void onSaveReport() {

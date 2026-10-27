@@ -45,7 +45,7 @@ class ReportCliTest {
                 () -> model)) {
             setup = EscalatedCase.create(f, dir, dir.resolve("t.db"), model);
             model.then(AgentRunnerTest.answer("Deposits " + setup.cited().id() + " and TX-99999."));
-            f.draftReport("CAS-00001");
+            f.draftReport("CAS-00001", false);
         }
     }
 
@@ -75,5 +75,19 @@ class ReportCliTest {
         assertFalse(Files.exists(dir.resolve("out/CAS-00001-STR.html")));
         assertEquals(0, run("report", "export", "CAS-00001", "--out", dir.resolve("out").toString()));
         assertTrue(Files.exists(dir.resolve("out/CAS-00001-STR.html")));
+    }
+
+    /** Findings 2 and 8: --format both writes both files; draft refuses to replace a draft without --replace. */
+    @Test
+    void exportBothAndDraftNeedsReplace() throws Exception {
+        assertNotEquals(0, run("report", "draft", "CAS-00001"));
+        assertTrue(err.toString().contains("--replace"), err.toString());
+
+        assertEquals(0, run("report", "edit", "CAS-00001", "--grounds-file",
+                Files.writeString(dir.resolve("g.txt"), "Deposits " + setup.cited().id() + ".").toString()));
+        assertEquals(0, run("report", "finalise", "CAS-00001"));
+        assertEquals(0, run("approvals", "approve", out.toString().replaceAll("(?s).*?(APR-\\d+).*", "$1")));
+        assertEquals(0, run("report", "export", "CAS-00001", "--format", "both", "--out", dir.resolve("b").toString()));
+        assertTrue(Files.exists(dir.resolve("b/CAS-00001-STR.html")) && Files.exists(dir.resolve("b/CAS-00001-STR.json")));
     }
 }

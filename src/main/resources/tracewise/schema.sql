@@ -118,6 +118,7 @@ CREATE TABLE IF NOT EXISTS str_reports (
     subject_account TEXT NOT NULL,
     grounds TEXT NOT NULL,
     actions_taken TEXT NOT NULL,
+    finding_count INTEGER NOT NULL,
     status TEXT NOT NULL,
     finalised_at TEXT
 );

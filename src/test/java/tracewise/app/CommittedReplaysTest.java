@@ -97,7 +97,7 @@ class CommittedReplaysTest {
                 facade.approve(p.id());
             }
             for (String caseId : java.util.List.of("CAS-00001", "CAS-00002", "CAS-00004")) {
-                var draft = facade.draftReport(caseId);
+                var draft = facade.draftReport(caseId, false);
                 assertEquals(false, draft.transactions().isEmpty(), caseId);
                 assertEquals(java.util.List.of(), draft.finalisationProblems(facade.getCase(caseId).latestFinding()), caseId);
             }

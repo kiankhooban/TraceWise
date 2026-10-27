@@ -22,6 +22,12 @@ import tracewise.tools.ScenarioGenerator;
 public record EscalatedCase(String subject, Transaction cited) {
 
     public static EscalatedCase create(TraceWiseFacade f, Path dir, Path db, ScriptedModel model) throws Exception {
+        return create(f, dir, db, model, true);
+    }
+
+    /** approve false leaves the escalation waiting, so the case is Pending Approval. */
+    public static EscalatedCase create(TraceWiseFacade f, Path dir, Path db, ScriptedModel model, boolean approve)
+            throws Exception {
         f.importTransactions(Files.write(dir.resolve("s.csv"), ScenarioGenerator.generate(42)));
         f.runMonitoring();
         var alert = f.listAlerts(AlertFilter.ALL).stream().filter(a -> a.id().equals("ALR-00001")).findFirst()
@@ -42,8 +48,10 @@ public record EscalatedCase(String subject, Transaction cited) {
                         ```""".formatted(cited.id(), alert.accountId(), cited.amountCad().toPlainString(),
                         LocalDate.ofInstant(cited.timestamp(), ZoneOffset.UTC), alert.accountId())));
         f.investigate("ALR-00001", null);
-        f.approve(f.pendingApprovals().get(0).id());
-        assertEquals(CaseStatus.ESCALATED, f.getCase("CAS-00001").status());
+        if (approve) {
+            f.approve(f.pendingApprovals().get(0).id());
+            assertEquals(CaseStatus.ESCALATED, f.getCase("CAS-00001").status());
+        }
         return new EscalatedCase(alert.accountId(), cited);
     }
 }

@@ -60,13 +60,16 @@ public class ReportCli {
         }
     }
 
-    @Command(name = "draft", description = "Draft the report (replaces an earlier draft): the model writes the grounds "
-            + "for suspicion from the verified finding.")
+    @Command(name = "draft", description = "Draft the report: the model writes the grounds for suspicion from the "
+            + "verified finding. An existing draft is replaced only with --replace.")
     static class Draft extends ReportCommand {
+
+        @Option(names = "--replace", description = "Replace an existing draft, and the edits in it.")
+        boolean replace;
 
         @Override
         protected Object execute() {
-            return shown(facade().draftReport(caseId));
+            return shown(facade().draftReport(caseId, replace));
         }
     }
 
@@ -127,6 +130,10 @@ public class ReportCli {
                 chosen = EnumSet.allOf(ExportFormat.class);
             } else {
                 for (String f : formats) {
+                    if (f.strip().equalsIgnoreCase("both")) {
+                        chosen.addAll(EnumSet.allOf(ExportFormat.class));
+                        continue;
+                    }
                     try {
                         chosen.add(ExportFormat.valueOf(f.strip().toUpperCase(java.util.Locale.ROOT)));
                     } catch (IllegalArgumentException e) {

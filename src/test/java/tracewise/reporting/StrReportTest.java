@@ -27,7 +27,7 @@ class StrReportTest {
     static final TotalClaim BAD_TOTAL = new TotalClaim("Cash deposits", new BigDecimal("41500.00"), List.of("TX-1"));
 
     static StrReport report(String grounds, String actions) {
-        return StrReport.draft("CAS-00001", "C1", List.of(T1), grounds, actions);
+        return StrReport.draft("CAS-00001", "C1", List.of(T1), grounds, actions, 1);
     }
 
     static AgentFinding finding(List<Claim> claims, List<TotalClaim> totals, List<String> indicators,
@@ -49,7 +49,7 @@ class StrReportTest {
 
     @Test
     void emptyRequiredFieldsAreListed() {
-        var empty = StrReport.draft("CAS-00001", "", List.of(), " ", "");
+        var empty = StrReport.draft("CAS-00001", "", List.of(), " ", "", 1);
 
         assertEquals(List.of("Missing: subject account", "Missing: transactions", "Missing: grounds for suspicion",
                 "Missing: actions taken"), empty.finalisationProblems(verified()));
@@ -104,5 +104,20 @@ class StrReportTest {
         assertEquals(List.of(T1), edited.transactions());
         assertEquals("C1", edited.subjectAccountId());
         assertEquals(ReportStatus.DRAFT, edited.status());
+    }
+
+    /** A claim can be rejected for a wrong amount on a transaction a confirmed total still backs (finding 3). */
+    @Test
+    void aRejectedClaimOnAReportedTransactionBlocksOnlyItsWrongAmount() {
+        var wrongAmount = new Claim("TX-1", "C1", new BigDecimal("9900.00"), LocalDate.of(2026, 9, 1));
+        var total = new TotalClaim("Cash deposits", new BigDecimal("9500.00"), List.of("TX-1"));
+        var f = finding(List.of(wrongAmount), List.of(total), List.of(), List.of(
+                new ClaimCheck(wrongAmount.describe(), false, "the ledger amount is 9500.00 CAD"),
+                new ClaimCheck(total.describe(), true, "")));
+
+        assertEquals(List.of(), report("TX-1 was a cash deposit of 9500.00 CAD.", "Escalated.").finalisationProblems(f));
+        var problems = report("TX-1 was a cash deposit of 9,900.00 CAD.", "Escalated.").finalisationProblems(f);
+        assertEquals(1, problems.size(), problems.toString());
+        assertTrue(problems.get(0).contains(wrongAmount.describe()));
     }
 }

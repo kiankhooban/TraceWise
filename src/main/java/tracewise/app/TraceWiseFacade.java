@@ -203,9 +203,9 @@ public class TraceWiseFacade implements AutoCloseable {
         return reports.report(caseId);
     }
 
-    /** F11: drafts (or redrafts) the report; the model writes the grounds for suspicion. */
-    public StrReport draftReport(String caseId) {
-        return reports.draft(caseId);
+    /** F11: drafts the report; replace must be true to write over an existing draft. The model writes the grounds. */
+    public StrReport draftReport(String caseId, boolean replace) {
+        return reports.draft(caseId, replace);
     }
 
     public StrReport saveReport(String caseId, String groundsForSuspicion, String actionsTaken) {

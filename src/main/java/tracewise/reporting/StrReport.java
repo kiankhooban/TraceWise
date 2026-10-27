@@ -25,24 +25,27 @@ public class StrReport {
     private final List<Transaction> transactions;
     private final String groundsForSuspicion;
     private final String actionsTaken;
+    private final int findingCount;
     private ReportStatus status;
     private Instant finalisedAt;
 
     public StrReport(String caseId, String subjectAccountId, List<Transaction> transactions, String groundsForSuspicion,
-            String actionsTaken, ReportStatus status, Instant finalisedAt) {
+            String actionsTaken, int findingCount, ReportStatus status, Instant finalisedAt) {
         this.caseId = caseId;
         this.subjectAccountId = subjectAccountId;
         this.transactions = List.copyOf(transactions);
         this.groundsForSuspicion = groundsForSuspicion;
         this.actionsTaken = actionsTaken;
+        this.findingCount = findingCount;
         this.status = status;
         this.finalisedAt = finalisedAt;
     }
 
+    /** findingCount is how many findings the case had when this was drafted, so a newer finding can be noticed. */
     public static StrReport draft(String caseId, String subjectAccountId, List<Transaction> transactions,
-            String groundsForSuspicion, String actionsTaken) {
-        return new StrReport(caseId, subjectAccountId, transactions, groundsForSuspicion, actionsTaken, ReportStatus.DRAFT,
-                null);
+            String groundsForSuspicion, String actionsTaken, int findingCount) {
+        return new StrReport(caseId, subjectAccountId, transactions, groundsForSuspicion, actionsTaken, findingCount,
+                ReportStatus.DRAFT, null);
     }
 
     /**
@@ -71,8 +74,19 @@ public class StrReport {
                 .collect(Collectors.toMap(ClaimCheck::claim, Function.identity(), (a, b) -> a));
         String text = groundsForSuspicion + "\n" + actionsTaken;
         var mentioned = new ArrayList<ClaimCheck>();
-        finding.claims().stream().filter(c -> rejected.containsKey(c.describe()))
-                .filter(c -> mentions(text, c.transactionId())).forEach(c -> mentioned.add(rejected.get(c.describe())));
+        for (var claim : finding.claims()) {
+            if (!rejected.containsKey(claim.describe())) {
+                continue;
+            }
+            // a transaction the report confirms (through a total) may be named; only the claim's wrong amount may not
+            var reported = transactions.stream().filter(t -> t.id().equals(claim.transactionId())).findFirst();
+            boolean stillThere = reported.isEmpty() ? mentions(text, claim.transactionId())
+                    : claim.amountCad().compareTo(reported.get().amountCad()) != 0
+                            && (mentions(text, claim.amountCad().toPlainString()) || mentions(text, grouped(claim.amountCad())));
+            if (stillThere) {
+                mentioned.add(rejected.get(claim.describe()));
+            }
+        }
         finding.totals().stream().filter(t -> rejected.containsKey(t.describe()))
                 .filter(t -> mentions(text, t.amountCad().toPlainString()) || mentions(text, grouped(t.amountCad())))
                 .forEach(t -> mentioned.add(rejected.get(t.describe())));
@@ -85,7 +99,7 @@ public class StrReport {
     /** A new draft with the analyst's text; the structured fields stay as drafted. */
     public StrReport withText(String groundsForSuspicion, String actionsTaken) {
         requireDraft();
-        return draft(caseId, subjectAccountId, transactions, groundsForSuspicion, actionsTaken);
+        return draft(caseId, subjectAccountId, transactions, groundsForSuspicion, actionsTaken, findingCount);
     }
 
     /** Called when the finalisation is approved. */
@@ -120,6 +134,10 @@ public class StrReport {
     public List<Transaction> transactions() { return transactions; }
     public String groundsForSuspicion() { return groundsForSuspicion; }
     public String actionsTaken() { return actionsTaken; }
+    public int findingCount() {
+        return findingCount;
+    }
+
     public ReportStatus status() { return status; }
     public Instant finalisedAt() { return finalisedAt; }
 }

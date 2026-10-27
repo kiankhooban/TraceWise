@@ -17,6 +17,7 @@ import tracewise.domain.Transaction;
 import tracewise.llm.LLMException;
 import tracewise.llm.LLMMessage;
 import tracewise.llm.ModelConfig;
+import tracewise.persistence.Database;
 import tracewise.reporting.ExportFormat;
 import tracewise.reporting.ReportStatus;
 
@@ -53,7 +54,7 @@ class ReportServiceTest {
         try (var f = facade()) {
             String text = narrative("Account " + subject + " received " + cited.id() + " in cash just under the threshold.");
 
-            var r = f.draftReport("CAS-00001");
+            var r = f.draftReport("CAS-00001", false);
 
             assertEquals(subject, r.subjectAccountId());
             assertEquals(List.of(cited.id()), r.transactions().stream().map(Transaction::id).toList());
@@ -66,6 +67,8 @@ class ReportServiceTest {
             String prompt = ((LLMMessage.User) request.messages().get(0)).text();
             assertTrue(prompt.contains(cited.id()), prompt);
             assertTrue(prompt.contains("Rejected claims") && prompt.contains("TX-99999"), prompt);
+            assertTrue(prompt.contains("not verified"), "the agent's own summary is marked unverified (finding 4): " + prompt);
+            assertTrue(request.systemPrompt().contains("summary"), request.systemPrompt());
             assertFalse(prompt.toLowerCase().contains("label"), prompt);
             var saved = f.queryAudit(new AuditFilter("ACTION_EXECUTED", "CAS-00001")).stream()
                     .filter(e -> e.details().contains("Save the report draft")).toList();
@@ -77,7 +80,7 @@ class ReportServiceTest {
     void anEditedDraftIsFinalisedOnlyAfterApprovalAndThenExported() throws Exception {
         try (var f = facade()) {
             narrative("Draft narrative about " + cited.id() + ".");
-            f.draftReport("CAS-00001");
+            f.draftReport("CAS-00001", false);
             f.saveReport("CAS-00001", "Edited grounds citing " + cited.id() + ".", "Edited actions.");
             assertThrows(IllegalStateException.class, () -> f.exportReport("CAS-00001", EnumSet.allOf(ExportFormat.class),
                     dir.resolve("out")));
@@ -105,7 +108,7 @@ class ReportServiceTest {
     void aRejectedClaimInTheNarrativeBlocksFinalisationUntilRemoved() {
         try (var f = facade()) {
             narrative("Deposits " + cited.id() + " and TX-99999.");
-            f.draftReport("CAS-00001");
+            f.draftReport("CAS-00001", false);
 
             var e = assertThrows(IllegalStateException.class, () -> f.requestFinalisation("CAS-00001"));
             assertTrue(e.getMessage().contains("TX-99999"), e.getMessage());
@@ -120,7 +123,7 @@ class ReportServiceTest {
     void aFailedExportKeepsTheReportFinalSoItCanBeRetried() throws Exception {
         try (var f = facade()) {
             narrative("Deposits " + cited.id() + ".");
-            f.draftReport("CAS-00001");
+            f.draftReport("CAS-00001", false);
             f.approve(f.requestFinalisation("CAS-00001").id());
             Path notADirectory = Files.writeString(dir.resolve("file"), "x");
 
@@ -137,10 +140,98 @@ class ReportServiceTest {
         try (var f = facade()) {
             model.then(new LLMException("overloaded", false, null));
 
-            assertThrows(IllegalStateException.class, () -> f.draftReport("CAS-00001"));
+            assertThrows(IllegalStateException.class, () -> f.draftReport("CAS-00001", false));
 
             assertTrue(f.getReport("CAS-00001").isEmpty());
-            assertThrows(IllegalArgumentException.class, () -> f.draftReport("CAS-99999"));
+            assertThrows(IllegalArgumentException.class, () -> f.draftReport("CAS-99999", false));
         }
+    }
+
+    /** Finding 1: an edit after the request expires the waiting request, so the edited draft can be requested. */
+    @Test
+    void editingAfterARequestExpiresItAndTheEditedDraftCanBeRequested() {
+        try (var f = facade()) {
+            narrative("Deposits " + cited.id() + ".");
+            f.draftReport("CAS-00001", false);
+            var first = f.requestFinalisation("CAS-00001");
+            f.saveReport("CAS-00001", "Edited deposits " + cited.id() + ".", f.getReport("CAS-00001").orElseThrow()
+                    .actionsTaken());
+
+            assertEquals(tracewise.actions.ProposalStatus.EXPIRED, f.pendingApprovals().stream()
+                    .filter(p -> p.id().equals(first.id())).findFirst().map(p -> p.status())
+                    .orElse(tracewise.actions.ProposalStatus.EXPIRED));
+            var second = f.requestFinalisation("CAS-00001");
+            assertNotEquals(first.id(), second.id());
+            assertEquals(List.of(second.id()), f.pendingApprovals().stream().map(p -> p.id()).toList());
+        }
+    }
+
+    /** Finding 8: drafting again replaces the analyst's edits only when asked to. */
+    @Test
+    void anExistingDraftIsReplacedOnlyWhenAsked() {
+        try (var f = facade()) {
+            narrative("First " + cited.id() + ".");
+            f.draftReport("CAS-00001", false);
+            f.saveReport("CAS-00001", "My edits", "Mine");
+            int calls = model.requests.size();
+
+            var e = assertThrows(IllegalStateException.class, () -> f.draftReport("CAS-00001", false));
+            assertTrue(e.getMessage().contains("already has a draft"), e.getMessage());
+            assertEquals(calls, model.requests.size());
+            assertEquals("My edits", f.getReport("CAS-00001").orElseThrow().groundsForSuspicion());
+
+            narrative("Second " + cited.id() + ".");
+            assertEquals("Second " + cited.id() + ".", f.draftReport("CAS-00001", true).groundsForSuspicion());
+        }
+    }
+
+    /** Finding 13: nothing is paid for when the case cannot have a report drafted. */
+    @Test
+    void draftingIsRefusedBeforeAnyModelCallWhenTheCaseCannotTakeADraft() throws Exception {
+        try (var db = Database.open(dir.resolve("t.db"))) {
+            var cases = new tracewise.persistence.SqliteCaseRepository(db);
+            cases.save(new tracewise.domain.Case("CAS-00002", java.time.Instant.now(), List.of("ALR-00002"),
+                    tracewise.cases.state.CaseStatus.UNDER_INVESTIGATION));
+            cases.save(new tracewise.domain.Case("CAS-00003", java.time.Instant.now(), List.of("ALR-00003"),
+                    tracewise.cases.state.CaseStatus.CLOSED));
+        }
+        try (var f = facade()) {
+            narrative("Deposits " + cited.id() + ".");
+            f.draftReport("CAS-00001", false);
+            f.approve(f.requestFinalisation("CAS-00001").id());
+            int calls = model.requests.size();
+
+            for (String id : List.of("CAS-00001", "CAS-00002", "CAS-00003")) {
+                assertThrows(IllegalStateException.class, () -> f.draftReport(id, true), id);
+            }
+            assertEquals(calls, model.requests.size());
+        }
+    }
+
+    /** Finding 6: a draft made before the escalation is approved does not state a status that will change. */
+    @Test
+    void actionsTakenDoNotStateAStatusThatWillChange() throws Exception {
+        Path other = dir.resolve("pending");
+        Files.createDirectories(other);
+        var pendingModel = new ScriptedModel();
+        try (var f = TraceWiseBootstrap.create(new AppConfig(other.resolve("t.db"), "kian", ActorType.ANALYST,
+                ModelConfig.of("anthropic", "claude-haiku-5-5", false), other.resolve("replays"), other.resolve(".env")),
+                () -> pendingModel)) {
+            var setup = EscalatedCase.create(f, other, other.resolve("t.db"), pendingModel, false);
+            pendingModel.then(AgentRunnerTest.answer("Deposits " + setup.cited().id() + "."));
+
+            var r = f.draftReport("CAS-00001", false);
+
+            assertFalse(r.actionsTaken().contains("status") || r.actionsTaken().contains("PENDING"), r.actionsTaken());
+        }
+    }
+
+    /** Finding 14: the subject is the account of the alert that opened the case, not of the lowest linked id. */
+    @Test
+    void theSubjectComesFromTheAlertThatOpenedTheCase() {
+        assertEquals("ALR-00002", ReportService.openingAlertId(new tracewise.domain.Case("CAS-00002",
+                java.time.Instant.now(), List.of("ALR-00001", "ALR-00002"))));
+        assertEquals("ALR-00007", ReportService.openingAlertId(new tracewise.domain.Case("CAS-00099",
+                java.time.Instant.now(), List.of("ALR-00007"))));
     }
 }

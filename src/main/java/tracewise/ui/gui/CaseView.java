@@ -150,10 +150,11 @@ final class CaseView implements AgentEventListener {
                 Gui.column("Who", e -> e.actor().name(), 120), Gui.column("Event", tracewise.audit.AuditEntry::eventType, 150),
                 Gui.column("Target", tracewise.audit.AuditEntry::target, 90),
                 Gui.column("Details", e -> oneLine(e.details(), 200), 480)));
+        var reportPane = new javafx.scene.control.ScrollPane(report.build());
+        reportPane.setFitToWidth(true);
         detail.getTabs().setAll(new Tab("Finding", new javafx.scene.control.ScrollPane(finding)), new Tab("Agent steps", steps),
                 new Tab("Evidence", evidence), new Tab("Tasks", tasks), new Tab("Notes", notesPane),
-                new Tab("Report", new javafx.scene.control.ScrollPane(report.build())), new Tab("History", history));
-        ((javafx.scene.control.ScrollPane) detail.getTabs().get(5).getContent()).setFitToWidth(true);
+                new Tab("Report", reportPane), new Tab("History", history));
         detail.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         ((javafx.scene.control.ScrollPane) detail.getTabs().get(0).getContent()).setFitToWidth(true);
         var right = new BorderPane(detail);

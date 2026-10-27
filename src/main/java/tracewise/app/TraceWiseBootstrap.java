@@ -108,7 +108,7 @@ public final class TraceWiseBootstrap {
         var assistant = new AssistantService(runner, verifier, audit, user, config.model(), cadPerUsd);
         var triageService = new TriageService(alerts, cases, investigationService, audit, user);
         return new TraceWiseFacade(db, importService, monitoringService, investigationService, triageService, approvals,
-                new CaseService(cases, dispatcher, approvals, audit, user), assistant, new ReportService(cases, alerts, transactions, model, dispatcher,
+                new CaseService(cases, dispatcher, approvals, audit, user), assistant, new ReportService(db, cases, alerts, transactions, model, dispatcher,
                 approvals, audit, List.of(new HtmlReportExporter(), new JsonReportExporter()), user, config.model(),
                 cadPerUsd), audit, indicators, memory, user);
     }

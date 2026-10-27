@@ -53,7 +53,7 @@ class ReportCommandsTest {
         var c = new Case("CAS-00001", Instant.parse("2026-09-01T00:00:00Z"), List.of("ALR-00001"), status,
                 List.of(finding));
         var draft = StrReport.draft("CAS-00001", "C1", List.of(fx.accounts.findTransaction("t1").orElseThrow()),
-                "Grounds", "Actions");
+                "Grounds", "Actions", 1);
         c.saveReport(draft);
         fx.cases.save(c);
         return draft;
@@ -65,7 +65,7 @@ class ReportCommandsTest {
 
     @Test
     void theAgentMaySaveADraftOnItsOwnAndItIsAudited() {
-        var draft = StrReport.draft("CAS-00001", "C1", List.of(), "Grounds", "Actions");
+        var draft = StrReport.draft("CAS-00001", "C1", List.of(), "Grounds", "Actions", 0);
 
         var r = fx.dispatcher.submit(new SaveReportDraftCommand(draft), Actor.AGENT, "drafted from the finding");
 
@@ -82,14 +82,14 @@ class ReportCommandsTest {
         c.report().orElseThrow().lock(Instant.now());
         fx.cases.save(c);
 
-        var r = fx.dispatcher.submit(new SaveReportDraftCommand(StrReport.draft("CAS-00001", "C1", List.of(), "x", "y")),
+        var r = fx.dispatcher.submit(new SaveReportDraftCommand(StrReport.draft("CAS-00001", "C1", List.of(), "x", "y", 1)),
                 ANALYST, "edit");
         assertEquals(DispatchResult.Status.REJECTED, r.status());
         assertTrue(r.message().contains("final"), r.message());
 
         fx.cases.save(new Case("CAS-00002", Instant.now(), List.of("ALR-00002"), CaseStatus.CLOSED));
         var closed = fx.dispatcher.submit(new SaveReportDraftCommand(StrReport.draft("CAS-00002", "C3", List.of(), "x",
-                "y")), ANALYST, "edit");
+                "y", 0)), ANALYST, "edit");
         assertEquals(DispatchResult.Status.REJECTED, closed.status());
         assertTrue(closed.message().contains("CLOSED"), closed.message());
     }
@@ -160,5 +160,19 @@ class ReportCommandsTest {
 
         assertEquals(ReportStatus.DRAFT, stored().status());
         assertEquals(CaseStatus.ESCALATED, fx.caseStatus());
+    }
+
+    /** Finding 5: a draft made from an earlier finding is not finalised once the case has a newer one. */
+    @Test
+    void aDraftFromAnOlderFindingIsNotFinalised() {
+        var draft = caseWithDraft(CaseStatus.ESCALATED);
+        var c = fx.cases.findById("CAS-00001").orElseThrow();
+        c.addFinding(c.latestFinding());
+        fx.cases.save(c);
+
+        var r = fx.dispatcher.submit(FinaliseReportCommand.of(draft), ANALYST, "report complete");
+
+        assertEquals(DispatchResult.Status.REJECTED, r.status());
+        assertTrue(r.message().contains("newer finding"), r.message());
     }
 }

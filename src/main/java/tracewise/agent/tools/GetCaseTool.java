@@ -70,6 +70,14 @@ public class GetCaseTool implements AgentTool {
             finding.put("verification", f.verification() == null ? null : f.verification().summary());
             result.put("latest_finding", finding);
         }
+        // only once a report exists, so the output of cases without one (and their recordings) is unchanged
+        c.report().ifPresent(r -> {
+            var report = new LinkedHashMap<String, Object>();
+            report.put("status", r.status().name());
+            report.put("grounds_for_suspicion", r.groundsForSuspicion());
+            report.put("actions_taken", r.actionsTaken());
+            result.put("report", report);
+        });
         return ToolResult.json(result);
     }
 }

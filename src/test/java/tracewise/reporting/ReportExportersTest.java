@@ -20,7 +20,7 @@ class ReportExportersTest {
     static StrReport finalReport() {
         var t = new Transaction("TX-1", Instant.parse("2026-09-01T10:00:00Z"), "C1", "EXT-9", new BigDecimal("12000.50"),
                 new BigDecimal("9000.00"), "USD", PaymentChannel.WIRE, "PA", true);
-        var r = StrReport.draft("CAS-00001", "C1", List.of(t), "Wire to <script>alert(1)</script> & co.", "Escalated.");
+        var r = StrReport.draft("CAS-00001", "C1", List.of(t), "Wire to <script>alert(1)</script> & co.", "Escalated.", 1);
         r.lock(Instant.parse("2026-10-27T12:00:00Z"));
         return r;
     }

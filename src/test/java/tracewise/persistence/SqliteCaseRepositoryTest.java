@@ -114,7 +114,7 @@ class SqliteCaseRepositoryTest {
         ledger.saveAll(List.of(t1, t2));
         var c = new Case("CAS-00001", Instant.parse("2026-09-03T00:00:00Z"), List.of("ALR-00001"), CaseStatus.ESCALATED);
         assertTrue(c.report().isEmpty());
-        c.saveReport(tracewise.reporting.StrReport.draft("CAS-00001", "C1", List.of(t2, t1), "Grounds", "Actions"));
+        c.saveReport(tracewise.reporting.StrReport.draft("CAS-00001", "C1", List.of(t2, t1), "Grounds", "Actions", 1));
         repo.save(c);
 
         var draft = repo.findById("CAS-00001").orElseThrow().report().orElseThrow();

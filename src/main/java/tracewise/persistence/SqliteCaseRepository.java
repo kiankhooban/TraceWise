@@ -70,11 +70,11 @@ public class SqliteCaseRepository implements CaseRepository {
     }
 
     private void saveReport(String caseId, StrReport r) {
-        Jdbc.update(db, "INSERT INTO str_reports (case_id, subject_account, grounds, actions_taken, status, finalised_at) "
-                + "VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (case_id) DO UPDATE SET subject_account = excluded.subject_account, "
-                + "grounds = excluded.grounds, actions_taken = excluded.actions_taken, status = excluded.status, "
+        Jdbc.update(db, "INSERT INTO str_reports (case_id, subject_account, grounds, actions_taken, finding_count, status, "
+                + "finalised_at) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (case_id) DO UPDATE SET subject_account = excluded.subject_account, "
+                + "grounds = excluded.grounds, actions_taken = excluded.actions_taken, finding_count = excluded.finding_count, status = excluded.status, "
                 + "finalised_at = excluded.finalised_at", caseId, r.subjectAccountId(), r.groundsForSuspicion(),
-                r.actionsTaken(), r.status().name(), r.finalisedAt() == null ? null : r.finalisedAt().toString());
+                r.actionsTaken(), r.findingCount(), r.status().name(), r.finalisedAt() == null ? null : r.finalisedAt().toString());
         Jdbc.update(db, "DELETE FROM str_report_transactions WHERE case_id = ?", caseId);
         List<Transaction> reported = r.transactions();
         for (int i = 0; i < reported.size(); i++) {
@@ -87,10 +87,10 @@ public class SqliteCaseRepository implements CaseRepository {
         List<Transaction> reported = Jdbc.query(db, "SELECT " + SqliteTransactionRepository.COLUMNS
                 + " FROM str_report_transactions r JOIN transactions t ON t.id = r.transaction_id WHERE r.case_id = ? "
                 + "ORDER BY r.position", SqliteTransactionRepository::row, caseId);
-        return Jdbc.query(db, "SELECT subject_account, grounds, actions_taken, status, finalised_at FROM str_reports "
+        return Jdbc.query(db, "SELECT subject_account, grounds, actions_taken, finding_count, status, finalised_at FROM str_reports "
                 + "WHERE case_id = ?", rs -> new StrReport(caseId, rs.getString(1), reported, rs.getString(2),
-                        rs.getString(3), ReportStatus.valueOf(rs.getString(4)),
-                        rs.getString(5) == null ? null : Instant.parse(rs.getString(5))), caseId).stream().findFirst();
+                        rs.getString(3), rs.getInt(4), ReportStatus.valueOf(rs.getString(5)),
+                        rs.getString(6) == null ? null : Instant.parse(rs.getString(6))), caseId).stream().findFirst();
     }
 
     @Override

@@ -151,4 +151,20 @@ class AssistantToolsTest {
         assertTrue(call(GetCaseTool.NAME, "{\"case_id\":\"CAS-00001\"}").get("latest_finding").isNull());
         assertTrue(registry.execute(new ToolCall("c1", GetCaseTool.NAME, "{\"case_id\":\"CAS-09999\"}")).error());
     }
+
+    /** Finding 9: the assistant sees a case's report once one is drafted (no key before, so earlier replays match). */
+    @Test
+    void getCaseShowsTheReportOnceOneIsDrafted() throws Exception {
+        assertFalse(call(GetCaseTool.NAME, "{\"case_id\":\"CAS-00003\"}").has("report"));
+        var cases = new SqliteCaseRepository(db);
+        var c = cases.findById("CAS-00003").orElseThrow();
+        c.saveReport(tracewise.reporting.StrReport.draft("CAS-00003", "C3", List.of(), "Nine senders.", "Escalated.", 1));
+        cases.save(c);
+
+        var report = call(GetCaseTool.NAME, "{\"case_id\":\"CAS-00003\"}").get("report");
+
+        assertEquals("DRAFT", report.get("status").asText());
+        assertEquals("Nine senders.", report.get("grounds_for_suspicion").asText());
+        assertEquals("Escalated.", report.get("actions_taken").asText());
+    }
 }

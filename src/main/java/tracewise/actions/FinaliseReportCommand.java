@@ -44,6 +44,9 @@ public record FinaliseReportCommand(String caseId, String groundsForSuspicion, S
             throw new IllegalStateException("The report draft for case " + caseId
                     + " changed after finalisation was requested: request it again");
         }
+        if (r.findingCount() != c.findings().size()) {
+            throw new IllegalStateException("Case " + caseId + " has a newer finding than this draft: redraft the report");
+        }
         List<String> problems = r.finalisationProblems(c.latestFinding());
         if (!problems.isEmpty()) {
             throw new IllegalStateException("The report cannot be finalised: " + String.join("; ", problems));

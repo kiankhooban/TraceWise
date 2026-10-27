@@ -38,6 +38,7 @@ import tracewise.llm.LLMResponse;
 import tracewise.llm.ModelConfig;
 import tracewise.persistence.AlertRepository;
 import tracewise.persistence.CaseRepository;
+import tracewise.persistence.Database;
 import tracewise.persistence.TransactionRepository;
 import tracewise.reporting.ExportFormat;
 import tracewise.reporting.ReportExporter;
@@ -56,14 +57,16 @@ public class ReportService {
             You write the grounds-for-suspicion narrative of a draft suspicious transaction report (STR) for FINTRAC, \
             Canada's financial intelligence unit. An AML analyst reviews and edits it before anything is final.
             Rules:
-            - Use only the facts given. Every transaction id, amount and date you mention must appear in the verified \
-            transactions, written exactly as given.
+            - Use only the verified facts. Every transaction id, amount and date you mention must appear in the verified \
+            transactions, written exactly as given. The investigator's summary is unverified context: state nothing \
+            from it that the verified facts do not show.
             - Never mention anything listed under "Rejected claims": the verifier found it false or unsupported.
             - Explain who, what, when, where, how and why: the subject account, the pattern of transactions, the \
             counterparties, and the FINTRAC indicators that apply.
             - State reasonable grounds to suspect. Do not conclude guilt or name an offence.
             - Plain prose, 150 to 300 words, no headings, no lists, no markdown. Reply with the narrative only.""";
 
+    private final Database db;
     private final CaseRepository cases;
     private final AlertRepository alerts;
     private final TransactionRepository accounts;
@@ -76,9 +79,10 @@ public class ReportService {
     private final ModelConfig pricing;
     private final BigDecimal cadPerUsd;
 
-    public ReportService(CaseRepository cases, AlertRepository alerts, TransactionRepository accounts,
+    public ReportService(Database db, CaseRepository cases, AlertRepository alerts, TransactionRepository accounts,
             Supplier<LLMClient> llm, CommandDispatcher dispatcher, ApprovalQueue approvals, AuditLog audit,
             List<ReportExporter> exporters, Actor user, ModelConfig pricing, BigDecimal cadPerUsd) {
+        this.db = db;
         this.cases = cases;
         this.alerts = alerts;
         this.accounts = accounts;
@@ -100,7 +104,7 @@ public class ReportService {
      * Drafts the report, replacing an earlier draft. The subject and transactions come from the case and its
      * confirmed claims; the model writes the narrative; the agent saves the draft (autonomous: draft only).
      */
-    public StrReport draft(String caseId) {
+    public StrReport draft(String caseId, boolean replace) {
         Case c = caseOrThrow(caseId);
         // checked before paying for the model call; the save command checks again
         if (c.status() == CaseStatus.CLOSED) {
@@ -109,19 +113,39 @@ public class ReportService {
         if (c.report().filter(r -> r.status() == ReportStatus.FINAL).isPresent()) {
             throw new IllegalStateException("The report for case " + caseId + " is final and locked");
         }
+        if (c.report().isPresent() && !replace) {
+            throw new IllegalStateException("Case " + caseId + " already has a draft: draft again with --replace (or "
+                    + "Redraft in the Report tab) to replace it and the edits in it");
+        }
         AgentFinding finding = c.latestFinding();
         if (finding == null || finding.verification() == null) {
             throw new IllegalStateException("Case " + caseId + " has no verified finding yet: investigate it first");
         }
-        String subject = alerts.findById(c.alertIds().get(0)).map(a -> a.accountId()).orElse("");
+        String subject = alerts.findById(openingAlertId(c)).map(a -> a.accountId()).orElse("");
         List<Transaction> reported = confirmedTransactions(finding);
         var trace = new AgentTrace("report " + caseId, pricing, cadPerUsd);
         String narrative = narrative(c, subject, reported, finding, trace);
-        var report = StrReport.draft(caseId, subject, reported, narrative, actionsTaken(c, subject, finding));
+        var report = StrReport.draft(caseId, subject, reported, narrative, actionsTaken(c, subject, finding),
+                c.findings().size());
         submit(new SaveReportDraftCommand(report), Actor.AGENT, "drafted by " + pricing.modelName() + " for "
                 + user.name() + " from the verified finding (" + trace.usage().inputTokens() + " input and "
                 + trace.usage().outputTokens() + " output tokens, CAD " + trace.costCad().toPlainString() + ")");
+        expireStaleFinalisation(report);
         return report;
+    }
+
+    /** The alert that opened the case (ALR-00007 opens CAS-00007); alerts linked later may be on other accounts. */
+    static String openingAlertId(Case c) {
+        String opening = "ALR-" + c.id().substring(4);
+        return c.alertIds().contains(opening) ? opening : c.alertIds().get(0);
+    }
+
+    /** A finalisation waiting for text the draft no longer has expires, so the edited draft can be requested. */
+    private void expireStaleFinalisation(StrReport current) {
+        var wanted = FinaliseReportCommand.of(current);
+        db.inTransaction(() -> approvals.expireWaiting(current.caseId(),
+                command -> command instanceof FinaliseReportCommand && !command.equals(wanted),
+                "the report draft was changed after finalisation was requested"));
     }
 
     /** The analyst's edits to the two text fields. */
@@ -129,19 +153,21 @@ public class ReportService {
         StrReport edited = draftOrThrow(caseId).withText(groundsForSuspicion == null ? "" : groundsForSuspicion,
                 actionsTaken == null ? "" : actionsTaken);
         submit(new SaveReportDraftCommand(edited), user, "edited by the analyst");
+        expireStaleFinalisation(edited);
         return edited;
     }
 
     /** Refused while a field is empty, a rejected claim remains, or the case is not escalated; else it waits. */
     public PendingAction requestFinalisation(String caseId) {
         StrReport draft = draftOrThrow(caseId);
+        var wanted = FinaliseReportCommand.of(draft);
         approvals.forCase(caseId).stream()
-                .filter(p -> p.status() == ProposalStatus.PENDING && p.command() instanceof FinaliseReportCommand)
+                .filter(p -> p.status() == ProposalStatus.PENDING && p.command().equals(wanted))
                 .findFirst().ifPresent(p -> {
                     throw new IllegalStateException("The report for case " + caseId + " is already waiting for approval as "
                             + p.id());
                 });
-        DispatchResult r = submit(FinaliseReportCommand.of(draft), user, "the report is complete; finalisation requested");
+        DispatchResult r = submit(wanted, user, "the report is complete; finalisation requested");
         return approvals.find(r.pendingId());
     }
 
@@ -203,7 +229,8 @@ public class ReportService {
         facts.append("Verified totals and FINTRAC indicators:\n");
         checks.stream().filter(ClaimCheck::confirmed).filter(k -> !k.claim().startsWith("Transaction "))
                 .forEach(k -> facts.append("- ").append(k.claim()).append('\n'));
-        facts.append("Investigation summary (verdict ").append(finding.verdict()).append("):\n")
+        facts.append("Investigator's summary (verdict ").append(finding.verdict())
+                .append("; the agent's own words, not verified; context only):\n")
                 .append(finding.narrative()).append('\n');
         var rejected = finding.verification().rejected();
         if (!rejected.isEmpty()) {
@@ -238,8 +265,9 @@ public class ReportService {
             lines.add("Account " + subject + " added to the watchlist for continued monitoring.");
         }
         c.tasks().stream().map(FollowUpTask::description).forEach(t -> lines.add("Follow-up task: " + t));
-        lines.add(c.status() == CaseStatus.ESCALATED ? "Case escalated for reporting after approval."
-                : "Case status: " + c.status() + ".");
+        if (c.status() == CaseStatus.ESCALATED) {
+            lines.add("Case escalated for reporting after approval.");
+        }
         return String.join("\n", lines);
     }
 
