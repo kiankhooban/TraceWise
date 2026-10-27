@@ -144,6 +144,17 @@ public class TraceWiseFacade implements AutoCloseable {
         caseService.reopen(caseId, reason);
     }
 
+    /** F08: the matching audit entries as CSV; returns how many were written. */
+    public int exportAudit(AuditFilter filter, java.io.Writer out) {
+        List<AuditEntry> entries = audit.query(filter);
+        try {
+            tracewise.audit.AuditCsv.write(entries, out);
+        } catch (java.io.IOException e) {
+            throw new java.io.UncheckedIOException("The audit export could not be written: " + e.getMessage(), e);
+        }
+        return entries.size();
+    }
+
     /** F08: the case's history timeline. */
     public List<AuditEntry> caseHistory(String caseId) {
         return caseService.history(caseId);

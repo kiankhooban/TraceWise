@@ -15,7 +15,8 @@ import tracewise.llm.ModelConfig;
         description = "AI agent for anti-money-laundering alert investigation.",
         subcommands = {ImportCli.class, MonitorCli.class, AlertsCli.class, ThresholdReportsCli.class,
                 RulesCli.class, InvestigateCli.class, ApprovalsCli.class, TriageCli.class,
-                IndicatorsCli.class, CasesCli.class, AskCli.class})
+                IndicatorsCli.class, CasesCli.class, AskCli.class,
+                CaseCli.class, AuditCli.class})
 public class TraceWiseCli {
 
     @Option(names = "--db", description = "SQLite database file (default: ${DEFAULT-VALUE}).",
