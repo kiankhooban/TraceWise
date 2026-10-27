@@ -25,6 +25,8 @@ import tracewise.monitoring.DetectionRule;
 import tracewise.monitoring.MonitoringSummary;
 import tracewise.monitoring.RuleConfig;
 import tracewise.persistence.Database;
+import tracewise.reporting.ExportFormat;
+import tracewise.reporting.StrReport;
 import tracewise.retrieval.CaseMemory;
 import tracewise.retrieval.RetrievedPassage;
 import tracewise.retrieval.Retriever;
@@ -40,6 +42,7 @@ public class TraceWiseFacade implements AutoCloseable {
     private final ApprovalQueue approvals;
     private final CaseService caseService;
     private final AssistantService assistant;
+    private final ReportService reports;
     private final AuditLog audit;
     private final Retriever knowledge;
     private final CaseMemory memory;
@@ -47,7 +50,7 @@ public class TraceWiseFacade implements AutoCloseable {
 
     TraceWiseFacade(Database database, ImportService importService, MonitoringService monitoringService,
             InvestigationService investigationService, TriageService triageService, ApprovalQueue approvals,
-            CaseService caseService, AssistantService assistant, AuditLog audit, Retriever knowledge, CaseMemory memory,
+            CaseService caseService, AssistantService assistant, ReportService reports, AuditLog audit, Retriever knowledge, CaseMemory memory,
             Actor user) {
         this.database = database;
         this.importService = importService;
@@ -57,6 +60,7 @@ public class TraceWiseFacade implements AutoCloseable {
         this.approvals = approvals;
         this.caseService = caseService;
         this.assistant = assistant;
+        this.reports = reports;
         this.audit = audit;
         this.knowledge = knowledge;
         this.memory = memory;
@@ -192,6 +196,30 @@ public class TraceWiseFacade implements AutoCloseable {
     /** F10: a free-text question, optionally about the case or account the analyst is looking at. */
     public AssistantAnswer ask(String question, AssistantContext context) {
         return assistant.ask(question, context);
+    }
+
+    /** F11: the case's report, if one has been drafted. */
+    public java.util.Optional<StrReport> getReport(String caseId) {
+        return reports.report(caseId);
+    }
+
+    /** F11: drafts (or redrafts) the report; the model writes the grounds for suspicion. */
+    public StrReport draftReport(String caseId) {
+        return reports.draft(caseId);
+    }
+
+    public StrReport saveReport(String caseId, String groundsForSuspicion, String actionsTaken) {
+        return reports.save(caseId, groundsForSuspicion, actionsTaken);
+    }
+
+    /** F11: asks for the report to be finalised; it waits in the approval queue. */
+    public PendingAction requestFinalisation(String caseId) {
+        return reports.requestFinalisation(caseId);
+    }
+
+    /** F11: writes a final report in each format into dir and returns the files. */
+    public List<Path> exportReport(String caseId, java.util.Set<ExportFormat> formats, Path dir) {
+        return reports.export(caseId, formats, dir);
     }
 
     @Override

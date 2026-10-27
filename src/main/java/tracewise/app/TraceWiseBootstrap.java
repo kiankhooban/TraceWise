@@ -58,6 +58,8 @@ import tracewise.persistence.SqliteCaseRepository;
 import tracewise.persistence.SqliteRuleConfigRepository;
 import tracewise.persistence.SqliteThresholdReportRepository;
 import tracewise.persistence.SqliteTransactionRepository;
+import tracewise.reporting.HtmlReportExporter;
+import tracewise.reporting.JsonReportExporter;
 import tracewise.verification.ClaimVerifier;
 
 /** Builds the object graph once (manual dependency injection), so no class creates its own dependencies. */
@@ -97,7 +99,8 @@ public final class TraceWiseBootstrap {
         var dispatcher = new CommandDispatcher(db, commands, new PermissionPolicy(), approvals, audit);
         var scope = new ActionScope(cases);
         var tools = investigationTools(transactions, alerts, cases, indicators, memory, dispatcher, scope);
-        Supplier<AgentRunner> runner = once(() -> new AgentRunner(llm.get(), tools, AgentLimits.DEFAULT));
+        Supplier<LLMClient> model = once(llm);
+        Supplier<AgentRunner> runner = once(() -> new AgentRunner(model.get(), tools, AgentLimits.DEFAULT));
         var verifier = new ClaimVerifier(transactions);
         BigDecimal cadPerUsd = rates.toCad(BigDecimal.ONE, "USD");
         var investigationService = new InvestigationService(db, alerts, cases, runner, scope, approvals, verifier, audit,
@@ -105,7 +108,9 @@ public final class TraceWiseBootstrap {
         var assistant = new AssistantService(runner, verifier, audit, user, config.model(), cadPerUsd);
         var triageService = new TriageService(alerts, cases, investigationService, audit, user);
         return new TraceWiseFacade(db, importService, monitoringService, investigationService, triageService, approvals,
-                new CaseService(cases, dispatcher, approvals, audit, user), assistant, audit, indicators, memory, user);
+                new CaseService(cases, dispatcher, approvals, audit, user), assistant, new ReportService(cases, alerts, transactions, model, dispatcher,
+                approvals, audit, List.of(new HtmlReportExporter(), new JsonReportExporter()), user, config.model(),
+                cadPerUsd), audit, indicators, memory, user);
     }
 
     /**
