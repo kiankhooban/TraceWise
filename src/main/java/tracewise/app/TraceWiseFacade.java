@@ -25,6 +25,10 @@ import tracewise.monitoring.DetectionRule;
 import tracewise.monitoring.MonitoringSummary;
 import tracewise.monitoring.RuleConfig;
 import tracewise.persistence.Database;
+import tracewise.persistence.TransactionRepository;
+import tracewise.network.MoneyFlowGraph;
+import tracewise.domain.DateRange;
+import tracewise.domain.Transaction;
 import tracewise.reporting.ExportFormat;
 import tracewise.reporting.StrReport;
 import tracewise.retrieval.CaseMemory;
@@ -43,6 +47,8 @@ public class TraceWiseFacade implements AutoCloseable {
     private final CaseService caseService;
     private final AssistantService assistant;
     private final ReportService reports;
+    private final NetworkService network;
+    private final TransactionRepository transactions;
     private final AuditLog audit;
     private final Retriever knowledge;
     private final CaseMemory memory;
@@ -50,7 +56,8 @@ public class TraceWiseFacade implements AutoCloseable {
 
     TraceWiseFacade(Database database, ImportService importService, MonitoringService monitoringService,
             InvestigationService investigationService, TriageService triageService, ApprovalQueue approvals,
-            CaseService caseService, AssistantService assistant, ReportService reports, AuditLog audit, Retriever knowledge, CaseMemory memory,
+            CaseService caseService, AssistantService assistant, ReportService reports, NetworkService network,
+            TransactionRepository transactions, AuditLog audit, Retriever knowledge, CaseMemory memory,
             Actor user) {
         this.database = database;
         this.importService = importService;
@@ -61,6 +68,8 @@ public class TraceWiseFacade implements AutoCloseable {
         this.caseService = caseService;
         this.assistant = assistant;
         this.reports = reports;
+        this.network = network;
+        this.transactions = transactions;
         this.audit = audit;
         this.knowledge = knowledge;
         this.memory = memory;
@@ -220,6 +229,16 @@ public class TraceWiseFacade implements AutoCloseable {
     /** F11: writes a final report in each format into dir and returns the files. */
     public List<Path> exportReport(String caseId, java.util.Set<ExportFormat> formats, Path dir) {
         return reports.export(caseId, formats, dir);
+    }
+
+    /** F09: the money-flow graph around an account; caseId (may be null) marks what its investigation examined. */
+    public MoneyFlowGraph buildNetwork(String accountId, int hops, DateRange range, String caseId) {
+        return network.build(accountId, hops, range, caseId);
+    }
+
+    /** One account's transactions in a range, oldest first (F09: clicking an account or an edge). */
+    public List<Transaction> transactionsFor(String accountId, DateRange range) {
+        return transactions.transactionsFor(accountId, range);
     }
 
     @Override

@@ -111,7 +111,7 @@ public final class TraceWiseBootstrap {
         return new TraceWiseFacade(db, importService, monitoringService, investigationService, triageService, approvals,
                 new CaseService(cases, dispatcher, approvals, audit, user), assistant, new ReportService(db, cases, alerts, transactions, model, dispatcher,
                 approvals, audit, List.of(new HtmlReportExporter(), new JsonReportExporter()), user, config.model(),
-                cadPerUsd), audit, indicators, memory, user);
+                cadPerUsd), new NetworkService(transactions, alerts, cases), transactions, audit, indicators, memory, user);
     }
 
     /**
