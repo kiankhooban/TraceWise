@@ -6,7 +6,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Function;
@@ -93,7 +92,9 @@ public class PerformanceService {
                     confirmed += f.verification().checks().size() - f.verification().rejected().size();
                 }
             }
-            Boolean laundering = caseLabel(c, r.labels());
+            // judged by the alert the agent was asked about: alerts it linked later must not make it look right
+            AlertLabel opening = r.labels().get(c.openingAlertId());
+            Boolean laundering = opening == null ? null : opening.laundering();
             if (matching.isEmpty() || laundering == null) {
                 continue;
             }
@@ -174,13 +175,6 @@ public class PerformanceService {
         }
         return byRule.entrySet().stream()
                 .map(e -> new RulePrecision(e.getKey(), e.getValue()[0], e.getValue()[1], e.getValue()[2])).toList();
-    }
-
-    /** Laundering if any linked alert involves it; null when none of the case's transactions carries a label. */
-    private static Boolean caseLabel(Case c, Map<String, AlertLabel> labels) {
-        var known = c.alertIds().stream().map(labels::get).filter(Objects::nonNull).map(AlertLabel::laundering)
-                .filter(Objects::nonNull).toList();
-        return known.isEmpty() ? null : known.contains(true);
     }
 
     private static boolean findingMatches(MetricsFilter filter, AgentFinding f) {

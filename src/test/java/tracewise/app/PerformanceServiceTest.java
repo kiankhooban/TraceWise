@@ -168,6 +168,20 @@ class PerformanceServiceTest {
         assertFalse(m.precision().meaningful(), "fewer than 10 findings");
     }
 
+    /** Found in the live IBM run: the agent links many alerts, which must not make its verdicts look right. */
+    @Test
+    void theVerdictIsJudgedByTheAlertThatOpenedTheCaseNotByAlertsLinkedLater() {
+        String opening = alert("R4", "N1");
+        String linked = alert("R5", "L1");
+        cases.save(new Case("CAS-" + opening.substring(4), T0, List.of(opening, linked), CaseStatus.UNDER_INVESTIGATION,
+                List.of(finding(Verdict.ESCALATE))));
+
+        var m = service.compute(MetricsFilter.ALL);
+
+        assertEquals(0, m.truePositives());
+        assertEquals(1, m.falsePositives());
+    }
+
     @Test
     void aCaseCountsOnceWithItsLatestVerdictButEveryRunCountsForTurnsAndCost() {
         caseFor(alert("R4", "L1"), finding(Verdict.DISMISS, HAIKU, 2, 1_000_000, 1, 0, T0),
