@@ -18,7 +18,7 @@ import tracewise.agent.OutcomeStatus;
 import tracewise.agent.Verdict;
 import tracewise.audit.AuditEntry;
 import tracewise.audit.AuditFilter;
-import tracewise.audit.AuditRepository;
+import tracewise.audit.AuditLog;
 import tracewise.domain.ActorType;
 import tracewise.domain.Case;
 import tracewise.metrics.AlertLabel;
@@ -39,10 +39,10 @@ public class PerformanceService {
     private final CaseRepository cases;
     private final AlertRepository alerts;
     private final ApprovalRepository approvals;
-    private final AuditRepository audit;
+    private final AuditLog audit;
 
     public PerformanceService(CaseRepository cases, AlertRepository alerts, ApprovalRepository approvals,
-            AuditRepository audit) {
+            AuditLog audit) {
         this.cases = cases;
         this.alerts = alerts;
         this.approvals = approvals;
@@ -71,7 +71,7 @@ public class PerformanceService {
     private Records load(MetricsFilter filter) {
         Map<String, AlertLabel> labels = alerts.launderingLabels().stream()
                 .collect(Collectors.toMap(AlertLabel::alertId, Function.identity()));
-        var runs = audit.find(new AuditFilter("INVESTIGATION_FINISHED", null, filter.range().from(),
+        var runs = audit.query(new AuditFilter("INVESTIGATION_FINISHED", null, filter.range().from(),
                 filter.range().to(), null));
         return new Records(cases.findAll(), labels, approvals.findAll(), runs);
     }

@@ -96,7 +96,8 @@ public final class TraceWiseBootstrap {
         var indicators = indicatorRetriever(IndicatorCorpus::load, embeddings);
         var memory = new CaseMemory(cases, () -> new EmbeddingRetriever(embeddings.get(), EmbeddingRetriever.MIN_SCORE));
         var commands = new CommandContext(cases, alerts, transactions, memory);
-        var approvals = new ApprovalQueue(db, new SqliteApprovalRepository(db), commands, audit);
+        var approvalRepository = new SqliteApprovalRepository(db);
+        var approvals = new ApprovalQueue(db, approvalRepository, commands, audit);
         var dispatcher = new CommandDispatcher(db, commands, new PermissionPolicy(), approvals, audit);
         var scope = new ActionScope(cases);
         var tools = investigationTools(transactions, alerts, cases, indicators, memory, dispatcher, scope);
@@ -111,7 +112,9 @@ public final class TraceWiseBootstrap {
         return new TraceWiseFacade(db, importService, monitoringService, investigationService, triageService, approvals,
                 new CaseService(cases, dispatcher, approvals, audit, user), assistant, new ReportService(db, cases, alerts, transactions, model, dispatcher,
                 approvals, audit, List.of(new HtmlReportExporter(), new JsonReportExporter()), user, config.model(),
-                cadPerUsd), new NetworkService(transactions, alerts, cases), transactions, audit, indicators, memory, user);
+                cadPerUsd), new NetworkService(transactions, alerts, cases),
+                new PerformanceService(cases, alerts, approvalRepository, audit), transactions, audit, indicators, memory,
+                user);
     }
 
     /**

@@ -26,6 +26,8 @@ import tracewise.monitoring.MonitoringSummary;
 import tracewise.monitoring.RuleConfig;
 import tracewise.persistence.Database;
 import tracewise.persistence.TransactionRepository;
+import tracewise.metrics.MetricsFilter;
+import tracewise.metrics.PerformanceMetrics;
 import tracewise.network.MoneyFlowGraph;
 import tracewise.domain.DateRange;
 import tracewise.domain.Transaction;
@@ -48,6 +50,7 @@ public class TraceWiseFacade implements AutoCloseable {
     private final AssistantService assistant;
     private final ReportService reports;
     private final NetworkService network;
+    private final PerformanceService performance;
     private final TransactionRepository transactions;
     private final AuditLog audit;
     private final Retriever knowledge;
@@ -57,7 +60,7 @@ public class TraceWiseFacade implements AutoCloseable {
     TraceWiseFacade(Database database, ImportService importService, MonitoringService monitoringService,
             InvestigationService investigationService, TriageService triageService, ApprovalQueue approvals,
             CaseService caseService, AssistantService assistant, ReportService reports, NetworkService network,
-            TransactionRepository transactions, AuditLog audit, Retriever knowledge, CaseMemory memory,
+            PerformanceService performance, TransactionRepository transactions, AuditLog audit, Retriever knowledge, CaseMemory memory,
             Actor user) {
         this.database = database;
         this.importService = importService;
@@ -69,6 +72,7 @@ public class TraceWiseFacade implements AutoCloseable {
         this.assistant = assistant;
         this.reports = reports;
         this.network = network;
+        this.performance = performance;
         this.transactions = transactions;
         this.audit = audit;
         this.knowledge = knowledge;
@@ -229,6 +233,16 @@ public class TraceWiseFacade implements AutoCloseable {
     /** F11: writes a final report in each format into dir and returns the files. */
     public List<Path> exportReport(String caseId, java.util.Set<ExportFormat> formats, Path dir) {
         return reports.export(caseId, formats, dir);
+    }
+
+    /** F12: the agent's performance for the filter's model (null: all models). */
+    public PerformanceMetrics computeMetrics(MetricsFilter filter) {
+        return performance.compute(filter);
+    }
+
+    /** F12: all models first, then one entry per model, for comparing them side by side. */
+    public List<PerformanceMetrics> metricsByModel(MetricsFilter filter) {
+        return performance.computeByModel(filter);
     }
 
     /** F09: the money-flow graph around an account; caseId (may be null) marks what its investigation examined. */

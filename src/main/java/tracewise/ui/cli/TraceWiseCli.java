@@ -16,7 +16,7 @@ import tracewise.llm.ModelConfig;
         subcommands = {ImportCli.class, MonitorCli.class, AlertsCli.class, ThresholdReportsCli.class,
                 RulesCli.class, InvestigateCli.class, ApprovalsCli.class, TriageCli.class,
                 IndicatorsCli.class, CasesCli.class, AskCli.class,
-                CaseCli.class, AuditCli.class, ReportCli.class, NetworkCli.class})
+                CaseCli.class, AuditCli.class, ReportCli.class, NetworkCli.class, MetricsCli.class})
 public class TraceWiseCli {
 
     @Option(names = "--db", description = "SQLite database file (default: ${DEFAULT-VALUE}).",

@@ -23,6 +23,7 @@ import tracewise.agent.AgentTrace;
 import tracewise.agent.OutcomeStatus;
 import tracewise.agent.Verdict;
 import tracewise.audit.AuditEntry;
+import tracewise.audit.AuditLog;
 import tracewise.audit.SqliteAuditRepository;
 import tracewise.cases.state.CaseStatus;
 import tracewise.domain.Actor;
@@ -73,7 +74,7 @@ class PerformanceServiceTest {
         cases = new SqliteCaseRepository(db);
         approvals = new SqliteApprovalRepository(db);
         audit = new SqliteAuditRepository(db);
-        service = new PerformanceService(cases, alerts, approvals, audit);
+        service = new PerformanceService(cases, alerts, approvals, new AuditLog(audit));
         // L: labelled laundering, N: labelled not laundering, U: no label (like the scenario-free formats)
         new SqliteTransactionRepository(db).saveAll(List.of(tx("L1", true), tx("L2", true), tx("N1", false),
                 tx("N2", false), tx("U1", null)));
