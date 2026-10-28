@@ -17,8 +17,8 @@ import java.util.TreeSet;
 /**
  * Samples IBM's synthetic AML data (HI-Small) the way the Stage 1 design says: whole planted schemes from the patterns
  * file with the full history of every account in them, plus random other accounts with their full history. A slice
- * of rows would break the schemes apart. Part 1 and part 2 share no scheme and no other account, so one can be used to
- * tune and the other, held out, to report. The laundering label stays in the file for F12; the agent never reads it.
+ * of rows would break the schemes apart. A later part skips every scheme or account that is in an earlier part or
+ * traded with one, so part 2 shares no row and no chosen account with part 1: tune on part 1, report on part 2. The laundering label stays in the file for F12; the agent never reads it.
  *
  * <p>Usage: {@code IbmSampler <HI-Small_Trans.csv> <HI-Small_Patterns.txt> <out.csv> <schemes> <otherAccounts> <part>
  * <seed>}
@@ -49,13 +49,48 @@ public final class IbmSampler {
         var random = new Random(seed);
         var order = new ArrayList<>(all);
         Collections.shuffle(order, random);
-        List<Scheme> chosen = slice(order, schemes, part, "schemes");
-
         Set<String> planted = new HashSet<>();
         all.forEach(s -> planted.addAll(s.accounts()));
         var pool = new ArrayList<>(accounts(transactions, planted));
         Collections.shuffle(pool, random);
-        Set<String> otherAccounts = new LinkedHashSet<>(slice(pool, others, part, "other accounts"));
+
+        // parts are taken in turn; a later part skips anything in or trading with an earlier part, so a held-out
+        // part shares no row and no chosen account with the parts before it (IBM schemes share accounts)
+        Set<String> blocked = new HashSet<>();
+        int nextScheme = 0;
+        int nextOther = 0;
+        List<Scheme> chosen = List.of();
+        Set<String> otherAccounts = Set.of();
+        for (int p = 1; p <= part; p++) {
+            chosen = new ArrayList<>();
+            while (chosen.size() < schemes) {
+                if (nextScheme >= order.size()) {
+                    throw new IllegalArgumentException("There are " + all.size() + " schemes; part " + part + " needs "
+                            + schemes + " per part that share no account or transfer with earlier parts");
+                }
+                Scheme candidate = order.get(nextScheme++);
+                if (Collections.disjoint(candidate.accounts(), blocked)) {
+                    chosen.add(candidate);
+                }
+            }
+            otherAccounts = new LinkedHashSet<>();
+            while (otherAccounts.size() < others) {
+                if (nextOther >= pool.size()) {
+                    throw new IllegalArgumentException("There are " + pool.size() + " other accounts; part " + part
+                            + " needs " + others + " per part away from earlier parts");
+                }
+                String candidate = pool.get(nextOther++);
+                if (!blocked.contains(candidate)) {
+                    otherAccounts.add(candidate);
+                }
+            }
+            if (p < part) {
+                var taken = new HashSet<>(otherAccounts);
+                chosen.forEach(sc -> taken.addAll(sc.accounts()));
+                blocked.addAll(taken);
+                blocked.addAll(counterparties(transactions, taken));
+            }
+        }
 
         Set<String> schemeAccounts = new TreeSet<>();
         chosen.forEach(s -> schemeAccounts.addAll(s.accounts()));
@@ -76,16 +111,6 @@ public final class IbmSampler {
             }
         }
         return new Sample(out, chosen.stream().map(Scheme::type).toList(), schemeAccounts, otherAccounts, rows);
-    }
-
-    /** Part p takes the p-th block of size n, so parts never overlap. */
-    private static <T> List<T> slice(List<T> shuffled, int n, int part, String what) {
-        int first = (part - 1) * n;
-        if (first + n > shuffled.size()) {
-            throw new IllegalArgumentException("There are " + shuffled.size() + " " + what + "; part " + part + " of "
-                    + n + " needs " + (first + n));
-        }
-        return shuffled.subList(first, first + n);
     }
 
     /** Each attempt between its BEGIN and END lines, with the accounts its transactions touch. */
@@ -119,6 +144,23 @@ public final class IbmSampler {
                     if (f.length > TO && !planted.contains(f[c])) {
                         result.add(f[c]);
                     }
+                }
+            });
+        }
+        return result;
+    }
+
+    /** Every account that sent money to or received money from one of these accounts. */
+    private static Set<String> counterparties(Path transactions, Set<String> accounts) throws IOException {
+        var result = new HashSet<String>();
+        try (var lines = Files.lines(transactions, StandardCharsets.UTF_8)) {
+            lines.skip(1).forEach(line -> {
+                String[] f = line.split(",", -1);
+                if (f.length > TO && accounts.contains(f[FROM])) {
+                    result.add(f[TO]);
+                }
+                if (f.length > TO && accounts.contains(f[TO])) {
+                    result.add(f[FROM]);
                 }
             });
         }

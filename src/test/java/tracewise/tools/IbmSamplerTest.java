@@ -80,14 +80,46 @@ class IbmSamplerTest {
         }
     }
 
-    /** Tune on part 1, report on part 2: they share no scheme and no other account. */
+    /**
+     * Found on the real file: parts 1 and 2 shared 603 rows, because IBM schemes share accounts and a part-2 account
+     * can trade with a part-1 account. A held-out part must share no row and no chosen account with the parts before.
+     */
     @Test
-    void partsOneAndTwoAreDisjoint() throws Exception {
-        var one = sample(1, 42);
-        var two = sample(2, 42);
-
-        assertTrue(Collections.disjoint(one.schemeAccounts(), two.schemeAccounts()));
-        assertTrue(Collections.disjoint(one.otherAccounts(), two.otherAccounts()));
+    void aHeldOutPartSharesNoRowAndNoChosenAccountWithTheTuningPart() throws Exception {
+        transactions = Files.write(dir.resolve("t2.csv"), List.of(HEADER, row("A", "B", 1), row("A", "C", 1),
+                row("C", "D", 1), row("D", "C", 1), row("E", "F", 1), row("G", "F", 1), row("H", "I", 1),
+                row("J", "K", 1), row("L", "M", 1), row("N", "O", 0), row("O", "P", 0), row("P", "Q", 0),
+                row("Q", "R", 0), row("R", "S", 0), row("S", "N", 0), row("B", "N", 0), row("F", "H", 0),
+                row("K", "P", 0)));
+        patterns = Files.write(dir.resolve("p2.txt"), List.of(
+                "BEGIN LAUNDERING ATTEMPT - FAN-OUT:  x", row("A", "B", 1), row("A", "C", 1), "END LAUNDERING ATTEMPT",
+                "BEGIN LAUNDERING ATTEMPT - CYCLE:  x", row("C", "D", 1), row("D", "C", 1), "END LAUNDERING ATTEMPT",
+                "BEGIN LAUNDERING ATTEMPT - FAN-IN:  x", row("E", "F", 1), row("G", "F", 1), "END LAUNDERING ATTEMPT",
+                "BEGIN LAUNDERING ATTEMPT - STACK:  x", row("H", "I", 1), "END LAUNDERING ATTEMPT",
+                "BEGIN LAUNDERING ATTEMPT - RANDOM:  x", row("J", "K", 1), "END LAUNDERING ATTEMPT",
+                "BEGIN LAUNDERING ATTEMPT - BIPARTITE:  x", row("L", "M", 1), "END LAUNDERING ATTEMPT"));
+        int checked = 0;
+        for (long seed = 1; seed <= 40; seed++) {
+            IbmSampler.Sample one;
+            IbmSampler.Sample two;
+            try {
+                one = IbmSampler.sample(transactions, patterns, dir.resolve("a" + seed), 1, 1, 1, seed);
+                two = IbmSampler.sample(transactions, patterns, dir.resolve("b" + seed), 1, 1, 2, seed);
+            } catch (IllegalArgumentException e) {
+                continue; // this order ran out of candidates far enough from part 1
+            }
+            checked++;
+            var rowsOne = new HashSet<>(rows(one.file()).subList(1, rows(one.file()).size()));
+            var rowsTwo = rows(two.file()).subList(1, rows(two.file()).size());
+            assertTrue(Collections.disjoint(rowsOne, rowsTwo), "seed " + seed);
+            var chosenTwo = new HashSet<>(two.schemeAccounts());
+            chosenTwo.addAll(two.otherAccounts());
+            for (String line : rowsOne) {
+                String[] f = line.split(",");
+                assertFalse(chosenTwo.contains(f[2]) || chosenTwo.contains(f[4]), "seed " + seed + ": " + line);
+            }
+        }
+        assertTrue(checked >= 20, "only " + checked + " seeds could be checked");
     }
 
     @Test
