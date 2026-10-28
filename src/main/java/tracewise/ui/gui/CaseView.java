@@ -59,12 +59,15 @@ final class CaseView implements AgentEventListener {
     private final Button reopen = new Button("Reopen...");
     private final TabPane detail = new TabPane();
     private final ReportTab report;
+    private final NetworkView network;
+    private String networkDrawn;
     private Case shown;
     private String running;
 
     CaseView(Gui gui) {
         this.gui = gui;
         this.report = new ReportTab(gui, this::changed);
+        this.network = new NetworkView(gui);
     }
 
     Node build() {
@@ -154,7 +157,7 @@ final class CaseView implements AgentEventListener {
         reportPane.setFitToWidth(true);
         detail.getTabs().setAll(new Tab("Finding", new javafx.scene.control.ScrollPane(finding)), new Tab("Agent steps", steps),
                 new Tab("Evidence", evidence), new Tab("Tasks", tasks), new Tab("Notes", notesPane),
-                new Tab("Report", reportPane), new Tab("History", history));
+                new Tab("Network", network.build()), new Tab("Report", reportPane), new Tab("History", history));
         detail.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         ((javafx.scene.control.ScrollPane) detail.getTabs().get(0).getContent()).setFitToWidth(true);
         var right = new BorderPane(detail);
@@ -275,6 +278,12 @@ final class CaseView implements AgentEventListener {
         close.setDisable(running != null || c.status() == CaseStatus.CLOSED || c.status() == CaseStatus.ESCALATED);
         reopen.setDisable(running != null || c.status() != CaseStatus.CLOSED);
         report.show(c);
+        // redrawn for another case or when a new investigation of this one finishes (F09), not on every refresh
+        String drawn = c.id() + ":" + c.findings().size();
+        if (!drawn.equals(networkDrawn)) {
+            networkDrawn = drawn;
+            network.show(c);
+        }
         notes.getItems().setAll(c.notes().stream().map(n -> Gui.text(n.createdAt()) + "  " + n.author() + ":  " + n.text())
                 .toList());
         gui.run("Loading the history of " + c.id(), () -> gui.facade.caseHistory(c.id()), h -> history.getItems().setAll(h));

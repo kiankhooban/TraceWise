@@ -1,0 +1,50 @@
+/* F09 money-flow graph. The six base classes are required by JavaFXSmartGraph; the vertex-* classes mark
+   the selected account, accounts with alerts and accounts the agent examined. */
+.graph {
+    -fx-background-color: #FAFBFC;
+}
+.vertex {
+    -fx-stroke-width: 2;
+    -fx-stroke: #8A97A8;
+    -fx-stroke-type: inside;
+    -fx-fill: #E6EBF1;
+}
+.vertex:hover {
+    -fx-stroke-width: 3;
+}
+/* order matters: a later class wins, so the selected account stays dark and keeps its alert ring */
+.vertex-examined {
+    -fx-fill: #BBDEFB;
+}
+.vertex-alerted {
+    -fx-stroke: #B3261E;
+    -fx-stroke-width: 4;
+}
+.vertex-root {
+    -fx-fill: #1F3A5F;
+}
+.vertex-label {
+    -fx-font: bold 9pt "sans-serif";
+    -fx-padding: 4px;
+}
+.edge {
+    -fx-stroke-width: 1.5;
+    -fx-stroke: #5F6B7A;
+    -fx-fill: transparent;
+    -fx-stroke-line-cap: round;
+    -fx-opacity: 0.85;
+}
+.edge:hover {
+    -fx-stroke-width: 3;
+}
+.edge-label {
+    -fx-font: normal 8pt "sans-serif";
+    -fx-fill: #1B1F24;
+    -fx-background-color: rgba(255, 255, 255, 0.85);
+    -fx-padding: 1px 3px;
+}
+.arrow {
+    -fx-stroke-width: 1.5;
+    -fx-stroke: #5F6B7A;
+    -fx-opacity: 0.85;
+}
