@@ -47,9 +47,13 @@ class ImportServiceTest {
     }
 
     ImportService newService(SqliteTransactionRepository repository) {
+        return newService(repository, ImportService.BATCH_ROWS);
+    }
+
+    ImportService newService(SqliteTransactionRepository repository, int batchRows) {
         var rates = CurrencyConverter.bankOfCanadaDefaults();
-        return new ImportService(repository, List.of(new IbmCsvFormat(rates), new ScenarioCsvFormat(rates)), audit,
-                new Actor("kian", ActorType.ANALYST));
+        return new ImportService(db, repository, List.of(new IbmCsvFormat(rates), new ScenarioCsvFormat(rates)), audit,
+                new Actor("kian", ActorType.ANALYST), batchRows);
     }
 
     @AfterEach
@@ -138,4 +142,56 @@ class ImportServiceTest {
         var e = assertThrows(ImportException.class, () -> service.importFile(dir.resolve("missing.csv")));
         assertTrue(e.getMessage().startsWith("cannot read file"), e.getMessage());
     }
+
+    /** Rows from a file of n rows, ids T1..Tn, all valid. */
+    Path bigFile(int n, String... extra) throws IOException {
+        var lines = new java.util.ArrayList<String>(List.of(HEADER));
+        for (int i = 1; i <= n; i++) {
+            lines.add("T" + i + ",2026-09-01T10:00:00,,C" + (i % 7) + ",001,C9,100,CAD,WIRE,CA,");
+        }
+        lines.addAll(List.of(extra));
+        return Files.write(dir.resolve("big.csv"), lines);
+    }
+
+    /** A large file is saved in chunks, never held whole; one transaction still covers the whole import. */
+    @Test
+    void aLargeFileIsSavedInBoundedChunksAndDuplicatesAcrossChunksAreCaught() throws IOException {
+        var sizes = new java.util.ArrayList<Integer>();
+        var counting = new SqliteTransactionRepository(db) {
+            @Override
+            public void saveAll(List<Transaction> transactions) {
+                sizes.add(transactions.size());
+                super.saveAll(transactions);
+            }
+        };
+        var file = bigFile(25, "T3,2026-09-01T10:00:00,,C1,001,C9,100,CAD,WIRE,CA,");
+
+        var summary = newService(counting, 10).importFile(file);
+
+        assertEquals(26, summary.rowsRead());
+        assertEquals(25, summary.rowsImported());
+        assertEquals("duplicate transaction id: T3", summary.rejected().get(0).reason());
+        assertTrue(sizes.stream().allMatch(n -> n <= 10), sizes.toString());
+        assertTrue(repo.exists("T25"));
+    }
+
+    @Test
+    void aFailureInALaterChunkLeavesNothingFromEarlierChunks() throws IOException {
+        var calls = new int[1];
+        var failing = new SqliteTransactionRepository(db) {
+            @Override
+            public void saveAll(List<Transaction> transactions) {
+                if (++calls[0] == 2) {
+                    throw new DatabaseException(new java.sql.SQLException("disk I/O error"));
+                }
+                super.saveAll(transactions);
+            }
+        };
+
+        assertThrows(DatabaseException.class, () -> newService(failing, 10).importFile(bigFile(25)));
+
+        assertFalse(repo.exists("T1"), "the first chunk must be rolled back with the rest");
+        assertEquals("FAILED", audit.query(new AuditFilter("IMPORT", "big.csv")).get(0).outcome());
+    }
 }
+

@@ -80,7 +80,7 @@ public final class TraceWiseBootstrap {
         var audit = new AuditLog(new SqliteAuditRepository(db));
         var user = new Actor(config.userName(), config.userRole());
         var rates = CurrencyConverter.bankOfCanadaDefaults();
-        var importService = new ImportService(transactions,
+        var importService = new ImportService(db, transactions,
                 List.of(new IbmCsvFormat(rates), new ScenarioCsvFormat(rates)), audit, user);
         var alerts = new SqliteAlertRepository(db);
         var monitoringService = new MonitoringService(transactions,

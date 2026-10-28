@@ -1,6 +1,9 @@
 package tracewise.ui.cli;
 
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.stream.Collectors;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 import tracewise.ingest.ImportSummary;
@@ -11,6 +14,8 @@ public class ImportCli extends CliCommandBase {
 
     @Parameters(paramLabel = "FILE", description = "The CSV file to import.")
     Path file;
+
+    private static final int SHOWN = 20;
 
     private String formatName;
 
@@ -32,8 +37,14 @@ public class ImportCli extends CliCommandBase {
         if (s.earliest() != null) {
             out().println("Date range: " + s.earliest() + " to " + s.latest());
         }
-        for (RejectedRow r : s.rejected()) {
-            out().println("  rejected row " + r.rowNumber() + ": " + r.reason());
+        List<RejectedRow> rejected = s.rejected();
+        rejected.stream().limit(SHOWN).forEach(r -> out().println("  rejected row " + r.rowNumber() + ": " + r.reason()));
+        if (rejected.size() > SHOWN) {
+            // a large file can reject hundreds of thousands of rows; --json lists every one
+            out().println("  ... " + (rejected.size() - SHOWN) + " more rejected rows, by reason:");
+            rejected.subList(SHOWN, rejected.size()).stream()
+                    .collect(Collectors.groupingBy(RejectedRow::reason, LinkedHashMap::new, Collectors.counting()))
+                    .forEach((reason, n) -> out().println("    " + reason + ": " + n));
         }
     }
 }

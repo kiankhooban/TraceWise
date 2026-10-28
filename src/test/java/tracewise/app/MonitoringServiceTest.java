@@ -66,7 +66,7 @@ class MonitoringServiceTest {
     void importScenarios() throws IOException {
         Path file = Files.write(dir.resolve("s.csv"), ScenarioGenerator.generate(42));
         var rates = CurrencyConverter.bankOfCanadaDefaults();
-        new ImportService(transactions, List.of(new ScenarioCsvFormat(rates)), audit, supervisor).importFile(file);
+        new ImportService(db, transactions, List.of(new ScenarioCsvFormat(rates)), audit, supervisor).importFile(file);
     }
 
     @Test

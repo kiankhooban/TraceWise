@@ -62,4 +62,21 @@ class ImportCliTest {
         assertEquals(1, run("import", "--json", file.toString()));
         assertTrue(new ObjectMapper().readTree(out.toString()).get("error").asText().startsWith("unrecognised"));
     }
+
+    /** Many rejected rows are counted by reason after the first 20, so a large file's output stays readable. */
+    @Test
+    void manyRejectedRowsAreSummarisedByReason() throws IOException {
+        var lines = new java.util.ArrayList<String>(List.of(HEADER));
+        for (int i = 1; i <= 30; i++) {
+            lines.add("T" + i + ",2026-09-01T10:00:00,,C1,001,C2,100," + (i % 2 == 0 ? "XXX" : "YYY") + ",WIRE,CA,");
+        }
+        assertEquals(0, run("import", Files.write(dir.resolve("r.csv"), lines).toString()));
+
+        String text = out.toString();
+        assertEquals(20, text.split("rejected row ", -1).length - 1, text);
+        assertTrue(text.contains("10 more rejected rows"), text);
+        assertTrue(text.contains("currency not in rate table: XXX: 5") && text.contains("currency not in rate table: YYY: 5"),
+                text);
+    }
 }
+

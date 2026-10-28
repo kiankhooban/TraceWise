@@ -72,7 +72,7 @@ class InvestigationServiceTest {
         cases = new SqliteCaseRepository(db);
         audit = new AuditLog(new SqliteAuditRepository(db));
         Path file = Files.write(dir.resolve("s.csv"), ScenarioGenerator.generate(42));
-        new ImportService(transactions, List.of(new ScenarioCsvFormat(CurrencyConverter.bankOfCanadaDefaults())), audit,
+        new ImportService(db, transactions, List.of(new ScenarioCsvFormat(CurrencyConverter.bankOfCanadaDefaults())), audit,
                 analyst).importFile(file);
         new MonitoringService(transactions, MonitoringServiceTest.allRules(), alerts, new SqliteThresholdReportRepository(db),
                 new SqliteRuleConfigRepository(db), new RiskScorer(), audit, analyst).run();
