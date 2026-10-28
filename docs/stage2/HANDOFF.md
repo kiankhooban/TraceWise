@@ -61,25 +61,21 @@ Design sources: `docs/stage1/diagrams/src/model.iuml` (full model with every mem
 `docs/stage1/Stage1-Design-Report.md` (feature sections F01 to F12, use cases UC01 to UC17, Task 3
 traceability, Task 4 patterns), sequence diagrams SD1 to SD6 in `docs/stage1/umlet/gen_sequence_diagrams.py`.
 
-## 2b. IN PROGRESS (2026-10-28, stopped when Kian left): improving the agent on IBM data
+## 2b. IN PROGRESS (2026-10-28): making the agent dismiss false alarms (Kian: "try to go further")
 
-- Haiku baseline (old prompt): escalates every alert; 16% of runs cut off at the 4096-token output limit.
-  Three diagnosis agents found why: tools never stated the data covers only ~2 weeks (read as "new account"),
-  the risk score and the rule's own pattern anchored it, and the sample had too few normal accounts.
-- Done and committed: three-way scoring (design change 41, commit 6656710).
-- UNCOMMITTED in the working tree (version "v2"; replays NOT re-recorded, so CommittedReplaysTest and one
-  MetricsCliTest fail, as expected): output limit 8192 and at most 15 citations; tools state `data_covers` and
-  the account's currencies and self-transfers; windows show currencies; the prompt treats the alert as a
-  screening hit (the rule's own pattern is not a red flag) and lets routine activity be dismissed; the opening
-  message no longer shows the risk score. `scripts/evaluate.py` evaluates a fixed alert list, each alert on a
-  fresh database copy, merged and scored with `tracewise metrics`.
-- Fair tuning set (scratchpad `f12/`): `tune.csv` (SchemeSampler ibm, 20 schemes, 600 others, part 1, seed 42),
-  `tune.db` (monitored, 338 alerts), `tune-alerts.txt` (75 fixed alerts: 30 laundering, 30 clean, 15 unclear).
-  Saved builds: `f12/v0.jar` (original prompt) and `f12/v2.jar` (new).
-- NEXT: run v0 and then v2 on the same 75 alerts (each about 20 min, about CAD 1.6, one at a time: 8 JVMs swap
-  the 8 GB Mac), compare with `tracewise --db <out>/merged.db metrics`. v0 was stopped after 20 of 75 (in
-  `f12/ev-v0/`; the script restarts from scratch). Keep the better version, re-record replays, review, commit.
-  Part 2 (held out: same sampler args with part 2) is used only for the final report, then Sonnet on part 2.
+- Committed: three-way scoring (6656710), agent fixes (a52d8b4: 0% cut-off answers, data_covers), SAML-D format
+  and SchemeSampler (57c1b1b, design change 43). IBM cannot test judgment (Sonnet also escalated 7 of 8 clean).
+- SAML-D tuning set (scratchpad `sml/`): `tune.csv` (`SchemeSampler samld <SAML-D.csv> out 40 1500 1 42`),
+  `tune.db` (4,644 alerts, 2 to 5% laundering), `tune-alerts.txt` (75: 30 laundering, 30 clean, 15 unclear).
+  SAML-D itself: scratchpad `samld/SAML-D.csv` (kaggle berkanoztas/synthetic-transaction-monitoring-dataset-aml).
+- Results on those 75 (Haiku): committed agent escalates 75 of 75; confidence is about 0.8 for every class, so a
+  threshold cannot help. v3 (screening-hit rule) barely moves. v4 (UNCOMMITTED in the working tree: describe the
+  account's usual activity over its whole history, then ask whether the flagged activity is new for it; routine
+  is a legitimate explanation) dismisses 16 of 30 clean, catches 19 of 30 laundering (8 dismissed), precision 0.59,
+  recall 0.70, CAD 0.04 per alert; on the sample data it escalates 3 of 4 planted schemes (committed: 2).
+  Misses: structuring and deposit-send seen through R6 fan-out alerts.
+- NEXT: v5 (where the money came from; thresholds in the original currency), then held-out part 2
+  (`... samld ... 40 1500 2 42`), then Sonnet on part 2; re-record replays and review before committing.
 
 ## 3. How Kian wants the work done (standing instructions)
 
