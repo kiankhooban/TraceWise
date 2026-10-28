@@ -8,10 +8,13 @@ import java.util.Locale;
 
 /**
  * F12 result for one model (null: all models). sampleSize is the number of investigation runs (findings); the
- * verdict counts compare each case's latest verdict with its label. averageCostCad is null without findings.
+ * verdict counts compare each case's latest verdict with its label: a positive is a laundering alert, a negative a
+ * clean alert on a clean account; a clean alert on an account that launders elsewhere is "unclear" and counted
+ * apart, out of precision and recall. averageCostCad is null without findings.
  */
 public record PerformanceMetrics(String model, int sampleSize, int truePositives, int falsePositives,
-        int falseNegatives, int trueNegatives, int inconclusive, int inconclusiveLaundering, Measure precision,
+        int falseNegatives, int trueNegatives, int inconclusive, int inconclusiveLaundering, int unclearEscalated,
+        int unclearDismissed, int unclearInconclusive, Measure precision,
         Measure recall, Measure strictRecall,
         Measure verificationRate, Measure averageTurns, BigDecimal averageCostCad, Measure failureRate,
         Measure overrideRate, List<RulePrecision> rulePrecision) {
@@ -33,6 +36,7 @@ public record PerformanceMetrics(String model, int sampleSize, int truePositives
      */
     public List<MetricRow> rows() {
         int labelled = truePositives + falsePositives + falseNegatives + trueNegatives + inconclusive;
+        int unclear = unclearEscalated + unclearDismissed + unclearInconclusive;
         var rows = new ArrayList<MetricRow>(List.of(rate("precision", precision), rate("recall", recall),
                 rate("recall (inconclusive counts as missed)", strictRecall),
                 count("escalated and laundering", truePositives, labelled),
@@ -41,6 +45,9 @@ public record PerformanceMetrics(String model, int sampleSize, int truePositives
                 count("dismissed and not laundering", trueNegatives, labelled),
                 count("inconclusive and laundering", inconclusiveLaundering, labelled),
                 count("inconclusive and not laundering", inconclusive - inconclusiveLaundering, labelled),
+                count("escalated, clean alert on a laundering account", unclearEscalated, unclear),
+                count("dismissed, clean alert on a laundering account", unclearDismissed, unclear),
+                count("inconclusive, clean alert on a laundering account", unclearInconclusive, unclear),
                 rate("verification rate", verificationRate),
                 new MetricRow("average turns (runs with a finding)", averageTurns.value() == null ? NOT_AVAILABLE
                         : String.format(Locale.ROOT, "%.1f", averageTurns.value()), averageTurns.sampleSize()),

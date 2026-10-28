@@ -76,8 +76,9 @@ class PerformanceServiceTest {
         audit = new SqliteAuditRepository(db);
         service = new PerformanceService(cases, alerts, approvals, new AuditLog(audit));
         // L: labelled laundering, N: labelled not laundering, U: no label (like the scenario-free formats)
+        // each transaction is the only one of its account (S plus its id), except A1, which shares L1's account
         new SqliteTransactionRepository(db).saveAll(List.of(tx("L1", true), tx("L2", true), tx("N1", false),
-                tx("N2", false), tx("U1", null)));
+                tx("N2", false), tx("U1", null), tx("A1", "SL1", false)));
     }
 
     @AfterEach
@@ -86,13 +87,19 @@ class PerformanceServiceTest {
     }
 
     static Transaction tx(String id, Boolean laundering) {
-        return new Transaction(id, T0, "C1", "C2", BigDecimal.TEN, BigDecimal.TEN, "CAD", PaymentChannel.WIRE, "CA",
-                laundering);
+        return tx(id, "S" + id, laundering);
     }
 
-    /** Stores an alert over these transactions and returns its id. */
+    static Transaction tx(String id, String sender, Boolean laundering) {
+        return new Transaction(id, T0, sender, "R" + id, BigDecimal.TEN, BigDecimal.TEN, "CAD", PaymentChannel.WIRE,
+                "CA", laundering);
+    }
+
+    /** Stores an alert on the sender of its first transaction and returns its id. */
     String alert(String rule, String... transactionIds) {
-        alerts.save(new Alert(null, rule, "C1", List.of(transactionIds), BigDecimal.TEN, 50, 2, AlertStatus.IN_CASE, T0));
+        String account = transactionIds[0].equals("A1") ? "SL1" : "S" + transactionIds[0];
+        alerts.save(new Alert(null, rule, account, List.of(transactionIds), BigDecimal.TEN, 50, 2, AlertStatus.IN_CASE,
+                T0));
         return String.format("ALR-%05d", ++alertCount);
     }
 
@@ -173,6 +180,26 @@ class PerformanceServiceTest {
                 .orElseThrow();
         assertEquals("1", counts.value());
         assertEquals(5, counts.sampleSize(), "labelled cases");
+    }
+
+    /**
+     * Found in the IBM baseline: 10 of 12 "wrong" escalations were on accounts that launder in other transactions. A
+     * clean alert on such an account is neither right nor wrong to escalate, so it is counted apart, not as a false
+     * positive; a negative is a clean alert on a clean account.
+     */
+    @Test
+    void aCleanAlertOnAnAccountThatLaundersElsewhereIsCountedApart() {
+        caseFor(alert("R4", "A1"), finding(Verdict.ESCALATE));
+        caseFor(alert("R4", "N1"), finding(Verdict.ESCALATE));
+
+        var m = service.compute(MetricsFilter.ALL);
+
+        assertEquals(1, m.falsePositives(), "only the clean alert on a clean account");
+        assertEquals(1, m.unclearEscalated());
+        assertMeasure(0.0, 1, m.precision());
+        var row = m.rows().stream().filter(r -> r.metric().equals("escalated, clean alert on a laundering account"))
+                .findFirst().orElseThrow();
+        assertEquals("1", row.value());
     }
 
     /** Found in the live IBM run: the agent links many alerts, which must not make its verdicts look right. */

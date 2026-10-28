@@ -60,11 +60,15 @@ public class SqliteAlertRepository implements AlertRepository {
     @Override
     public List<AlertLabel> launderingLabels() {
         // MAX over the labels is 1 if any transaction is laundering; COUNT skips transactions without a label
-        return Jdbc.query(db, "SELECT a.seq, a.rule_id, a.created_at, COUNT(t.laundering_label), MAX(t.laundering_label) "
+        // the account's labels: MAX over its sent and its received transactions, each through its own index
+        return Jdbc.query(db, "SELECT a.seq, a.rule_id, a.created_at, COUNT(t.laundering_label), MAX(t.laundering_label), "
+                + "MAX(IFNULL((SELECT MAX(laundering_label) FROM transactions s WHERE s.sender = a.account_id), -1), "
+                + "IFNULL((SELECT MAX(laundering_label) FROM transactions r WHERE r.receiver = a.account_id), -1)) "
                 + "FROM alerts a LEFT JOIN alert_transactions x ON x.alert_seq = a.seq "
                 + "LEFT JOIN transactions t ON t.id = x.transaction_id GROUP BY a.seq ORDER BY a.seq",
                 rs -> new AlertLabel(String.format("ALR-%05d", rs.getLong(1)), rs.getString(2),
-                        Instant.ofEpochMilli(rs.getLong(3)), rs.getInt(4) == 0 ? null : rs.getInt(5) == 1));
+                        Instant.ofEpochMilli(rs.getLong(3)), rs.getInt(4) == 0 ? null : rs.getInt(5) == 1,
+                        rs.getInt(6) < 0 ? null : rs.getInt(6) == 1));
     }
 
     @Override

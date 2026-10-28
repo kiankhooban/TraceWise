@@ -81,6 +81,7 @@ public class PerformanceService {
     private PerformanceMetrics compute(MetricsFilter filter, Records r) {
         int tp = 0, fp = 0, fn = 0, tn = 0, inconclusive = 0, inconclusiveLaundering = 0, runs = 0, turns = 0, claims = 0, confirmed = 0;
         BigDecimal cost = BigDecimal.ZERO;
+        int[] unclear = new int[Verdict.values().length];
         for (Case c : r.cases()) {
             if (!ruleMatches(filter, r.labels().get(c.openingAlertId()))) {
                 continue;
@@ -103,6 +104,11 @@ public class PerformanceService {
             }
             // the case's latest verdict is what the bank acted on; earlier runs were superseded
             Verdict v = matching.get(matching.size() - 1).verdict();
+            if (!laundering && Boolean.TRUE.equals(opening.accountLaundering())) {
+                // a clean alert on an account that launders elsewhere: neither right nor wrong to escalate
+                unclear[v.ordinal()]++;
+                continue;
+            }
             if (v == Verdict.INCONCLUSIVE) {
                 inconclusive++;
                 if (laundering) {
@@ -115,6 +121,8 @@ public class PerformanceService {
             }
         }
         return new PerformanceMetrics(filter.model(), runs, tp, fp, fn, tn, inconclusive, inconclusiveLaundering,
+                unclear[Verdict.ESCALATE.ordinal()], unclear[Verdict.DISMISS.ordinal()],
+                unclear[Verdict.INCONCLUSIVE.ordinal()],
                 Measure.ratio(tp, tp + fp), Measure.ratio(tp, tp + fn),
                 Measure.ratio(tp, tp + fn + inconclusiveLaundering), new Measure(claims == 0 ? null : (double) confirmed / claims, runs),
                 new Measure(runs == 0 ? null : (double) turns / runs, runs),
