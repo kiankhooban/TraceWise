@@ -16,7 +16,7 @@ import org.junit.jupiter.api.io.TempDir;
  * The Stage 1 sampling of the IBM data: whole planted schemes with the full history of their accounts, plus random
  * other accounts with theirs, never a slice of rows (which would break the schemes apart).
  */
-class IbmSamplerTest {
+class SchemeSamplerTest {
 
     static final String HEADER = "Timestamp,From Bank,Account,To Bank,Account,Amount Received,Receiving Currency,"
             + "Amount Paid,Payment Currency,Payment Format,Is Laundering";
@@ -44,8 +44,8 @@ class IbmSamplerTest {
                 "END LAUNDERING ATTEMPT - FAN-IN"));
     }
 
-    IbmSampler.Sample sample(int part, long seed) throws Exception {
-        return IbmSampler.sample(transactions, patterns, dir.resolve("out-" + part + "-" + seed + ".csv"), 1, 2, part,
+    SchemeSampler.Sample sample(int part, long seed) throws Exception {
+        return SchemeSampler.sampleIbm(transactions, patterns, dir.resolve("out-" + part + "-" + seed + ".csv"), 1, 2, part,
                 seed);
     }
 
@@ -100,11 +100,11 @@ class IbmSamplerTest {
                 "BEGIN LAUNDERING ATTEMPT - BIPARTITE:  x", row("L", "M", 1), "END LAUNDERING ATTEMPT"));
         int checked = 0;
         for (long seed = 1; seed <= 40; seed++) {
-            IbmSampler.Sample one;
-            IbmSampler.Sample two;
+            SchemeSampler.Sample one;
+            SchemeSampler.Sample two;
             try {
-                one = IbmSampler.sample(transactions, patterns, dir.resolve("a" + seed), 1, 1, 1, seed);
-                two = IbmSampler.sample(transactions, patterns, dir.resolve("b" + seed), 1, 1, 2, seed);
+                one = SchemeSampler.sampleIbm(transactions, patterns, dir.resolve("a" + seed), 1, 1, 1, seed);
+                two = SchemeSampler.sampleIbm(transactions, patterns, dir.resolve("b" + seed), 1, 1, 2, seed);
             } catch (IllegalArgumentException e) {
                 continue; // this order ran out of candidates far enough from part 1
             }
@@ -129,8 +129,38 @@ class IbmSamplerTest {
 
     @Test
     void askingForMoreSchemesThanThePartHoldsIsRefused() {
-        var e = assertThrows(IllegalArgumentException.class, () -> IbmSampler.sample(transactions, patterns,
+        var e = assertThrows(IllegalArgumentException.class, () -> SchemeSampler.sampleIbm(transactions, patterns,
                 dir.resolve("x.csv"), 2, 0, 2, 42));
         assertTrue(e.getMessage().contains("3 schemes"), e.getMessage());
+    }
+
+    static final String SAMLD_HEADER = "Time,Date,Sender_account,Receiver_account,Amount,Payment_currency,"
+            + "Received_currency,Sender_bank_location,Receiver_bank_location,Payment_type,Is_laundering,Laundering_type";
+
+    static String samld(String from, String to, int laundering) {
+        return "10:00:00,2022-10-07," + from + "," + to + ",100.00,UK pounds,UK pounds,UK,UK,ACH," + laundering + ","
+                + (laundering == 1 ? "Fan_Out" : "Normal_Fan_Out");
+    }
+
+    /**
+     * SAML-D has no list of planted schemes: a scheme is a group of accounts joined by laundering transactions (here A
+     * with B and C, and D with E), sampled whole with the full history of its accounts, as for IBM.
+     */
+    @Test
+    void samlDSchemesAreGroupsJoinedByLaunderingTransactions() throws Exception {
+        transactions = Files.write(dir.resolve("s.csv"), List.of(SAMLD_HEADER, samld("A", "B", 1), samld("A", "C", 1),
+                samld("A", "G", 0), samld("D", "E", 1), samld("F", "G", 0), samld("H", "I", 0), samld("J", "K", 0)));
+
+        for (long seed = 1; seed <= 10; seed++) {
+            var s = SchemeSampler.sampleSamlD(transactions, dir.resolve("o" + seed + ".csv"), 1, 1, 1, seed);
+            assertTrue(s.schemeAccounts().equals(java.util.Set.of("A", "B", "C"))
+                    || s.schemeAccounts().equals(java.util.Set.of("D", "E")), s.schemeAccounts().toString());
+            assertTrue(Collections.disjoint(s.otherAccounts(), java.util.Set.of("A", "B", "C", "D", "E")));
+            var out = rows(s.file());
+            assertEquals(SAMLD_HEADER, out.get(0));
+            if (s.schemeAccounts().contains("A")) {
+                assertTrue(out.contains(samld("A", "G", 0)), "the full history of a scheme account");
+            }
+        }
     }
 }

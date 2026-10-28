@@ -38,6 +38,7 @@ import tracewise.audit.SqliteAuditRepository;
 import tracewise.domain.Actor;
 import tracewise.ingest.CurrencyConverter;
 import tracewise.ingest.IbmCsvFormat;
+import tracewise.ingest.SamlDCsvFormat;
 import tracewise.ingest.ScenarioCsvFormat;
 import tracewise.monitoring.FanInRule;
 import tracewise.monitoring.FanOutRule;
@@ -82,7 +83,7 @@ public final class TraceWiseBootstrap {
         var user = new Actor(config.userName(), config.userRole());
         var rates = CurrencyConverter.bankOfCanadaDefaults();
         var importService = new ImportService(db, transactions,
-                List.of(new IbmCsvFormat(rates), new ScenarioCsvFormat(rates)), audit, user);
+                List.of(new IbmCsvFormat(rates), new ScenarioCsvFormat(rates), new SamlDCsvFormat(rates)), audit, user);
         var alerts = new SqliteAlertRepository(db);
         var monitoringService = new MonitoringService(transactions,
                 List.of(new LargeCashRule(), new InternationalTransferRule(), new StructuringRule(),

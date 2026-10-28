@@ -26,7 +26,7 @@ loaded automatically: read it explicitly.
 | F10 Assistant | CLI done (`ask --json`) | `agent/Assistant*`, `agent/ConversationMemory`, `agent/tools/{QueryCases,QueryAlerts,GetCase}Tool`, `app/AssistantService`, `ui/cli/AskCli` |
 | F11 STR drafts and export | CLI and GUI Report tab done and reviewed | `reporting/*`, `actions/{SaveReportDraft,FinaliseReport}Command`, `app/ReportService`, `ui/cli/ReportCli`, `ui/gui/ReportTab` |
 | F09 Money-flow network | CLI `network` and GUI Network tab done and reviewed | `network/*`, `app/NetworkService`, `ui/cli/NetworkCli`, `ui/gui/NetworkView` |
-| F12 Performance dashboard | CLI `metrics` and GUI Performance tab done and reviewed (review 9) | `metrics/*`, `app/PerformanceService`, `ui/cli/MetricsCli`, `ui/gui/AdminView`, `tools/IbmSampler` |
+| F12 Performance dashboard | CLI `metrics` and GUI Performance tab done and reviewed (review 9) | `metrics/*`, `app/PerformanceService`, `ui/cli/MetricsCli`, `ui/gui/AdminView`, `tools/SchemeSampler` |
 | GUI (JavaFX 21) | Alerts (import, monitoring, queue, register, investigate, triage), Cases (finding, live steps, evidence, tasks), Approvals, Admin (rules, knowledge, audit log), Assistant panel | `ui/gui/*`; launch `./tracewise-gui` |
 
 All nine designed patterns are in code: Facade (`TraceWiseFacade`), Strategy (`DetectionRule`,
@@ -41,7 +41,7 @@ Strategy also covers `Retriever` (`EmbeddingRetriever`, context `SearchIndicator
 1. All 12 features are done and reviewed (F12: review 9, commit `60507d1`); 369 tests; design changes 1 to 40.
    NEXT (Oct 31 to Nov 2): Haiku baseline on IBM sample part 1, improvements, then report on part 2 (held out), then
    Sonnet on part 2. Make the samples with
-   `java -cp target/tracewise.jar tracewise.tools.IbmSampler <HI-Small_Trans.csv> <HI-Small_Patterns.txt> <out.csv> 20 200 <part> 42`
+   `java -cp target/tracewise.jar tracewise.tools.SchemeSampler ibm <HI-Small_Trans.csv> <HI-Small_Patterns.txt> <out.csv> 20 200 <part> 42`
    (same seed and sizes for both parts, or they are not disjoint). Part 1: 9,634 rows, 223 alerts (R4 135, R5 39,
    R6 49). A full Haiku triage of part 1 is about CAD 5 (CAD 0.02 per alert): confirm the spend with Kian first. The
    IBM files live in the session scratchpad (`ibm/HI-Small_Trans.csv`, `ibm-patterns/HI-Small_Patterns.txt`);
@@ -73,7 +73,7 @@ traceability, Task 4 patterns), sequence diagrams SD1 to SD6 in `docs/stage1/uml
   screening hit (the rule's own pattern is not a red flag) and lets routine activity be dismissed; the opening
   message no longer shows the risk score. `scripts/evaluate.py` evaluates a fixed alert list, each alert on a
   fresh database copy, merged and scored with `tracewise metrics`.
-- Fair tuning set (scratchpad `f12/`): `tune.csv` (IbmSampler 20 schemes, 600 others, part 1, seed 42),
+- Fair tuning set (scratchpad `f12/`): `tune.csv` (SchemeSampler ibm, 20 schemes, 600 others, part 1, seed 42),
   `tune.db` (monitored, 338 alerts), `tune-alerts.txt` (75 fixed alerts: 30 laundering, 30 clean, 15 unclear).
   Saved builds: `f12/v0.jar` (original prompt) and `f12/v2.jar` (new).
 - NEXT: run v0 and then v2 on the same 75 alerts (each about 20 min, about CAD 1.6, one at a time: 8 JVMs swap

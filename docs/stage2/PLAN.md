@@ -61,7 +61,7 @@ Rule: nothing may go against the Stage 1 design in a large way; any deviation is
 | F09 Money-Flow Network View | Working (CLI and GUI Network tab) | `network/*` (`MoneyFlowGraph`, `AccountNode`, `FlowEdge`), `app/NetworkService`, `ui/cli/NetworkCli`, `ui/gui/NetworkView`, `resources/tracewise/smartgraph.*` | |
 | F10 Natural-Language Analyst Assistant | Working (CLI, `ask --json`); GUI Assistant panel pending | `agent/{AssistantTask,AssistantAnswer,AssistantContext,ConversationMemory,AgentJson}`, `agent/tools/{QueryCases,QueryAlerts,GetCase}Tool`, `app/AssistantService`, `ui/cli/AskCli` | |
 | F11 Suspicious Transaction Report Drafting and Export | Working (CLI and GUI Report tab) | `reporting/*` (`StrReport`, `ReportExporter`, `HtmlReportExporter`, `JsonReportExporter`), `actions/{SaveReportDraft,FinaliseReport}Command`, `app/ReportService`, `ui/cli/ReportCli`, `ui/gui/ReportTab` | |
-| F12 Agent Performance Dashboard | Working (CLI and GUI Performance tab) | `metrics/*` (`PerformanceMetrics`, `Measure`, `MetricsFilter`, `RulePrecision`, `AlertLabel`, `MetricRow`, `MetricsCsv`), `app/PerformanceService`, `ui/cli/MetricsCli`, `ui/gui/AdminView` (Performance tab), `tools/IbmSampler` | |
+| F12 Agent Performance Dashboard | Working (CLI and GUI Performance tab) | `metrics/*` (`PerformanceMetrics`, `Measure`, `MetricsFilter`, `RulePrecision`, `AlertLabel`, `MetricRow`, `MetricsCsv`), `app/PerformanceService`, `ui/cli/MetricsCli`, `ui/gui/AdminView` (Performance tab), `tools/SchemeSampler` | |
 
 ## Progress log
 - 2026-10-20: period 1 opened. Build skeleton, F01 import (both formats, rejection reasons,
