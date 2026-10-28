@@ -61,6 +61,26 @@ Design sources: `docs/stage1/diagrams/src/model.iuml` (full model with every mem
 `docs/stage1/Stage1-Design-Report.md` (feature sections F01 to F12, use cases UC01 to UC17, Task 3
 traceability, Task 4 patterns), sequence diagrams SD1 to SD6 in `docs/stage1/umlet/gen_sequence_diagrams.py`.
 
+## 2b. IN PROGRESS (2026-10-28, stopped when Kian left): improving the agent on IBM data
+
+- Haiku baseline (old prompt): escalates every alert; 16% of runs cut off at the 4096-token output limit.
+  Three diagnosis agents found why: tools never stated the data covers only ~2 weeks (read as "new account"),
+  the risk score and the rule's own pattern anchored it, and the sample had too few normal accounts.
+- Done and committed: three-way scoring (design change 41, commit 6656710).
+- UNCOMMITTED in the working tree (version "v2"; replays NOT re-recorded, so CommittedReplaysTest and one
+  MetricsCliTest fail, as expected): output limit 8192 and at most 15 citations; tools state `data_covers` and
+  the account's currencies and self-transfers; windows show currencies; the prompt treats the alert as a
+  screening hit (the rule's own pattern is not a red flag) and lets routine activity be dismissed; the opening
+  message no longer shows the risk score. `scripts/evaluate.py` evaluates a fixed alert list, each alert on a
+  fresh database copy, merged and scored with `tracewise metrics`.
+- Fair tuning set (scratchpad `f12/`): `tune.csv` (IbmSampler 20 schemes, 600 others, part 1, seed 42),
+  `tune.db` (monitored, 338 alerts), `tune-alerts.txt` (75 fixed alerts: 30 laundering, 30 clean, 15 unclear).
+  Saved builds: `f12/v0.jar` (original prompt) and `f12/v2.jar` (new).
+- NEXT: run v0 and then v2 on the same 75 alerts (each about 20 min, about CAD 1.6, one at a time: 8 JVMs swap
+  the 8 GB Mac), compare with `tracewise --db <out>/merged.db metrics`. v0 was stopped after 20 of 75 (in
+  `f12/ev-v0/`; the script restarts from scratch). Keep the better version, re-record replays, review, commit.
+  Part 2 (held out: same sampler args with part 2) is used only for the final report, then Sonnet on part 2.
+
 ## 3. How Kian wants the work done (standing instructions)
 
 - **Order**: finish open items before starting the next feature.
