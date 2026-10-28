@@ -1,6 +1,6 @@
 # Stage 2 handoff (read this first after /compact or in a new session)
 
-Last updated 2026-10-28, after real-data checks, F09 and review 8 (commit `9f4a9b7`). Read this file, then `CLAUDE.md` (repo root) and
+Last updated 2026-10-28, after F12 and review 9 (commit `60507d1`). Read this file, then `CLAUDE.md` (repo root) and
 `docs/stage2/PLAN.md`. Sessions often run from `~/Brain`, where the TraceWise `CLAUDE.md` is NOT
 loaded automatically: read it explicitly.
 
@@ -26,7 +26,7 @@ loaded automatically: read it explicitly.
 | F10 Assistant | CLI done (`ask --json`) | `agent/Assistant*`, `agent/ConversationMemory`, `agent/tools/{QueryCases,QueryAlerts,GetCase}Tool`, `app/AssistantService`, `ui/cli/AskCli` |
 | F11 STR drafts and export | CLI and GUI Report tab done and reviewed | `reporting/*`, `actions/{SaveReportDraft,FinaliseReport}Command`, `app/ReportService`, `ui/cli/ReportCli`, `ui/gui/ReportTab` |
 | F09 Money-flow network | CLI `network` and GUI Network tab done and reviewed | `network/*`, `app/NetworkService`, `ui/cli/NetworkCli`, `ui/gui/NetworkView` |
-| F12 | not started | |
+| F12 Performance dashboard | CLI `metrics` and GUI Performance tab done and reviewed (review 9) | `metrics/*`, `app/PerformanceService`, `ui/cli/MetricsCli`, `ui/gui/AdminView`, `tools/IbmSampler` |
 | GUI (JavaFX 21) | Alerts (import, monitoring, queue, register, investigate, triage), Cases (finding, live steps, evidence, tasks), Approvals, Admin (rules, knowledge, audit log), Assistant panel | `ui/gui/*`; launch `./tracewise-gui` |
 
 All nine designed patterns are in code: Facade (`TraceWiseFacade`), Strategy (`DetectionRule`,
@@ -38,7 +38,14 @@ Strategy also covers `Retriever` (`EmbeddingRetriever`, context `SearchIndicator
 
 ## 2. Next tasks, in order (plan agreed with Kian 2026-10-27, see PLAN.md "Revised schedule")
 
-1. F01 to F11 are done and reviewed (review 8, commit `9f4a9b7`); 342 tests; design changes 1 to 37.
+1. All 12 features are done and reviewed (F12: review 9, commit `60507d1`); 369 tests; design changes 1 to 40.
+   NEXT (Oct 31 to Nov 2): Haiku baseline on IBM sample part 1, improvements, then report on part 2 (held out), then
+   Sonnet on part 2. Make the samples with
+   `java -cp target/tracewise.jar tracewise.tools.IbmSampler <HI-Small_Trans.csv> <HI-Small_Patterns.txt> <out.csv> 20 200 <part> 42`
+   (same seed and sizes for both parts, or they are not disjoint). Part 1: 9,634 rows, 223 alerts (R4 135, R5 39,
+   R6 49). A full Haiku triage of part 1 is about CAD 5 (CAD 0.02 per alert): confirm the spend with Kian first. The
+   IBM files live in the session scratchpad (`ibm/HI-Small_Trans.csv`, `ibm-patterns/HI-Small_Patterns.txt`);
+   re-download with the kaggle CLI if gone.
    Kian deferred the supervisor-only finalisation rule ("if we had time"). Kian decided R1 to R3 stay as designed
    (tested on the scenario data; IBM data cannot exercise them, as the Stage 1 report says).
 2. This week: Stage 2 report draft (records are current). The Codex cross-model pass is unavailable until
@@ -237,4 +244,14 @@ From review 8 (2026-10-28), rejected or accepted:
 - No agent tool for the network; F09 is a view for people (validator: not required).
 - The 50-counterparty cap is shared across hops, so on a hub account hop 1 can fill it and hops 2 and 3 add nothing.
 - The import checks `exists()` per row (an index lookup); a whole 5M-row import holds the write lock for its duration.
+
+From review 9 (F12, 2026-10-28), accepted:
+- Average turns and cost cover runs with a finding (labelled so); a failed run's cost is not counted anywhere.
+- Parts of a sample share no row and no chosen account, but an unchosen counterparty can appear in both (27 on the
+  real file), each time with different transactions. Parts are disjoint only with the same seed and sizes.
+- Comparing models on the same database: the second model's runs see the first model's decided proposals. Use a
+  fresh database per model for the Sonnet comparison.
+- Recall covers investigated cases whose opening alert is labelled; laundering never alerted is not in it. A sample
+  is richer in laundering than the full file, so precision on it is higher; state the sample when quoting numbers.
+- Metrics load every case (one query per case) on the GUI worker: fine for hundreds of cases.
 

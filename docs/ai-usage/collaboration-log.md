@@ -363,3 +363,31 @@ the review script reported "0 findings" instead of a failure, so the Codex pass 
 or the two before it (Entries 12 and 13, corrected); the F04 and F10 reviews did get Codex findings. On re-recording,
 the fan-out sample alert ended INCONCLUSIVE with a source-of-funds task instead of ESCALATE: model variance, kept as
 recorded. 342 tests pass.
+
+## Entry 15: The performance dashboard (F12) and the IBM sampler (2026-10-28)
+
+**Task:** Build F12 (measure the agent against ground truth) and the IBM sampling the Stage 1 report describes, so
+the agent can be tuned on one sample and reported on another.
+
+**Input/Instruction:** Kian asked whether accuracy can be measured and raised, agreed to finish all functionality
+this week, and asked to try the cheaper Haiku model first and compare Sonnet last.
+
+**AI Contribution:** Built the metrics service (precision and recall against IBM's labels, verification rate,
+turns, cost, failure rate, human override rate, per-rule alert precision, each with its sample size, for all models
+and per model), the `metrics` command with CSV export, the Performance tab, and the sampler (whole planted schemes,
+the full history of their accounts, random other accounts). A live Haiku triage of 8 sample alerts (CAD 0.17)
+showed the agent linking 24 alerts into its cases; judging a verdict by any linked alert would have counted a false
+positive as correct (precision 0.75 instead of 0.625), so verdicts are judged by the alert that opened the case.
+Haiku escalated all 8 alerts: the baseline next week will show whether it ever dismisses.
+
+**Human Contribution:** Chose precision and recall over "accuracy", the tune-then-report split, and Haiku first.
+
+**Outcome:** The ninth `deep-code-review` (nine Claude reviewers, one validator per finding; the Codex pass could not
+run, usage limit until 2026-11-19) found that the "held-out" sample part shared 603 rows with the tuning part:
+IBM's planted schemes share accounts. A search of past lessons pointed at the same failure in another project, where
+a held-out set overlapped its training data. Parts are now taken in turn and a later part skips anything in or
+trading with an earlier one (0 shared rows on the real file; part 1 unchanged). All six other validated findings
+were fixed: verdict counts and a stricter recall that counts inconclusive as missed are in every output, replays are
+measured apart from live runs, models with only failed runs get a column, and turns and cost are labelled as
+covering runs with a finding. 369 tests pass.
+

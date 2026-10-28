@@ -61,7 +61,7 @@ Rule: nothing may go against the Stage 1 design in a large way; any deviation is
 | F09 Money-Flow Network View | Working (CLI and GUI Network tab) | `network/*` (`MoneyFlowGraph`, `AccountNode`, `FlowEdge`), `app/NetworkService`, `ui/cli/NetworkCli`, `ui/gui/NetworkView`, `resources/tracewise/smartgraph.*` | |
 | F10 Natural-Language Analyst Assistant | Working (CLI, `ask --json`); GUI Assistant panel pending | `agent/{AssistantTask,AssistantAnswer,AssistantContext,ConversationMemory,AgentJson}`, `agent/tools/{QueryCases,QueryAlerts,GetCase}Tool`, `app/AssistantService`, `ui/cli/AskCli` | |
 | F11 Suspicious Transaction Report Drafting and Export | Working (CLI and GUI Report tab) | `reporting/*` (`StrReport`, `ReportExporter`, `HtmlReportExporter`, `JsonReportExporter`), `actions/{SaveReportDraft,FinaliseReport}Command`, `app/ReportService`, `ui/cli/ReportCli`, `ui/gui/ReportTab` | |
-| F12 Agent Performance Dashboard | Not started | | |
+| F12 Agent Performance Dashboard | Working (CLI and GUI Performance tab) | `metrics/*` (`PerformanceMetrics`, `Measure`, `MetricsFilter`, `RulePrecision`, `AlertLabel`, `MetricRow`, `MetricsCsv`), `app/PerformanceService`, `ui/cli/MetricsCli`, `ui/gui/AdminView` (Performance tab), `tools/IbmSampler` | |
 
 ## Progress log
 - 2026-10-20: period 1 opened. Build skeleton, F01 import (both formats, rejection reasons,
@@ -123,6 +123,11 @@ Rule: nothing may go against the Stage 1 design in a large way; any deviation is
   tab). Review fixes: rollback on an Error, bounded rejected rows, last-hop edges, key lookups. The Codex cross-model
   pass had silently not run since the GUI review (usage limit until Nov 19); records corrected. 342 tests.
   Design changes 35 to 37.
+- 2026-10-28 (F12, review 9): performance metrics (precision and recall against labels, a stricter recall, verdict
+  counts, verification, turns, cost, failures, overrides, per-rule precision; per model), `metrics` CLI with CSV, the
+  Performance tab, and the IBM sampler with disjoint tuning and held-out parts. Live check: Haiku on 8 IBM alerts,
+  precision 0.625 (5 of 8), all escalated, CAD 0.17. Review fixes: held-out part shared rows with the tuning part,
+  verdict counts in every output, replays measured apart, failed-only models shown. 369 tests. Design changes 38 to 40.
 ## Tooling (installed 2026-10-20)
 - `jdtls-lsp` plugin with `jdtls` 1.63.0 (Homebrew): Java diagnostics and navigation.
 - `ponytail` 5.3.2: level `full`; cost ledger on, webhook off, task names not sent.
