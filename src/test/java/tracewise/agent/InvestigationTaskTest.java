@@ -39,11 +39,12 @@ class InvestigationTaskTest {
         for (String expected : List.of("ALR-00001", "CAS-00001", "R3", "S-C1", "t1, t2, t3", "28500")) {
             assertTrue(m.contains(expected), expected + " missing from: " + m);
         }
-        assertEquals(Set.of("account_history", "counterparties", "linked_alerts", "search_indicators", "similar_cases",
-                "set_priority", "link_alerts", "add_to_watchlist", "create_task", "propose_close", "propose_escalation"),
+        assertEquals(Set.of("account_history", "window_aggregates", "counterparties", "linked_alerts", "search_indicators",
+                "similar_cases", "set_priority", "link_alerts", "add_to_watchlist", "create_task", "propose_close", "propose_escalation"),
                 task.toolNames());
         assertTrue(task.systemPrompt().contains("propose_escalation"));
         assertTrue(task.systemPrompt().contains("search_indicators"));
+        assertTrue(task.systemPrompt().contains("window_aggregates"), "busy accounts are summarised before paging");
         assertTrue(task.systemPrompt().contains("deposits below the reporting threshold"));
         assertTrue(task.systemPrompt().contains("\"verdict\""));
     }

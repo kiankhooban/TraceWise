@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import tracewise.agent.tools.AccountHistoryTool;
+import tracewise.agent.tools.WindowAggregateTool;
 import tracewise.agent.tools.AddToWatchlistTool;
 import tracewise.agent.tools.CounterpartiesTool;
 import tracewise.agent.tools.CreateTaskTool;
@@ -47,7 +48,8 @@ public class InvestigationTask implements AgentTask {
             (YYYY-MM-DD, the UTC date of its timestamp) and an account involved in it.
             - Look beyond the flagged transactions: check the account's wider history and its counterparties, \
             both for further suspicious activity and for legitimate explanations such as payroll or regular \
-            business income.
+            business income. For an account with many transactions, use window_aggregates to see its activity \
+            per day or week first, then account_history for the dates that matter.
             - Use search_indicators to find the FINTRAC money-laundering indicators the evidence matches. Describe \
             the pattern in FINTRAC's own words, for example "deposits below the reporting threshold" or "funds \
             transferred in and out of an account within a short period", not in raw figures. List as indicators \
@@ -122,7 +124,7 @@ public class InvestigationTask implements AgentTask {
 
     @Override
     public Set<String> toolNames() {
-        return Set.of(AccountHistoryTool.NAME, CounterpartiesTool.NAME, LinkedAlertsTool.NAME, SearchIndicatorsTool.NAME,
+        return Set.of(AccountHistoryTool.NAME, WindowAggregateTool.NAME, CounterpartiesTool.NAME, LinkedAlertsTool.NAME, SearchIndicatorsTool.NAME,
                 SimilarCasesTool.NAME, SetPriorityTool.NAME, LinkAlertsTool.NAME, AddToWatchlistTool.NAME, CreateTaskTool.NAME, ProposeCloseTool.NAME,
                 ProposeEscalationTool.NAME);
     }

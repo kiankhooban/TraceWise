@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 import java.util.Set;
 import tracewise.agent.tools.AccountHistoryTool;
+import tracewise.agent.tools.WindowAggregateTool;
 import tracewise.agent.tools.CounterpartiesTool;
 import tracewise.agent.tools.GetCaseTool;
 import tracewise.agent.tools.LinkedAlertsTool;
@@ -93,7 +94,7 @@ public class AssistantTask implements AgentTask {
 
     @Override
     public Set<String> toolNames() {
-        return Set.of(AccountHistoryTool.NAME, CounterpartiesTool.NAME, LinkedAlertsTool.NAME, SearchIndicatorsTool.NAME,
+        return Set.of(AccountHistoryTool.NAME, WindowAggregateTool.NAME, CounterpartiesTool.NAME, LinkedAlertsTool.NAME, SearchIndicatorsTool.NAME,
                 SimilarCasesTool.NAME, QueryCasesTool.NAME, QueryAlertsTool.NAME, GetCaseTool.NAME);
     }
 

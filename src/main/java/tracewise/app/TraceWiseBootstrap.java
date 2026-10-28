@@ -32,6 +32,7 @@ import tracewise.agent.tools.SearchIndicatorsTool;
 import tracewise.agent.tools.SetPriorityTool;
 import tracewise.agent.tools.SimilarCasesTool;
 import tracewise.agent.tools.ToolRegistry;
+import tracewise.agent.tools.WindowAggregateTool;
 import tracewise.audit.AuditLog;
 import tracewise.audit.SqliteAuditRepository;
 import tracewise.domain.Actor;
@@ -139,6 +140,7 @@ public final class TraceWiseBootstrap {
             ActionScope scope) {
         var tools = new ToolRegistry();
         tools.register(new AccountHistoryTool(transactions));
+        tools.register(new WindowAggregateTool(transactions));
         tools.register(new CounterpartiesTool(transactions));
         tools.register(new LinkedAlertsTool(transactions, alerts, cases));
         tools.register(new SearchIndicatorsTool(indicators));

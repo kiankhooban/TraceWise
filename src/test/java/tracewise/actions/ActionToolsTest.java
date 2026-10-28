@@ -34,6 +34,8 @@ class ActionToolsTest {
     void theRegistryHasEveryToolTheInvestigationOffers() {
         var task = new tracewise.agent.InvestigationTask(f.alerts.findById("ALR-00001").orElseThrow(), "CAS-00001");
         assertEquals(task.toolNames().size(), tools.schemas(task.toolNames()).size());
+        var assistant = new tracewise.agent.AssistantTask("q", tracewise.agent.AssistantContext.NONE, java.util.List.of());
+        assertEquals(assistant.toolNames().size(), tools.schemas(assistant.toolNames()).size());
     }
 
     @AfterEach

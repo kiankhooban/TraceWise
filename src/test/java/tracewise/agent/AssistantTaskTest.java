@@ -27,7 +27,7 @@ class AssistantTaskTest {
     void offersReadToolsOnly() {
         var task = new AssistantTask("Why is C1037 risky?", AssistantContext.NONE, List.of());
 
-        assertEquals(Set.of("account_history", "counterparties", "linked_alerts", "search_indicators", "similar_cases",
+        assertEquals(Set.of("account_history", "window_aggregates", "counterparties", "linked_alerts", "search_indicators", "similar_cases",
                 "query_cases", "query_alerts", "get_case"), task.toolNames());
     }
 
