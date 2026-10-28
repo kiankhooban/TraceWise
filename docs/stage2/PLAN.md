@@ -33,7 +33,21 @@ Do almost all the work in period 2 so there is time to recover if something goes
   fresh-clone check. Commits are never split artificially: the handout excludes them.
 - Nov 7 to 10: feature freeze, Kian records the videos, report finished. Submission Nov 10.
 
-## Feature status
+## Revised schedule 2 (agreed with Kian, 2026-10-28)
+Finish all functionality this week; spend period 3 on a UI and UX polish (real commits), then freeze.
+- Oct 28 to 30: F12 with the IBM sampler the Stage 1 report describes (whole planted schemes plus the full history of
+  their accounts plus random other accounts), PerformanceService and metrics, CLI `metrics`, GUI Performance screen;
+  deep-code-review.
+- Oct 31 to Nov 2: baseline numbers with Haiku 5.5, then improvements the numbers point to (rule calibration, which
+  the design plans for R3 to R6; the agent's instructions; consistency across runs). Tune on one IBM sample and report
+  on a different, held-out sample. Then Sonnet 5.5 (the design's default model) on the same held-out sample for the
+  comparison. Stage 2 report draft.
+- Nov 3 to 7 (period 3): UI and UX polish of the existing screens (no change to the pages or their structure; clean,
+  modern, bank-like; design to be discussed with Kian first, audit with the impeccable skill), final review,
+  fresh-clone check, class diagram.
+- Nov 7 to 10: freeze, demo scripts, Kian records the videos, report PDF.
+Rule: nothing may go against the Stage 1 design in a large way; any deviation is small and logged.
+
 | Feature | Status | Implemented in | Video |
 |---|---|---|---|
 | F01 Transaction Data Import | Working (CLI); GUI pending | `ingest/*`, `app/ImportService`, `persistence/SqliteTransactionRepository`, `ui/cli/ImportCli` | |

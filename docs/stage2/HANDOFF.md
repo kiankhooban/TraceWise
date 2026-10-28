@@ -43,7 +43,9 @@ Strategy also covers `Retriever` (`EmbeddingRetriever`, context `SearchIndicator
    (tested on the scenario data; IBM data cannot exercise them, as the Stage 1 report says).
 2. This week: Stage 2 report draft (records are current). The Codex cross-model pass is unavailable until
    2026-11-19 (usage limit); Kian has not chosen between skipping it, Gemini through `agy`, or upgrading.
-3. Period 3 (Nov 3 to 6): **F12** dashboard (the real period 3 feature) with the **IBM sampler** the Stage 1 report
+3. NEW ORDER (PLAN.md "Revised schedule 2"): F12 now (Oct 28 to 30), then measure and improve on Haiku with a
+   held-out IBM sample, then Sonnet comparison; UI and UX polish in period 3 (same pages; discuss the look with Kian
+   first). Old item kept for its sampler notes: **F12** dashboard (the real period 3 feature) with the **IBM sampler** the Stage 1 report
    describes (whole planted schemes from `HI-Small_Patterns.txt` plus the full history of their accounts plus random
    other accounts; never a slice of rows), final review fixes, fresh-clone check.
 4. Records: UMLet class diagram update, stage2-report PDF, demo scripts.
