@@ -16,7 +16,7 @@ ledger before a human analyst approves or dismisses the case.
 | Stage | Content | Status |
 |---|---|---|
 | Stage 1: Design | [Design report](docs/stage1/Stage1-Design-Report.md) ([PDF](docs/stage1/Stage1-Design-Report.pdf)) (UMLet diagrams in [`docs/stage1/umlet`](docs/stage1/umlet)) | Complete (100/100) |
-| Stage 2: Implementation | [Plan and feature status](docs/stage2/PLAN.md), [design changes](docs/stage2/design-changes.md) | In progress: F01 to F08, F10 and F11 working from the CLI and the GUI |
+| Stage 2: Implementation | [Plan and feature status](docs/stage2/PLAN.md), [design changes](docs/stage2/design-changes.md) | In progress: F01 to F11 working from the CLI and the GUI; F12 next |
 | Stage 3: Testing | JUnit tests, KUMA agent behaviour tests | Not started |
 
 ## Quick start
@@ -43,6 +43,7 @@ Prerequisites: Java 21 (JDK). Maven is not needed: the repository includes the M
 ./tracewise report draft CAS-00001              # the agent drafts the STR narrative (also: report show, report edit)
 ./tracewise report finalise CAS-00001           # waits in the approval queue; approve it with approvals approve
 ./tracewise report export CAS-00001 --format both --out reports   # HTML and JSON; nothing is sent to FINTRAC
+./tracewise network C1037 --hops 2              # who the account sends money to and receives it from
 ```
 
 Indicator search runs a local embedding model (bge-small-en-v1.5) inside the JVM: no key, no network,
@@ -119,6 +120,11 @@ that must not fire, and 60 normal customers that trigger nothing:
 ```bash
 java -cp target/tracewise.jar tracewise.tools.ScenarioGenerator 42 data/samples/scenarios.csv
 ```
+
+TraceWise also reads IBM's synthetic AML data (Altman et al., NeurIPS 2023), which is not committed:
+download `HI-Small_Trans.csv` from the Kaggle dataset `ealtman2019/ibm-transactions-for-anti-money-laundering-aml`
+and run `./tracewise import HI-Small_Trans.csv`. The full file (5.08 million rows) takes about 12 minutes; rows in
+Bitcoin, Ruble, Shekel and Riyal are rejected because the Bank of Canada publishes no rate for them.
 
 ## Stack
 

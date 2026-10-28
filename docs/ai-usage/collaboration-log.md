@@ -306,7 +306,8 @@ kind of actor, and CSV export that neutralises spreadsheet formulas.
 
 **Human Contribution:** Set the schedule and the rule against artificial commits.
 
-**Outcome:** A sixth `deep-code-review` (nine reviewers plus Codex, one validator per finding) confirmed twelve
+**Outcome:** A sixth `deep-code-review` (nine reviewers, one validator per finding; the Codex cross-model pass did
+not run, see Entry 14) confirmed twelve
 findings, the most serious that Close or Reopen could act on whichever case was on screen when the worker ran
 rather than the one clicked. Others: a cancel or stop pressed while the job waited was lost, closing the window
 could close the database under a running job, and a linked alert opened the wrong case. All were fixed, the
@@ -329,9 +330,36 @@ amount and date in the narratives against the confirmed data, then recorded them
 
 **Human Contribution:** Set the order of work and the review rule.
 
-**Outcome:** A seventh `deep-code-review` (ten reviewers plus Codex, one validator per finding) confirmed twelve of
+**Outcome:** A seventh `deep-code-review` (ten reviewers, one validator per finding; the Codex cross-model pass did
+not run, see Entry 14) confirmed twelve of
 sixteen findings. The most important: an edit after a finalisation request left a stale request that blocked a new
 one, a redraft from the CLI silently replaced the analyst's edits, and the model was given the agent's unverified
 summary as if it were fact (now labelled unverified; the re-recorded narratives no longer repeat its unchecked
 remarks). One question is left for Kian: whether the person who requests a finalisation may also approve it.
 315 tests pass; the replays pass on Apple Silicon and on x86 Linux.
+
+## Entry 14: Real data, the window-aggregate tool and the money-flow network (F09) (2026-10-28)
+
+**Task:** Check that TraceWise works on real data, then build F09 and review the batch.
+
+**Input/Instruction:** Kian asked whether the app works on actual data, not only the sample, and asked that every
+change stay within the Stage 1 design or be small and justified; he decided to keep rules R1 to R3 as designed.
+
+**AI Contribution:** Downloaded IBM's HI-Small AML file (5.08 million labelled transactions) and ran it through the
+pipeline. A 100,000-row slice imported, monitored and was investigated correctly, but the full file ran out of
+memory on import, and one busy account cost CAD 0.10 to investigate. Checked every proposed fix against the Stage 1
+report before building it: the streaming import and the window-aggregate tool are in the design; a proposal to let
+IBM's account-to-account cash trigger R1 and R3 contradicted a deliberate Stage 1 decision and was dropped. Built the
+streaming import (the full file now imports in 12.5 minutes at about 220 MB), the `window_aggregates` tool, and F09
+(service, `network` command, Network tab with the JavaFXSmartGraph library the design names).
+
+**Human Contribution:** Set the rule that changes must be in the design or small and justified; decided to keep
+R1 to R3 and to defer the supervisor-only finalisation rule.
+
+**Outcome:** An eighth `deep-code-review` (ten reviewers, one validator per finding) confirmed twelve of fourteen
+findings, the most serious that an out-of-memory error mid-import would have committed part of the file; all were
+fixed. Testing the cross-model pass directly showed the Codex account had hit its usage limit (until 2026-11-19):
+the review script reported "0 findings" instead of a failure, so the Codex pass silently did not run in this review
+or the two before it (Entries 12 and 13, corrected); the F04 and F10 reviews did get Codex findings. On re-recording,
+the fan-out sample alert ended INCONCLUSIVE with a source-of-funds task instead of ESCALATE: model variance, kept as
+recorded. 342 tests pass.

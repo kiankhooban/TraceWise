@@ -44,7 +44,7 @@ Do almost all the work in period 2 so there is time to recover if something goes
 | F06 Agent Actions and Approval Queue | Working (CLI); GUI pending; report-draft action comes with F11 | `actions/*` (`ActionCommand` and six commands, `CommandDispatcher`, `PermissionPolicy`, `ApprovalQueue`, `PendingAction`), `agent/tools/ActionTool` and six action tools, `persistence/SqliteApprovalRepository`, `ui/cli/ApprovalsCli` | |
 | F07 Autonomous Queue Triage | Working (CLI); GUI pending | `app/TriageService`, `app/TriageLimits`, `agent/TriageReport`, `ui/cli/TriageCli` | |
 | F08 Case Management and Audit Trail | Working (CLI and GUI) | `domain/Case`, `cases/state/*`, `persistence/SqliteCaseRepository`, `audit/AuditLog` | |
-| F09 Money-Flow Network View | Not started | | |
+| F09 Money-Flow Network View | Working (CLI and GUI Network tab) | `network/*` (`MoneyFlowGraph`, `AccountNode`, `FlowEdge`), `app/NetworkService`, `ui/cli/NetworkCli`, `ui/gui/NetworkView`, `resources/tracewise/smartgraph.*` | |
 | F10 Natural-Language Analyst Assistant | Working (CLI, `ask --json`); GUI Assistant panel pending | `agent/{AssistantTask,AssistantAnswer,AssistantContext,ConversationMemory,AgentJson}`, `agent/tools/{QueryCases,QueryAlerts,GetCase}Tool`, `app/AssistantService`, `ui/cli/AskCli` | |
 | F11 Suspicious Transaction Report Drafting and Export | Working (CLI and GUI Report tab) | `reporting/*` (`StrReport`, `ReportExporter`, `HtmlReportExporter`, `JsonReportExporter`), `actions/{SaveReportDraft,FinaliseReport}Command`, `app/ReportService`, `ui/cli/ReportCli`, `ui/gui/ReportTab` | |
 | F12 Agent Performance Dashboard | Not started | | |
@@ -103,6 +103,12 @@ Do almost all the work in period 2 so there is time to recover if something goes
   GUI Report tab. Narratives for the three escalated sample cases recorded live. Review fixes: stale finalisation
   requests, redraft only with `--replace`, drafts from an older finding, the unverified summary labelled. 315 tests.
   Design changes 33 and 34.
+- 2026-10-28 (real data, F09, review 8): IBM's HI-Small file (5.08M rows) through the pipeline: the import ran out of
+  memory, so it now streams in chunks in one transaction (the full file imports in 12.5 minutes); the
+  `window_aggregates` read tool from the design (busy accounts); F09 money-flow network (service, `network`, Network
+  tab). Review fixes: rollback on an Error, bounded rejected rows, last-hop edges, key lookups. The Codex cross-model
+  pass had silently not run since the GUI review (usage limit until Nov 19); records corrected. 342 tests.
+  Design changes 35 to 37.
 ## Tooling (installed 2026-10-20)
 - `jdtls-lsp` plugin with `jdtls` 1.63.0 (Homebrew): Java diagnostics and navigation.
 - `ponytail` 5.3.2: level `full`; cost ledger on, webhook off, task names not sent.

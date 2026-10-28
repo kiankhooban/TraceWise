@@ -1,6 +1,6 @@
 # Stage 2 handoff (read this first after /compact or in a new session)
 
-Last updated 2026-10-27, after F11 and its review (commit `33d47e1`). Read this file, then `CLAUDE.md` (repo root) and
+Last updated 2026-10-28, after real-data checks, F09 and review 8 (commit `9f4a9b7`). Read this file, then `CLAUDE.md` (repo root) and
 `docs/stage2/PLAN.md`. Sessions often run from `~/Brain`, where the TraceWise `CLAUDE.md` is NOT
 loaded automatically: read it explicitly.
 
@@ -25,7 +25,8 @@ loaded automatically: read it explicitly.
 | F04 Retrieval and case memory | CLI and agent tools done | `retrieval/*`, `agent/tools/{SearchIndicators,SimilarCases}Tool`, `ui/cli/{Indicators,Cases}Cli`, `resources/tracewise/fintrac-indicators.tsv` |
 | F10 Assistant | CLI done (`ask --json`) | `agent/Assistant*`, `agent/ConversationMemory`, `agent/tools/{QueryCases,QueryAlerts,GetCase}Tool`, `app/AssistantService`, `ui/cli/AskCli` |
 | F11 STR drafts and export | CLI and GUI Report tab done and reviewed | `reporting/*`, `actions/{SaveReportDraft,FinaliseReport}Command`, `app/ReportService`, `ui/cli/ReportCli`, `ui/gui/ReportTab` |
-| F09, F12 | not started | |
+| F09 Money-flow network | CLI `network` and GUI Network tab done and reviewed | `network/*`, `app/NetworkService`, `ui/cli/NetworkCli`, `ui/gui/NetworkView` |
+| F12 | not started | |
 | GUI (JavaFX 21) | Alerts (import, monitoring, queue, register, investigate, triage), Cases (finding, live steps, evidence, tasks), Approvals, Admin (rules, knowledge, audit log), Assistant panel | `ui/gui/*`; launch `./tracewise-gui` |
 
 All nine designed patterns are in code: Facade (`TraceWiseFacade`), Strategy (`DetectionRule`,
@@ -37,11 +38,14 @@ Strategy also covers `Retriever` (`EmbeddingRetriever`, context `SearchIndicator
 
 ## 2. Next tasks, in order (plan agreed with Kian 2026-10-27, see PLAN.md "Revised schedule")
 
-1. GUI, F08 and F11 are done and reviewed (review 7, commit `33d47e1`); 315 tests; design changes 1 to 34.
-   Waiting on Kian: may the person who requests a report finalisation also approve it? (Today yes; a supervisor-only
-   rule would be about ten lines in `ApprovalQueue.approve`.)
-2. **F09** network view (Network tab, JavaFXSmartGraph; check JavaFX 21 compatibility via context7). This week.
-3. Period 3 (Nov 3 to 6): **F12** dashboard (the real period 3 feature), final review fixes, fresh-clone check.
+1. F01 to F11 are done and reviewed (review 8, commit `9f4a9b7`); 342 tests; design changes 1 to 37.
+   Kian deferred the supervisor-only finalisation rule ("if we had time"). Kian decided R1 to R3 stay as designed
+   (tested on the scenario data; IBM data cannot exercise them, as the Stage 1 report says).
+2. This week: Stage 2 report draft (records are current). The Codex cross-model pass is unavailable until
+   2026-11-19 (usage limit); Kian has not chosen between skipping it, Gemini through `agy`, or upgrading.
+3. Period 3 (Nov 3 to 6): **F12** dashboard (the real period 3 feature) with the **IBM sampler** the Stage 1 report
+   describes (whole planted schemes from `HI-Small_Patterns.txt` plus the full history of their accounts plus random
+   other accounts; never a slice of rows), final review fixes, fresh-clone check.
 4. Records: UMLet class diagram update, stage2-report PDF, demo scripts.
 
 Design sources: `docs/stage1/diagrams/src/model.iuml` (full model with every member; grep the class),
@@ -79,7 +83,9 @@ How the reviews were run (cheap and repeatable):
   `{intent_summary}`, `{file_list}` and `{diff}` (as paths), then dispatch each agent with "Read <prompt
   file> and follow it exactly". Correctness, security and adversarial run on the session model; the rest
   on Sonnet. Agent-native and learnings get their persona file plus a review-context block.
-- Codex pass: `bash ~/.claude/skills/deep-code-review/scripts/cross-model-adversarial-review.sh codex <base> <run-dir>`,
+- Codex pass: `bash ~/.claude/skills/deep-code-review/scripts/cross-model-adversarial-review.sh codex <base> <run-dir>`.
+  WARNING: when Codex fails (usage limit until 2026-11-19) the script still writes "0 findings". Test Codex first:
+  `echo "Reply READY" | codex exec - -s read-only`. Reviews 6 to 8 had no Codex pass.
   in the background, from `~/TraceWise`; it writes `adversarial-codex.json`.
 - Validators: one per finding from `references/validator-template.md` (Sonnet). Rejected findings are
   dropped; the ones that are deferred rather than wrong go in section 6 below.
@@ -215,4 +221,18 @@ From the F11 review (2026-10-27), rejected or accepted:
   rejected claim passes. The analyst reviews the text, and the narrative is never given the rejected claims as facts.
 - The narrative is free text from the model; only its rejected-claim mentions are checked deterministically.
 - Exports are not written atomically; a failed write leaves the report final so the export can be retried.
+
+Real data (IBM HI-Small, checked 2026-10-28; the file is in the session scratchpad, not the repo):
+- Import: 4,495,903 of 5,078,345 rows in 12.5 minutes, about 220 MB; 582,422 rejected (BTC, RUB, SAR, ILS have no
+  Bank of Canada rate); 457,898 accounts. Laundering is planted later in the file: the first 100,000 rows hold 5.
+- Monitoring on 100,000 rows: 19 s, 684 alerts (R4 659). On the full file it ran over 25 minutes and passed 100,000
+  alerts: R4 is very noisy on IBM data; F12's per-rule precision will show it.
+- One busy account (1,926 transactions on one day) cost CAD 0.10 to investigate, CAD 0.083 with `window_aggregates`.
+  Prompt caching would cut it further; it is not in the design.
+
+From review 8 (2026-10-28), rejected or accepted:
+- The facade's `transactionsFor` returns rows with the label; no view shows it (validator: speculative).
+- No agent tool for the network; F09 is a view for people (validator: not required).
+- The 50-counterparty cap is shared across hops, so on a hub account hop 1 can fill it and hops 2 and 3 add nothing.
+- The import checks `exists()` per row (an index lookup); a whole 5M-row import holds the write lock for its duration.
 

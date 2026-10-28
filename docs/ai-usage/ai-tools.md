@@ -27,6 +27,8 @@ dollar figure shown for development is an API-equivalent estimate, not money spe
 | 2026-10-27 | 14 live assistant questions: two re-recordings of 7 questions after the F10 review fixes | Claude Haiku 5.5 | about 0.022 |
 | 2026-10-27 | 7 live assistant questions, re-recorded after `get_case` gained notes | Claude Haiku 5.5 | about 0.011 |
 | 2026-10-27 | 6 live report narratives (F11): the three escalated sample cases, recorded twice (before and after the review fixes) | Claude Haiku 5.5 | about 0.005 |
+| 2026-10-28 | 2 live investigations of a busy account in IBM's HI-Small data (before and after `window_aggregates`) | Claude Haiku 5.5 | about 0.19 |
+| 2026-10-28 | Two full re-recordings of the replays (4 alerts, 7 questions, 3 report drafts each) after the tool set and a tool description changed | Claude Haiku 5.5 | about 0.08 |
 
 The cost per run is computed by TraceWise from token counts and the published prices (USD 0.10 in /
 0.50 out per million tokens for Haiku 5.5, converted at the Bank of Canada rate); the Anthropic Console
