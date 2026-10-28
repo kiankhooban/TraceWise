@@ -120,6 +120,19 @@ public class InvestigationService {
                 finding.verification().summary()));
     }
 
+    /** The audit details of a finished run: the model, then what happened. */
+    static String runDetails(String model, String text) {
+        return model + RUN_MODEL_END + text;
+    }
+
+    /** The model named by runDetails, or null for an entry written before runs named their model. */
+    static String modelOf(String details) {
+        int end = details == null ? -1 : details.indexOf(RUN_MODEL_END);
+        return end <= 0 || details.substring(0, end).contains(" ") ? null : details.substring(0, end);
+    }
+
+    private static final String RUN_MODEL_END = ": ";
+
     /** Decided proposals on the case, so a new run sees what a person already rejected and why. */
     private List<String> earlierDecisions(String caseId) {
         return approvals.forCase(caseId).stream().filter(p -> p.status() != ProposalStatus.PENDING)
@@ -178,7 +191,8 @@ public class InvestigationService {
             cases.save(c);
             String details = result.finding() == null ? result.message()
                     : result.finding().verdict() + ", confidence " + result.finding().confidence() + ", " + result.message();
-            audit.append(new AuditEntry(Instant.now(), user, "INVESTIGATION_FINISHED", result.trace().subject(), details,
+            audit.append(new AuditEntry(Instant.now(), user, "INVESTIGATION_FINISHED", result.trace().subject(),
+                    runDetails(result.trace().pricing().modelName(), details),
                     result.status().name()));
         });
         return result;

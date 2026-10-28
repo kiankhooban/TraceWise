@@ -256,6 +256,18 @@ public class AgentRunnerTest {
         assertTrue(retry.text().contains("start with VERDICT"), retry.text());
     }
 
+    /** F12 averages turns per investigation and filters runs by when they finished. */
+    @Test
+    void theTraceCountsEveryModelCallAsATurnAndRecordsWhenTheRunFinished() {
+        model.then(toolCall("{\"account_id\":\"C1\"}")).then(answer("not yet")).then(answer("VERDICT: DISMISS"));
+        var before = java.time.Instant.now();
+        runner().run(TASK, trace);
+
+        assertEquals(3, trace.turns(), "the correction turn is a model call too");
+        assertNotNull(trace.finishedAt());
+        assertFalse(trace.finishedAt().isBefore(before));
+    }
+
     @Test
     void secondBadlyStructuredAnswerFails() {
         model.then(answer("fine")).then(answer("still fine"));

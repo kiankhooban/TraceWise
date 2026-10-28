@@ -27,12 +27,26 @@ public class AgentTrace {
     private final List<AgentEventListener> listeners = new ArrayList<>();
     private TokenUsage usage = TokenUsage.NONE;
     private AgentOutcome outcome;
+    private int turns;
+    private java.time.Instant finishedAt;
 
     /** pricing gives USD per million tokens; cadPerUsd converts the total to CAD. */
     public AgentTrace(String subject, ModelConfig pricing, BigDecimal cadPerUsd) {
         this.subject = subject;
         this.pricing = pricing;
         this.cadPerUsd = cadPerUsd;
+    }
+
+    /** A trace loaded from storage; listeners are not told again. */
+    public static AgentTrace restore(String subject, ModelConfig pricing, BigDecimal cadPerUsd, List<TraceStep> steps,
+            TokenUsage usage, int turns, AgentOutcome outcome, java.time.Instant finishedAt) {
+        var t = new AgentTrace(subject, pricing, cadPerUsd);
+        t.steps.addAll(steps);
+        t.usage = usage;
+        t.turns = turns;
+        t.outcome = outcome;
+        t.finishedAt = finishedAt;
+        return t;
     }
 
     public void addListener(AgentEventListener listener) {
@@ -44,12 +58,15 @@ public class AgentTrace {
         listeners.forEach(l -> l.onStep(step));
     }
 
+    /** The usage of one model response: each call is one turn. */
     public void addUsage(TokenUsage more) {
+        turns++;
         usage = new TokenUsage(usage.inputTokens() + more.inputTokens(), usage.outputTokens() + more.outputTokens());
     }
 
     public void finish(AgentOutcome outcome) {
         this.outcome = outcome;
+        this.finishedAt = java.time.Instant.now();
         listeners.forEach(l -> l.onFinished(outcome));
     }
 
@@ -94,6 +111,16 @@ public class AgentTrace {
 
     public TokenUsage usage() {
         return usage;
+    }
+
+    /** Model calls made in the run. */
+    public int turns() {
+        return turns;
+    }
+
+    /** Null while the run is still going, or for a run stored before finish times were recorded. */
+    public java.time.Instant finishedAt() {
+        return finishedAt;
     }
 
     /** Null while the run is still going. */

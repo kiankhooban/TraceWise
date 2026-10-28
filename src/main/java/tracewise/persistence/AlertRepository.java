@@ -23,6 +23,9 @@ public interface AlertRepository {
     /** Which of these accounts have at least one alert. */
     java.util.Set<String> accountsWithAlerts(java.util.Collection<String> accountIds);
 
+    /** F12: every alert with its ground truth, in id order (one grouped query, not a lookup per transaction). */
+    java.util.List<tracewise.metrics.AlertLabel> launderingLabels();
+
     void updateStatus(String id, AlertStatus status);
 
     /** priority: 1 high, 2 medium, 3 low. */

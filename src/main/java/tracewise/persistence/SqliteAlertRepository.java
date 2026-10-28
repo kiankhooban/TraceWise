@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Optional;
 import tracewise.domain.Alert;
 import tracewise.domain.AlertStatus;
+import tracewise.metrics.AlertLabel;
 import tracewise.monitoring.AlertFilter;
 import tracewise.monitoring.RuleMatch;
 
@@ -54,6 +55,16 @@ public class SqliteAlertRepository implements AlertRepository {
         String placeholders = String.join(",", accountIds.stream().map(a -> "?").toList());
         return new java.util.HashSet<>(Jdbc.query(db, "SELECT DISTINCT account_id FROM alerts WHERE account_id IN ("
                 + placeholders + ")", rs -> rs.getString(1), accountIds.toArray()));
+    }
+
+    @Override
+    public List<AlertLabel> launderingLabels() {
+        // MAX over the labels is 1 if any transaction is laundering; COUNT skips transactions without a label
+        return Jdbc.query(db, "SELECT a.seq, a.rule_id, a.created_at, COUNT(t.laundering_label), MAX(t.laundering_label) "
+                + "FROM alerts a LEFT JOIN alert_transactions x ON x.alert_seq = a.seq "
+                + "LEFT JOIN transactions t ON t.id = x.transaction_id GROUP BY a.seq ORDER BY a.seq",
+                rs -> new AlertLabel(String.format("ALR-%05d", rs.getLong(1)), rs.getString(2),
+                        Instant.ofEpochMilli(rs.getLong(3)), rs.getInt(4) == 0 ? null : rs.getInt(5) == 1));
     }
 
     @Override

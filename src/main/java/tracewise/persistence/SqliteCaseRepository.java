@@ -133,6 +133,8 @@ public class SqliteCaseRepository implements CaseRepository {
         trace.put("cad_per_usd", t.cadPerUsd());
         trace.put("usage", t.usage());
         trace.put("outcome", t.outcome());
+        trace.put("turns", t.turns());
+        trace.put("finished_at", t.finishedAt() == null ? null : t.finishedAt().toString());
         trace.put("steps", t.steps());
         var body = new LinkedHashMap<String, Object>();
         body.put("verdict", f.verdict());
@@ -155,15 +157,15 @@ public class SqliteCaseRepository implements CaseRepository {
         try {
             JsonNode b = JSON.readTree(json);
             JsonNode t = b.get("trace");
-            var trace = new AgentTrace(t.get("subject").asText(), JSON.treeToValue(t.get("pricing"), ModelConfig.class),
-                    t.get("cad_per_usd").decimalValue());
-            for (TraceStep step : JSON.treeToValue(t.get("steps"), TraceStep[].class)) {
-                trace.record(step);
-            }
-            trace.addUsage(JSON.treeToValue(t.get("usage"), TokenUsage.class));
-            if (!t.get("outcome").isNull()) {
-                trace.finish(JSON.treeToValue(t.get("outcome"), AgentOutcome.class));
-            }
+            List<TraceStep> steps = List.of(JSON.treeToValue(t.get("steps"), TraceStep[].class));
+            // findings stored before F12 lack turns: the last tool turn plus the answer
+            int turns = t.has("turns") ? t.get("turns").asInt()
+                    : steps.stream().mapToInt(TraceStep::turn).max().orElse(0) + 1;
+            JsonNode finishedAt = t.get("finished_at");
+            var trace = AgentTrace.restore(t.get("subject").asText(), JSON.treeToValue(t.get("pricing"), ModelConfig.class),
+                    t.get("cad_per_usd").decimalValue(), steps, JSON.treeToValue(t.get("usage"), TokenUsage.class), turns,
+                    t.get("outcome").isNull() ? null : JSON.treeToValue(t.get("outcome"), AgentOutcome.class),
+                    finishedAt == null || finishedAt.isNull() ? null : Instant.parse(finishedAt.asText()));
             var finding = new AgentFinding(Verdict.valueOf(b.get("verdict").asText()), b.get("confidence").asDouble(),
                     List.of(JSON.treeToValue(b.get("indicators"), String[].class)),
                     List.of(JSON.treeToValue(b.get("claims"), Claim[].class)),

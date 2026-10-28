@@ -208,6 +208,8 @@ class InvestigationServiceTest {
         assertTrue(result.message().contains("read-only"), result.message());
         var finished = audit.query(new AuditFilter("INVESTIGATION_FINISHED", structuring.id()));
         assertEquals("FAILED", finished.get(0).outcome());
+        // F12 splits failure rates by model, and a failed run stores no finding that would name it
+        assertEquals("m", InvestigationService.modelOf(finished.get(0).details()));
     }
 
     @Test

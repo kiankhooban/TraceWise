@@ -102,6 +102,21 @@ class SqliteCaseRepositoryTest {
         assertEquals(saved.trace().outcome(), t.outcome());
         assertEquals(0, saved.trace().costCad().compareTo(t.costCad()));
         assertEquals("claude-sonnet-5-5", t.pricing().modelName());
+        assertEquals(saved.trace().turns(), t.turns());
+        assertEquals(saved.trace().finishedAt(), t.finishedAt());
+    }
+
+    /** Findings stored before F12 have no turn count or finish time: turns come from the steps, the time is unknown. */
+    @Test
+    void aFindingStoredWithoutTurnsOrFinishTimeIsStillRead() {
+        var c = new Case("CAS-00001", Instant.EPOCH, List.of("ALR-00001"));
+        c.addFinding(finding());
+        repo.save(c);
+        Jdbc.update(db, "UPDATE findings SET body = json_remove(body, '$.trace.turns', '$.trace.finished_at')");
+
+        var t = repo.findById("CAS-00001").orElseThrow().latestFinding().trace();
+        assertEquals(2, t.turns(), "one turn with a tool step, then the answer");
+        assertNull(t.finishedAt());
     }
 
     @Test
