@@ -16,6 +16,9 @@ public interface Ledger {
 
     Optional<Transaction> findTransaction(String id);
 
+    /** The earliest and the latest transaction time in the data (from and to are both timestamps that exist). */
+    Optional<DateRange> coverage();
+
     /** One account by id: a key lookup, unlike scanning accounts(). */
     Optional<Account> findAccount(String id);
 }

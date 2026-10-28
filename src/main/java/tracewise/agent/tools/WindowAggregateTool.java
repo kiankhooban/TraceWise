@@ -40,7 +40,7 @@ public class WindowAggregateTool implements AgentTool {
     @Override
     public ToolSchema schema() {
         return new ToolSchema(name(), "One account's activity summed per day or week (UTC): money in and out (count "
-                + "and CAD total), distinct counterparties and channels. Use it for busy accounts before paging "
+                + "and CAD total), distinct counterparties, channels and currencies. Use it for busy accounts before paging "
                 + "account_history. A window total is context, not a total you can cite: a stated total must list "
                 + "the transaction ids that add up to it, so take them from account_history. At most the "
                 + MAX_WINDOWS + " most recent windows with activity.", List.of(
@@ -72,6 +72,7 @@ public class WindowAggregateTool implements AgentTool {
                 .map(e -> e.getValue().row(e.getKey())).toList();
         var result = new LinkedHashMap<String, Object>();
         result.put("account_id", account);
+        result.put("data_covers", Accounts.coverage(ledger));
         result.put("window", window);
         result.put("transaction_count", all.size());
         if (listed.size() < windows.size()) {
@@ -89,6 +90,7 @@ public class WindowAggregateTool implements AgentTool {
         BigDecimal out = BigDecimal.ZERO;
         final Set<String> counterparties = new HashSet<>();
         final Map<String, Integer> channels = new TreeMap<>();
+        final Map<String, Integer> currencies = new TreeMap<>();
 
         void add(String account, Transaction t) {
             boolean incoming = account.equals(t.receiverAccountId());
@@ -101,6 +103,7 @@ public class WindowAggregateTool implements AgentTool {
             }
             counterparties.add(incoming ? t.senderAccountId() : t.receiverAccountId());
             channels.merge(t.channel().name(), 1, Integer::sum);
+            currencies.merge(t.currency(), 1, Integer::sum);
         }
 
         Map<String, Object> row(LocalDate start) {
@@ -112,6 +115,7 @@ public class WindowAggregateTool implements AgentTool {
             row.put("out_cad", out);
             row.put("counterparties", counterparties.size());
             row.put("channels", channels);
+            row.put("currencies", currencies);
             return row;
         }
     }

@@ -50,6 +50,25 @@ class ReadToolsTest {
         assertEquals("AE", h.get("transactions").get(4).get("country").asText());
     }
 
+    /**
+     * IBM baseline: without the data's dates the agent read "no activity before the data starts" as a new account;
+     * the currency mix and self-transfers let it compare the alert with the account's other activity.
+     */
+    @Test
+    void historyStatesTheDatesTheDataCoversAndTheAccountsCurrenciesAndSelfTransfers() throws Exception {
+        ledger.add(new Transaction("self", InMemoryLedger.T0.plus(Duration.ofHours(5)), "C1", "C1", new BigDecimal("500"),
+                new BigDecimal("340"), "EUR", PaymentChannel.ACH, "CA", null));
+
+        var h = call("account_history", "{\"account_id\":\"C1\"}");
+
+        assertEquals("2026-09-01 to 2026-10-11", h.get("data_covers").asText());
+        assertEquals(6, h.get("currencies").get("CAD").asInt());
+        assertEquals(1, h.get("currencies").get("EUR").asInt());
+        assertEquals(1, h.get("self_transfers").asInt());
+        assertEquals("2026-09-01 to 2026-10-11", call("counterparties", "{\"account_id\":\"C1\"}").get("data_covers")
+                .asText());
+    }
+
     @Test
     void historyNeverRevealsTheGroundTruthLabel() throws Exception {
         assertFalse(call("account_history", "{\"account_id\":\"C1\"}").toString().toLowerCase().contains("laundering"));

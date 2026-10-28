@@ -90,6 +90,7 @@ public class CounterpartiesTool implements AgentTool {
         });
         var result = new LinkedHashMap<String, Object>(); // fixed key order: replay matches requests byte for byte
         result.put("account_id", account);
+        result.put("data_covers", Accounts.coverage(ledger));
         result.put("counterparties", rows);
         return ToolResult.json(result);
     }

@@ -58,6 +58,15 @@ class WindowAggregateToolTest {
         assertEquals("2026-09-08", days.get(2).get("start").asText());
     }
 
+    /** A change of currency inside the data shows per window; the data's own dates come with the result. */
+    @Test
+    void eachWindowCountsItsCurrenciesAndTheResultStatesTheDataDates() throws Exception {
+        var r = call("{\"account_id\":\"C1\"}");
+
+        assertEquals(3, r.get("windows").get(0).get("currencies").get("CAD").asInt());
+        assertEquals("2026-09-01 to 2026-09-08", r.get("data_covers").asText());
+    }
+
     @Test
     void weeklyWindowsStartOnMonday() throws Exception {
         var weeks = call("{\"account_id\":\"C1\",\"window\":\"week\"}").get("windows");

@@ -45,7 +45,9 @@ public class InvestigationTask implements AgentTask {
             - Every fact you state must come from a tool result in this conversation. Never invent \
             transactions, amounts, dates or accounts.
             - Cite evidence by transaction id exactly as a tool returned it, with its amount in CAD, its date \
-            (YYYY-MM-DD, the UTC date of its timestamp) and an account involved in it.
+            (YYYY-MM-DD, the UTC date of its timestamp) and an account involved in it. Cite at most 15 transactions, \
+            the ones that matter most, and describe larger groups in the narrative (for example "38 payments to 12 \
+            recipients"); a total lists at most 20 transaction ids.
             - Look beyond the flagged transactions: check the account's wider history and its counterparties, \
             both for further suspicious activity and for legitimate explanations such as payroll or regular \
             business income. For an account with many transactions, use window_aggregates to see its activity \
@@ -60,6 +62,10 @@ public class InvestigationTask implements AgentTask {
             - If a tool returns an error, correct the arguments or continue with the evidence you have.
             - CASH is the cash counter (deposits and withdrawals). Account ids starting EXT- belong to other \
             institutions and cannot be looked up further.
+            - The transaction data covers only the dates in data_covers. No activity before them says nothing about \
+            when an account opened, a counterparty that only sends or only receives here may do more outside \
+            them, and outflows larger than inflows can be paid from money held before the data starts: none of \
+            these is a red flag.
             - ESCALATE when the evidence gives reasonable grounds to suspect money laundering, DISMISS when \
             there is a clear legitimate explanation, INCONCLUSIVE when the evidence is not enough to decide.
 

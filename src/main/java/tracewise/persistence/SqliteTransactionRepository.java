@@ -114,6 +114,13 @@ public class SqliteTransactionRepository implements TransactionRepository {
         return query("SELECT " + COLUMNS + " FROM transactions WHERE id = ?", id).stream().findFirst();
     }
 
+    @Override
+    public Optional<DateRange> coverage() {
+        return Jdbc.query(db, "SELECT MIN(ts), MAX(ts) FROM transactions", rs -> rs.getObject(1) == null ? null
+                : new DateRange(Instant.ofEpochMilli(rs.getLong(1)), Instant.ofEpochMilli(rs.getLong(2))))
+                .stream().filter(r -> r != null).findFirst();
+    }
+
     private List<Transaction> query(String sql, Object... params) {
         try (PreparedStatement ps = db.connection().prepareStatement(sql)) {
             for (int i = 0; i < params.length; i++) {

@@ -98,4 +98,18 @@ class InvestigationTaskTest {
         assertTrue(again.initialMessage().contains("Earlier decisions on this case"), again.initialMessage());
         assertTrue(again.initialMessage().contains("REJECTED by kian (Check KYC first)"), again.initialMessage());
     }
+
+    /** IBM baseline: 5 of 31 answers ran past the output limit citing long lists of transactions. */
+    @Test
+    void theInstructionsBoundHowManyTransactionsAreCited() {
+        assertTrue(InvestigationTask.SYSTEM_PROMPT.contains("Cite at most 15 transactions"),
+                InvestigationTask.SYSTEM_PROMPT);
+    }
+
+    /** IBM baseline: the agent read the edges of two weeks of data as facts about the account. */
+    @Test
+    void theInstructionsSayTheDataCoversOnlyItsDates() {
+        assertTrue(InvestigationTask.SYSTEM_PROMPT.contains("data_covers"), InvestigationTask.SYSTEM_PROMPT);
+        assertTrue(InvestigationTask.SYSTEM_PROMPT.contains("money held before the data starts"));
+    }
 }

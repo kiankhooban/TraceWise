@@ -37,6 +37,17 @@ class SqliteTransactionRepositoryTest {
                 PaymentChannel.WIRE, null, null);
     }
 
+    /** The agent's tools state these dates, so the edge of the data is not read as a fact about an account. */
+    @Test
+    void coverageIsTheFirstAndLastTransactionTime() {
+        assertTrue(repo.coverage().isEmpty());
+        repo.saveAll(List.of(tx("T2", "2026-09-14T08:00:00Z", "C1", "C2", "5"), tx("T1", "2026-09-01T10:15:00Z", "C2", "C1", "5")));
+
+        var range = repo.coverage().orElseThrow();
+        assertEquals(Instant.parse("2026-09-01T10:15:00Z"), range.from());
+        assertEquals(Instant.parse("2026-09-14T08:00:00Z"), range.to());
+    }
+
     @Test
     void savedTransactionsReadBackExactly() {
         var t = new Transaction("T1", Instant.parse("2026-09-01T10:15:00Z"), "CASH", "C1",

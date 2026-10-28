@@ -65,6 +65,13 @@ public class InMemoryLedger implements Ledger {
     }
 
     @Override
+    public Optional<DateRange> coverage() {
+        return transactions.stream().map(Transaction::timestamp).min(Comparator.naturalOrder()).map(first ->
+                new DateRange(first, transactions.stream().map(Transaction::timestamp).max(Comparator.naturalOrder())
+                        .orElseThrow()));
+    }
+
+    @Override
     public Optional<Transaction> findTransaction(String id) {
         return transactions.stream().filter(t -> t.id().equals(id)).findFirst();
     }

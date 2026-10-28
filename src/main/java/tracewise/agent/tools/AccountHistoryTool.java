@@ -45,7 +45,13 @@ public class AccountHistoryTool implements AgentTool {
         }
         BigDecimal in = BigDecimal.ZERO;
         BigDecimal out = BigDecimal.ZERO;
+        var currencies = new java.util.TreeMap<String, Integer>();
+        int selfTransfers = 0;
         for (Transaction t : all) {
+            currencies.merge(t.currency(), 1, Integer::sum);
+            if (t.senderAccountId().equals(t.receiverAccountId())) {
+                selfTransfers++;
+            }
             if (account.equals(t.receiverAccountId())) {
                 in = in.add(t.amountCad());
             } else {
@@ -55,9 +61,12 @@ public class AccountHistoryTool implements AgentTool {
         List<Transaction> listed = all.subList(Math.max(0, all.size() - MAX_LISTED), all.size());
         var result = new LinkedHashMap<String, Object>();
         result.put("account_id", account);
+        result.put("data_covers", Accounts.coverage(ledger));
         result.put("transaction_count", all.size());
         result.put("total_in_cad", in);
         result.put("total_out_cad", out);
+        result.put("currencies", currencies);
+        result.put("self_transfers", selfTransfers);
         if (listed.size() < all.size()) {
             result.put("note", "Showing the " + MAX_LISTED + " most recent of " + all.size() + " transactions");
         }

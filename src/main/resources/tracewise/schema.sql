@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS transactions (
 );
 CREATE INDEX IF NOT EXISTS transactions_sender ON transactions (sender, ts);
 CREATE INDEX IF NOT EXISTS transactions_receiver ON transactions (receiver, ts);
+CREATE INDEX IF NOT EXISTS transactions_ts ON transactions (ts);
 CREATE TABLE IF NOT EXISTS accounts (
     id TEXT PRIMARY KEY,
     watchlisted INTEGER NOT NULL DEFAULT 0
