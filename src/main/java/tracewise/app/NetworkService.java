@@ -7,13 +7,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import tracewise.agent.AgentFinding;
-import tracewise.domain.Account;
 import tracewise.domain.Alert;
 import tracewise.domain.DateRange;
 import tracewise.domain.Transaction;
-import tracewise.monitoring.AlertFilter;
 import tracewise.network.AccountNode;
 import tracewise.network.FlowEdge;
 import tracewise.network.MoneyFlowGraph;
@@ -40,13 +37,29 @@ public class NetworkService {
         this.cases = cases;
     }
 
+    /** The account of the alert that opened the case: the account its report and network start from. */
+    public String subjectAccount(String caseId) {
+        var c = cases.findById(caseId).orElseThrow(() -> new IllegalArgumentException("No case " + caseId));
+        return alerts.findById(c.openingAlertId()).map(Alert::accountId)
+                .orElseThrow(() -> new IllegalArgumentException("Case " + caseId + " has no alert"));
+    }
+
+    private static void addEdge(Map<List<String>, FlowEdge> edges, Transaction t) {
+        edges.merge(List.of(t.senderAccountId(), t.receiverAccountId()),
+                new FlowEdge(t.senderAccountId(), t.receiverAccountId(), t.amountCad(), 1),
+                (a, b) -> new FlowEdge(a.from(), a.to(), a.totalCad().add(b.totalCad()), a.transferCount() + 1));
+    }
+
     /** caseId (may be null) names the case whose latest investigation marks the examined accounts. */
     public MoneyFlowGraph build(String accountId, int hops, DateRange range, String caseId) {
         if (hops < 1 || hops > 3) {
             throw new IllegalArgumentException("Hops must be 1, 2 or 3, got " + hops);
         }
-        // shortcut: scans every account (as the read tools do); add Ledger.findAccount if large imports make it slow
-        if (!Transaction.isOutsideBank(accountId) && ledger.accounts().stream().map(Account::id).noneMatch(accountId::equals)) {
+        if (Transaction.isOutsideBank(accountId)) {
+            throw new IllegalArgumentException(accountId + " is outside the bank (the cash counter or another "
+                    + "institution), so its transfers are not all here: start from one of the bank's accounts");
+        }
+        if (ledger.findAccount(accountId).isEmpty()) {
             throw new IllegalArgumentException("Unknown account " + accountId);
         }
         var hopOf = new LinkedHashMap<String, Integer>(Map.of(accountId, 0));
@@ -62,10 +75,7 @@ public class NetworkService {
                 }
                 for (Transaction t : ledger.transactionsFor(account, range)) {
                     if (seenTransactions.add(t.id())) {
-                        edges.merge(List.of(t.senderAccountId(), t.receiverAccountId()),
-                                new FlowEdge(t.senderAccountId(), t.receiverAccountId(), t.amountCad(), 1),
-                                (a, b) -> new FlowEdge(a.from(), a.to(), a.totalCad().add(b.totalCad()),
-                                        a.transferCount() + 1));
+                        addEdge(edges, t);
                     }
                     String other = account.equals(t.senderAccountId()) ? t.receiverAccountId() : t.senderAccountId();
                     if (!hopOf.containsKey(other)) {
@@ -84,7 +94,19 @@ public class NetworkService {
             }
             frontier = kept;
         }
-        Set<String> alerted = alerts.find(AlertFilter.ALL).stream().map(Alert::accountId).collect(Collectors.toSet());
+        // the last hop is not expanded, but transfers among the accounts already drawn belong in the graph
+        for (String account : frontier) {
+            if (Transaction.isOutsideBank(account)) {
+                continue;
+            }
+            for (Transaction t : ledger.transactionsFor(account, range)) {
+                if (hopOf.containsKey(t.senderAccountId()) && hopOf.containsKey(t.receiverAccountId())
+                        && seenTransactions.add(t.id())) {
+                    addEdge(edges, t);
+                }
+            }
+        }
+        Set<String> alerted = alerts.accountsWithAlerts(hopOf.keySet());
         Set<String> examined = caseId == null ? Set.of() : cases.findById(caseId).map(c -> c.latestFinding())
                 .map(AgentFinding::trace).map(t -> t.examinedAccounts()).orElse(Set.of());
         var nodes = new ArrayList<AccountNode>();

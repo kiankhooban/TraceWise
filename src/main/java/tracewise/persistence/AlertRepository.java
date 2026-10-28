@@ -20,6 +20,9 @@ public interface AlertRepository {
 
     Optional<Alert> findById(String id);
 
+    /** Which of these accounts have at least one alert. */
+    java.util.Set<String> accountsWithAlerts(java.util.Collection<String> accountIds);
+
     void updateStatus(String id, AlertStatus status);
 
     /** priority: 1 high, 2 medium, 3 low. */

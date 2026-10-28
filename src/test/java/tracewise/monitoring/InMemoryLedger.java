@@ -41,6 +41,11 @@ public class InMemoryLedger implements Ledger {
     }
 
     @Override
+    public java.util.Optional<Account> findAccount(String id) {
+        return accounts().stream().filter(a -> a.id().equals(id)).findFirst();
+    }
+
+    @Override
     public List<Account> accounts() {
         var ids = new TreeSet<String>();
         transactions.forEach(t -> {

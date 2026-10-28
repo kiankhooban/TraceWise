@@ -229,9 +229,9 @@ class ReportServiceTest {
     /** Finding 14: the subject is the account of the alert that opened the case, not of the lowest linked id. */
     @Test
     void theSubjectComesFromTheAlertThatOpenedTheCase() {
-        assertEquals("ALR-00002", ReportService.openingAlertId(new tracewise.domain.Case("CAS-00002",
-                java.time.Instant.now(), List.of("ALR-00001", "ALR-00002"))));
-        assertEquals("ALR-00007", ReportService.openingAlertId(new tracewise.domain.Case("CAS-00099",
-                java.time.Instant.now(), List.of("ALR-00007"))));
+        assertEquals("ALR-00002", new tracewise.domain.Case("CAS-00002", java.time.Instant.now(),
+                List.of("ALR-00001", "ALR-00002")).openingAlertId());
+        assertEquals("ALR-00007", new tracewise.domain.Case("CAS-00099", java.time.Instant.now(),
+                List.of("ALR-00007")).openingAlertId());
     }
 }

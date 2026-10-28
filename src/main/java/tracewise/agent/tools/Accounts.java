@@ -9,8 +9,7 @@ final class Accounts {
     private Accounts() {
     }
 
-    /** shortcut: scans every account; add Ledger.findAccount if this shows up on large imports. */
     static boolean exists(Ledger ledger, String id) {
-        return Transaction.isOutsideBank(id) || ledger.accounts().stream().anyMatch(a -> a.id().equals(id));
+        return Transaction.isOutsideBank(id) || ledger.findAccount(id).isPresent();
     }
 }

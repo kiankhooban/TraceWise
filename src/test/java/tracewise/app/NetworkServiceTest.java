@@ -109,6 +109,9 @@ class NetworkServiceTest {
         var g = build("C1", 2, DateRange.ALL, null);
 
         assertEquals(2, nodes(g).get("C5").hop());
+        var toC2 = edge(g, "C1", "C2");
+        assertEquals(0, new BigDecimal("7000").compareTo(toC2.totalCad()), "C2 is expanded at hop 1: counted once");
+        assertEquals(2, toC2.transferCount());
         assertEquals(0, new BigDecimal("6500").compareTo(edge(g, "C2", "C5").totalCad()));
         assertFalse(nodes(g).containsKey("C6"), "C6 is three hops away");
         assertTrue(build("C1", 3, DateRange.ALL, null).nodes().stream().anyMatch(n -> n.accountId().equals("C6")));
@@ -163,7 +166,30 @@ class NetworkServiceTest {
     @Test
     void unknownAccountsAndHopsOutside1To3AreRefused() {
         assertThrows(IllegalArgumentException.class, () -> build("NOPE", 1, DateRange.ALL, null));
+        var outside = assertThrows(IllegalArgumentException.class, () -> build("CASH", 1, DateRange.ALL, null));
+        assertTrue(outside.getMessage().contains("outside the bank"), outside.getMessage());
         assertThrows(IllegalArgumentException.class, () -> build("C1", 0, DateRange.ALL, null));
         assertThrows(IllegalArgumentException.class, () -> build("C1", 4, DateRange.ALL, null));
     }
+
+    /** Review: a transfer between two accounts of the last hop is drawn too. */
+    @Test
+    void transfersBetweenAccountsOfTheLastHopAreDrawn() {
+        tx("C2", "C3", "250", 6);
+
+        var g = build("C1", 1, DateRange.ALL, null);
+
+        assertEquals(0, new BigDecimal("250").compareTo(edge(g, "C2", "C3").totalCad()));
+        assertFalse(nodes(g).containsKey("C5"), "no new accounts are added by it");
+    }
+
+    @Test
+    void theSubjectAccountIsTheAccountOfTheAlertThatOpenedTheCase() {
+        alerts.save(new Alert(null, "R4", "C3", List.of(), new BigDecimal("1"), 50, 2, AlertStatus.IN_CASE, T0));
+        alerts.save(new Alert(null, "R5", "C1", List.of(), new BigDecimal("1"), 50, 2, AlertStatus.IN_CASE, T0));
+        cases.save(new Case("CAS-00002", T0, List.of("ALR-00001", "ALR-00002")));
+
+        assertEquals("C1", service.subjectAccount("CAS-00002"));
+    }
 }
+

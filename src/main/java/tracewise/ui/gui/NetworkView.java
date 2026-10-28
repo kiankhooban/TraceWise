@@ -8,8 +8,6 @@ import com.brunomnsilva.smartgraph.graphview.SmartGraphProperties;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.List;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
@@ -56,6 +54,8 @@ class NetworkView {
     private final StackPane canvas = new StackPane();
     private SmartGraphPanel<String, EdgeLabel> panel;
     private String caseId;
+    /** The range of the graph on screen, which double-clicks list; the pickers may have changed since. */
+    private DateRange drawnRange = DateRange.ALL;
 
     NetworkView(Gui gui) {
         this.gui = gui;
@@ -98,17 +98,18 @@ class NetworkView {
     void show(Case c) {
         caseId = c == null ? null : c.id();
         if (c == null) {
+            stopLayout();
             canvas.getChildren().clear();
             notice.setText("Select a case");
             return;
         }
-        String alertId = "ALR-" + c.id().substring(4);
-        String opening = c.alertIds().contains(alertId) ? alertId : c.alertIds().get(0);
-        gui.run("Finding the account of " + opening, () -> gui.facade.listAlerts(tracewise.monitoring.AlertFilter.ALL)
-                .stream().filter(a -> a.id().equals(opening)).findFirst().map(a -> a.accountId()).orElse(""), id -> {
-                    account.setText(id);
-                    onChangeScope(hops.getValue(), range());
-                });
+        String id = c.id();
+        gui.run("Finding the account of " + id, () -> gui.facade.caseSubjectAccount(id), subject -> {
+            if (id.equals(caseId)) { // another case may have been selected while this waited
+                account.setText(subject);
+                onChangeScope(hops.getValue(), range());
+            }
+        });
     }
 
     /** The design's onChangeScope: rebuild for the account, hop depth and date range on screen. */
@@ -119,11 +120,19 @@ class NetworkView {
         }
         String inCase = caseId;
         notice.setText("Building the network of " + id + "...");
-        gui.run("Building the network of " + id, () -> gui.facade.buildNetwork(id, depth, range, inCase), this::render);
+        gui.worker.submit("Building the network of " + id, () -> gui.facade.buildNetwork(id, depth, range, inCase),
+                graph -> {
+                    drawnRange = range;
+                    render(graph);
+                }, e -> {
+                    notice.setText("Could not build the network of " + id + ".");
+                    gui.error(e);
+                });
     }
 
     /** Draws the graph; called on the UI thread. */
     void render(MoneyFlowGraph graph) {
+        stopLayout();
         Digraph<String, EdgeLabel> g = new DigraphEdgeList<>();
         graph.nodes().forEach(n -> g.insertVertex(n.accountId()));
         graph.edges().forEach(e -> g.insertEdge(e.from(), e.to(), new EdgeLabel(e)));
@@ -158,6 +167,13 @@ class NetworkView {
                                 + " smaller counterparties omitted (the 50 largest are shown)" : ""));
     }
 
+    /** A replaced panel's automatic layout keeps running on the UI thread unless it is switched off. */
+    private void stopLayout() {
+        if (panel != null) {
+            panel.setAutomaticLayout(false);
+        }
+    }
+
     private void initOnce(SmartGraphPanel<String, EdgeLabel> p) {
         if (p == panel && p.getWidth() > 0 && p.getHeight() > 0 && p.getProperties().get("initialised") == null) {
             p.getProperties().put("initialised", true);
@@ -168,9 +184,11 @@ class NetworkView {
 
     /** An account's transactions in the range, or only those from one account to another (an edge). */
     private void showTransactions(String accountId, String toAccount) {
-        var range = range();
+        var range = drawnRange;
         gui.run("Loading transactions of " + accountId, () -> gui.facade.transactionsFor(accountId, range).stream()
-                .filter(t -> toAccount == null || t.receiverAccountId().equals(toAccount)).toList(), rows -> {
+                .filter(t -> toAccount == null
+                        || (t.senderAccountId().equals(accountId) && t.receiverAccountId().equals(toAccount)))
+                .toList(), rows -> {
                     var table = new TableView<Transaction>();
                     table.getColumns().setAll(List.of(Gui.column("Transaction", Transaction::id, 120),
                             Gui.column("Time (UTC)", Transaction::timestamp, 130),
@@ -189,10 +207,7 @@ class NetworkView {
     }
 
     private DateRange range() {
-        LocalDate f = from.getValue();
-        LocalDate t = to.getValue();
-        return new DateRange(f == null ? DateRange.ALL.from() : f.atStartOfDay().toInstant(ZoneOffset.UTC),
-                t == null ? DateRange.ALL.to() : t.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC));
+        return DateRange.ofDays(from.getValue(), to.getValue());
     }
 
     private static SmartGraphProperties properties() {

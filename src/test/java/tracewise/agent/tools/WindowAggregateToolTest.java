@@ -83,4 +83,36 @@ class WindowAggregateToolTest {
         assertFalse(text.contains("laundering") || text.contains("label"));
         assertFalse(text.contains("\"id\""), "rows are cited from account_history, not from aggregates");
     }
+
+    @Test
+    void atMost60WindowsAreListedTheMostRecentOnesWithANote() throws Exception {
+        var busy = new InMemoryLedger();
+        for (int day = 0; day < 70; day++) {
+            busy.deposit("C1", "100", day * 24 + 1);
+        }
+        var tools = new ToolRegistry();
+        tools.register(new WindowAggregateTool(busy));
+        var result = tools.execute(new ToolCall("c1", WindowAggregateTool.NAME, "{\"account_id\":\"C1\"}"));
+        var r = JSON.readTree(result.content());
+
+        assertEquals(60, r.get("windows").size());
+        assertEquals("2026-09-11", r.get("windows").get(0).get("start").asText());
+        assertTrue(r.get("note").asText().contains("60 most recent of 70"), r.toString());
+    }
+
+    @Test
+    void aRangeWithNoActivityIsAnEmptyResultNotAnError() throws Exception {
+        var r = call("{\"account_id\":\"C1\",\"from\":\"2030-01-01\",\"to\":\"2030-01-31\"}");
+
+        assertEquals(0, r.get("transaction_count").asInt());
+        assertEquals(0, r.get("windows").size());
+    }
+
+    /** From the IBM live run: the agent cited a window total as a verified total; the verifier needs transaction ids. */
+    @Test
+    void theDescriptionSaysWindowTotalsAreContextNotCitableTotals() {
+        String description = new WindowAggregateTool(ledger).schema().description();
+        assertTrue(description.contains("not a total you can cite"), description);
+    }
 }
+

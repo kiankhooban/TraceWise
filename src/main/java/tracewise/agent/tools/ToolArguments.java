@@ -34,8 +34,7 @@ public final class ToolArguments {
 
     /** Dates YYYY-MM-DD in UTC, both ends included; a missing end is open. */
     public DateRange dateRange(String fromName, String toName) {
-        return new DateRange(has(fromName) ? date(fromName).atStartOfDay().toInstant(ZoneOffset.UTC) : DateRange.ALL.from(),
-                has(toName) ? date(toName).plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC) : DateRange.ALL.to());
+        return DateRange.ofDays(has(fromName) ? date(fromName) : null, has(toName) ? date(toName) : null);
     }
 
     private LocalDate date(String name) {

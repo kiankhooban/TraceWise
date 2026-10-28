@@ -236,6 +236,11 @@ public class TraceWiseFacade implements AutoCloseable {
         return network.build(accountId, hops, range, caseId);
     }
 
+    /** F09: the account a case's network starts from (the account of the alert that opened it). */
+    public String caseSubjectAccount(String caseId) {
+        return network.subjectAccount(caseId);
+    }
+
     /** One account's transactions in a range, oldest first (F09: clicking an account or an edge). */
     public List<Transaction> transactionsFor(String accountId, DateRange range) {
         return transactions.transactionsFor(accountId, range);

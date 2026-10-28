@@ -121,7 +121,7 @@ public class ReportService {
         if (finding == null || finding.verification() == null) {
             throw new IllegalStateException("Case " + caseId + " has no verified finding yet: investigate it first");
         }
-        String subject = alerts.findById(openingAlertId(c)).map(a -> a.accountId()).orElse("");
+        String subject = alerts.findById(c.openingAlertId()).map(a -> a.accountId()).orElse("");
         List<Transaction> reported = confirmedTransactions(finding);
         var trace = new AgentTrace("report " + caseId, pricing, cadPerUsd);
         String narrative = narrative(c, subject, reported, finding, trace);
@@ -132,12 +132,6 @@ public class ReportService {
                 + trace.usage().outputTokens() + " output tokens, CAD " + trace.costCad().toPlainString() + ")");
         expireStaleFinalisation(report);
         return report;
-    }
-
-    /** The alert that opened the case (ALR-00007 opens CAS-00007); alerts linked later may be on other accounts. */
-    static String openingAlertId(Case c) {
-        String opening = "ALR-" + c.id().substring(4);
-        return c.alertIds().contains(opening) ? opening : c.alertIds().get(0);
     }
 
     /** A finalisation waiting for text the draft no longer has expires, so the edited draft can be requested. */

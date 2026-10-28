@@ -138,6 +138,12 @@ public class Case {
         return openedAt;
     }
 
+    /** The alert that opened the case (ALR-00007 opens CAS-00007); alerts linked later may be on other accounts. */
+    public String openingAlertId() {
+        String opening = "ALR-" + id.substring(4);
+        return alertIds.contains(opening) ? opening : alertIds.get(0);
+    }
+
     public List<String> alertIds() {
         return List.copyOf(alertIds);
     }

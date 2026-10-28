@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS alerts (
     status TEXT NOT NULL,
     created_at INTEGER NOT NULL
 );
+CREATE INDEX IF NOT EXISTS alerts_account ON alerts (account_id);
 CREATE TABLE IF NOT EXISTS alert_transactions (
     alert_seq INTEGER NOT NULL REFERENCES alerts (seq),
     transaction_id TEXT NOT NULL REFERENCES transactions (id),

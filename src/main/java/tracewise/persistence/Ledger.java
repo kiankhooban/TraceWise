@@ -15,4 +15,7 @@ public interface Ledger {
     List<Transaction> transactionsFor(String accountId, DateRange range);
 
     Optional<Transaction> findTransaction(String id);
+
+    /** One account by id: a key lookup, unlike scanning accounts(). */
+    Optional<Account> findAccount(String id);
 }

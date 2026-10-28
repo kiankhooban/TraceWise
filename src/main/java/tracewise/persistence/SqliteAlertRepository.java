@@ -47,6 +47,16 @@ public class SqliteAlertRepository implements AlertRepository {
     }
 
     @Override
+    public java.util.Set<String> accountsWithAlerts(java.util.Collection<String> accountIds) {
+        if (accountIds.isEmpty()) {
+            return java.util.Set.of();
+        }
+        String placeholders = String.join(",", accountIds.stream().map(a -> "?").toList());
+        return new java.util.HashSet<>(Jdbc.query(db, "SELECT DISTINCT account_id FROM alerts WHERE account_id IN ("
+                + placeholders + ")", rs -> rs.getString(1), accountIds.toArray()));
+    }
+
+    @Override
     public boolean hasOpenAlert(RuleMatch match) {
         String placeholders = String.join(",", match.transactions().stream().map(t -> "?").toList());
         Object[] params = new Object[3 + match.transactions().size()];

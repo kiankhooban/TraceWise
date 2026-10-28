@@ -41,7 +41,8 @@ public class WindowAggregateTool implements AgentTool {
     public ToolSchema schema() {
         return new ToolSchema(name(), "One account's activity summed per day or week (UTC): money in and out (count "
                 + "and CAD total), distinct counterparties and channels. Use it for busy accounts before paging "
-                + "account_history; cite transactions from account_history, which lists them. At most the "
+                + "account_history. A window total is context, not a total you can cite: a stated total must list "
+                + "the transaction ids that add up to it, so take them from account_history. At most the "
                 + MAX_WINDOWS + " most recent windows with activity.", List.of(
                 new ToolParameter("account_id", ToolParameter.Type.STRING, "The account to summarise", true),
                 new ToolParameter("window", ToolParameter.Type.STRING, "day or week (weeks start on Monday); default day",

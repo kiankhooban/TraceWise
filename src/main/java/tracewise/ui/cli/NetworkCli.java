@@ -1,7 +1,6 @@
 package tracewise.ui.cli;
 
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
@@ -30,9 +29,7 @@ public class NetworkCli extends CliCommandBase {
 
     @Override
     protected Object execute() {
-        var range = new DateRange(from == null ? DateRange.ALL.from() : from.atStartOfDay().toInstant(ZoneOffset.UTC),
-                to == null ? DateRange.ALL.to() : to.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC));
-        return facade().buildNetwork(accountId, hops, range, caseId);
+        return facade().buildNetwork(accountId, hops, DateRange.ofDays(from, to), caseId);
     }
 
     @Override
