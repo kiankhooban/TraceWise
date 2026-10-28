@@ -166,6 +166,13 @@ class PerformanceServiceTest {
         assertMeasure(0.5, 2, m.recall());
         assertEquals(6, m.sampleSize());
         assertFalse(m.precision().meaningful(), "fewer than 10 findings");
+        // an inconclusive verdict on laundering is a miss for the stricter recall
+        assertEquals(1, m.inconclusiveLaundering());
+        assertMeasure(1.0 / 3, 3, m.strictRecall());
+        var counts = m.rows().stream().filter(r -> r.metric().equals("inconclusive and laundering")).findFirst()
+                .orElseThrow();
+        assertEquals("1", counts.value());
+        assertEquals(5, counts.sampleSize(), "labelled cases");
     }
 
     /** Found in the live IBM run: the agent links many alerts, which must not make its verdicts look right. */
@@ -272,6 +279,62 @@ class PerformanceServiceTest {
         assertEquals(SONNET, all.get(2).model());
         assertMeasure(1.0, 1, all.get(2).precision());
         assertEquals(0, new BigDecimal("2").compareTo(all.get(2).averageCostCad()));
+    }
+
+    /** A failed run stores no finding, so a model that only failed would otherwise have no column at all. */
+    @Test
+    void aModelWhoseRunsAllFailedStillGetsItsOwnEntry() {
+        String a = alert("R4", "L1");
+        caseFor(a, finding(Verdict.ESCALATE, HAIKU, T0));
+        run(a, HAIKU, "COMPLETED");
+        run(a, SONNET, "FAILED");
+
+        var all = service.computeByModel(MetricsFilter.ALL);
+
+        assertEquals(List.of(HAIKU, SONNET), all.stream().skip(1).map(PerformanceMetrics::model).toList());
+        assertMeasure(1.0, 1, all.get(2).failureRate());
+        assertEquals(0, all.get(2).sampleSize());
+    }
+
+    /** Replays answer from recordings, so they must never count as a live run of the configured model. */
+    @Test
+    void replayedRunsAreKeptApartFromLiveRunsOfTheSameModel() {
+        var replayed = finding(Verdict.ESCALATE, HAIKU, T0);
+        var trace = AgentTrace.restore("ALR", ModelConfig.of("replay", HAIKU, false), BigDecimal.ONE, List.of(),
+                new TokenUsage(1, 0), 2, new AgentOutcome("ALR", OutcomeStatus.COMPLETED, "{}"), T0);
+        var f = new AgentFinding(Verdict.ESCALATE, 0.9, List.of(), List.of(), List.of(), "n", false, trace);
+        caseFor(alert("R4", "L1"), replayed);
+        caseFor(alert("R4", "N1"), f);
+
+        assertEquals(List.of(HAIKU, HAIKU + " (replay)"),
+                service.computeByModel(MetricsFilter.ALL).stream().skip(1).map(PerformanceMetrics::model).toList());
+    }
+
+    /** Findings and audit entries written before F12 have no finish time and no model name. */
+    @Test
+    void recordsFromBeforeF12CountForAllModelsButNotForAModelOrADateRange() {
+        String a = alert("R4", "L1");
+        caseFor(a, finding(Verdict.ESCALATE, HAIKU, null));
+        audit.append(new AuditEntry(T0, ANALYST, "INVESTIGATION_FINISHED", a, "The run failed: disk full", "FAILED"));
+        run(a, HAIKU, "COMPLETED");
+
+        assertEquals(1, service.compute(MetricsFilter.ALL).sampleSize());
+        assertEquals(0, service.compute(new MetricsFilter(new DateRange(T0, T0.plusSeconds(60)), null, null)).sampleSize());
+        assertMeasure(0.5, 2, service.compute(MetricsFilter.ALL).failureRate());
+        assertMeasure(0.0, 1, service.compute(MetricsFilter.ALL.withModel(HAIKU)).failureRate());
+        assertNull(InvestigationService.modelOf("The run failed: disk full"));
+        assertEquals(HAIKU + " (replay)", InvestigationService.modelOf(InvestigationService.runDetails(HAIKU + " (replay)", "x: y")));
+    }
+
+    /** The CLI and the GUI show the same grid: a metric per row, a model per column. */
+    @Test
+    void theTableHasAColumnPerModelWithItsRunCount() {
+        caseFor(alert("R4", "L1"), finding(Verdict.ESCALATE, HAIKU, T0));
+
+        var table = PerformanceMetrics.table(service.computeByModel(MetricsFilter.ALL));
+
+        assertEquals(List.of("metric", "all models (1 run)", HAIKU + " (1 run)"), table.get(0));
+        assertEquals(List.of("precision", "1.000 (n=1, too few)", "1.000 (n=1, too few)"), table.get(1));
     }
 
     @Test

@@ -26,7 +26,6 @@ import tracewise.audit.AuditEntry;
 import tracewise.audit.AuditFilter;
 import tracewise.domain.ActorType;
 import tracewise.domain.DateRange;
-import tracewise.metrics.MetricRow;
 import tracewise.metrics.MetricsCsv;
 import tracewise.metrics.MetricsFilter;
 import tracewise.metrics.PerformanceMetrics;
@@ -54,7 +53,6 @@ final class AdminView {
             "R2", "R3", "R4", "R5", "R6"));
     private final javafx.scene.control.DatePicker metricsFrom = new javafx.scene.control.DatePicker();
     private final javafx.scene.control.DatePicker metricsTo = new javafx.scene.control.DatePicker();
-    private final Label verdicts = new Label();
     /** What the table shows, for the CSV export. */
     private List<PerformanceMetrics> shown = List.of();
     private static final String ALL_MODELS = "All models";
@@ -259,16 +257,16 @@ final class AdminView {
         bar.getStyleClass().add("toolbar");
         metrics.setPlaceholder(new Label("No metrics yet."));
         metrics.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        verdicts.setWrapText(true);
-        var note = new Label("Precision and recall compare each case's latest verdict with the laundering labels of its "
-                + "alerts' transactions (data without labels shows \"not available\"). Rule precision is the share of a "
+        var note = new Label("Precision and recall compare each case's latest verdict with the label of the alert that "
+                + "opened it (laundering if any of its transactions is); inconclusive verdicts are counted apart, and data "
+                + "without labels shows \"not available\". Rule precision is the share of a "
                 + "rule's labelled alerts that involve laundering. n is what a figure rests on; under "
                 + tracewise.metrics.Measure.MIN_SAMPLE + " it is marked too few.");
         note.getStyleClass().add("muted");
         note.setWrapText(true);
         var pane = new BorderPane(metrics);
         pane.setTop(bar);
-        pane.setBottom(new javafx.scene.layout.VBox(4, verdicts, note));
+        pane.setBottom(note);
         pane.setPadding(new Insets(8));
         return pane;
     }
@@ -290,30 +288,14 @@ final class AdminView {
                         metricsModel.getItems().setAll(models);
                         metricsModel.setValue(ALL_MODELS);
                     }
+                    List<List<String>> table = PerformanceMetrics.table(list);
                     var columns = new java.util.ArrayList<javafx.scene.control.TableColumn<List<String>, ?>>();
-                    columns.add(Gui.column("Metric", (List<String> row) -> row.get(0), 180));
-                    for (int i = 0; i < list.size(); i++) {
-                        int c = i + 1;
-                        String title = list.get(i).model() == null ? ALL_MODELS : list.get(i).model();
-                        columns.add(Gui.column(title + " (" + list.get(i).sampleSize() + " runs)",
-                                (List<String> row) -> row.get(c), 200));
+                    for (int c = 0; c < table.get(0).size(); c++) {
+                        int col = c;
+                        columns.add(Gui.column(table.get(0).get(c), (List<String> row) -> row.get(col), c == 0 ? 260 : 200));
                     }
                     metrics.getColumns().setAll(columns);
-                    var rows = new java.util.ArrayList<List<String>>();
-                    List<MetricRow> first = list.get(0).rows();
-                    for (int r = 0; r < first.size(); r++) {
-                        var row = new java.util.ArrayList<>(List.of(first.get(r).metric()));
-                        for (PerformanceMetrics m : list) {
-                            row.add(m.rows().get(r).display());
-                        }
-                        rows.add(row);
-                    }
-                    metrics.getItems().setAll(rows);
-                    verdicts.setText(list.stream().map(m -> (m.model() == null ? ALL_MODELS : m.model()) + ": "
-                            + m.truePositives() + " escalated and laundering, " + m.falsePositives()
-                            + " escalated but not, " + m.falseNegatives() + " dismissed but laundering, "
-                            + m.trueNegatives() + " dismissed and not, " + m.inconclusive() + " inconclusive")
-                            .collect(Collectors.joining("\n")));
+                    metrics.getItems().setAll(table.subList(1, table.size()));
                 });
     }
 

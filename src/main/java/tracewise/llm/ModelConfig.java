@@ -15,6 +15,11 @@ public record ModelConfig(String provider, String modelName, BigDecimal inputPri
             "claude-haiku-5-5", new BigDecimal[] {new BigDecimal("0.10"), new BigDecimal("0.50")},
             "claude-sonnet-5-5", new BigDecimal[] {new BigDecimal("2"), new BigDecimal("10")});
 
+    /** The name runs are measured under (F12): a replay answers from recordings, so it is never the live model. */
+    public String runLabel() {
+        return "replay".equals(provider) ? modelName + " (replay)" : modelName;
+    }
+
     /** A known model with its prices. Replay keeps the recorded model's prices so its cost is comparable. */
     public static ModelConfig of(String provider, String modelName, boolean record) {
         BigDecimal[] price = PRICES.get(modelName);

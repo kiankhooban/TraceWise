@@ -62,6 +62,9 @@ public class PerformanceService {
         Records records = load(filter);
         var models = new TreeSet<String>();
         records.cases().forEach(c -> c.findings().forEach(f -> models.add(model(f))));
+        // a failed run stores no finding, so a model that only failed is known from the audit trail alone
+        records.runs().stream().map(run -> InvestigationService.modelOf(run.details())).filter(m -> m != null)
+                .forEach(models::add);
         var result = new ArrayList<PerformanceMetrics>(List.of(compute(filter.withModel(null), records)));
         models.forEach(m -> result.add(compute(filter.withModel(m), records)));
         return result;
@@ -76,7 +79,7 @@ public class PerformanceService {
     }
 
     private PerformanceMetrics compute(MetricsFilter filter, Records r) {
-        int tp = 0, fp = 0, fn = 0, tn = 0, inconclusive = 0, runs = 0, turns = 0, claims = 0, confirmed = 0;
+        int tp = 0, fp = 0, fn = 0, tn = 0, inconclusive = 0, inconclusiveLaundering = 0, runs = 0, turns = 0, claims = 0, confirmed = 0;
         BigDecimal cost = BigDecimal.ZERO;
         for (Case c : r.cases()) {
             if (!ruleMatches(filter, r.labels().get(c.openingAlertId()))) {
@@ -102,14 +105,18 @@ public class PerformanceService {
             Verdict v = matching.get(matching.size() - 1).verdict();
             if (v == Verdict.INCONCLUSIVE) {
                 inconclusive++;
+                if (laundering) {
+                    inconclusiveLaundering++;
+                }
             } else if (v == Verdict.ESCALATE) {
                 if (laundering) tp++; else fp++;
             } else {
                 if (laundering) fn++; else tn++;
             }
         }
-        return new PerformanceMetrics(filter.model(), runs, tp, fp, fn, tn, inconclusive, Measure.ratio(tp, tp + fp),
-                Measure.ratio(tp, tp + fn), new Measure(claims == 0 ? null : (double) confirmed / claims, runs),
+        return new PerformanceMetrics(filter.model(), runs, tp, fp, fn, tn, inconclusive, inconclusiveLaundering,
+                Measure.ratio(tp, tp + fp), Measure.ratio(tp, tp + fn),
+                Measure.ratio(tp, tp + fn + inconclusiveLaundering), new Measure(claims == 0 ? null : (double) confirmed / claims, runs),
                 new Measure(runs == 0 ? null : (double) turns / runs, runs),
                 runs == 0 ? null : cost.divide(BigDecimal.valueOf(runs), MathContext.DECIMAL64),
                 failureRate(filter, r), overrideRate(filter, r), rulePrecision(filter, r));
@@ -191,6 +198,6 @@ public class PerformanceService {
     }
 
     private static String model(AgentFinding f) {
-        return f.trace().pricing().modelName();
+        return f.trace().pricing().runLabel();
     }
 }

@@ -128,7 +128,9 @@ public class InvestigationService {
     /** The model named by runDetails, or null for an entry written before runs named their model. */
     static String modelOf(String details) {
         int end = details == null ? -1 : details.indexOf(RUN_MODEL_END);
-        return end <= 0 || details.substring(0, end).contains(" ") ? null : details.substring(0, end);
+        // older entries start with prose such as "The run failed: ...", never with a lower-case model name
+        return end > 0 && details.substring(0, end).matches("[a-z0-9.-]+( \\(replay\\))?") ? details.substring(0, end)
+                : null;
     }
 
     private static final String RUN_MODEL_END = ": ";
@@ -192,7 +194,7 @@ public class InvestigationService {
             String details = result.finding() == null ? result.message()
                     : result.finding().verdict() + ", confidence " + result.finding().confidence() + ", " + result.message();
             audit.append(new AuditEntry(Instant.now(), user, "INVESTIGATION_FINISHED", result.trace().subject(),
-                    runDetails(result.trace().pricing().modelName(), details),
+                    runDetails(result.trace().pricing().runLabel(), details),
                     result.status().name()));
         });
         return result;
