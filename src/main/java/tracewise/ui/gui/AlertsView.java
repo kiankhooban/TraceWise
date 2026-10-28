@@ -233,10 +233,10 @@ final class AlertsView {
     static String describe(ImportSummary s) {
         String text = s.rowsImported() + " of " + s.rowsRead() + " rows imported, " + s.accounts() + " accounts.\n"
                 + "Dates: " + Gui.text(s.earliest()) + " to " + Gui.text(s.latest()) + " (UTC)\n"
-                + s.rejected().size() + " rows rejected";
+                + s.rejectedCount() + " rows rejected";
         if (!s.rejected().isEmpty()) {
             text += ":\n" + s.rejected().stream().limit(20).map(r -> "  row " + r.rowNumber() + ": " + r.reason())
-                    .collect(Collectors.joining("\n")) + (s.rejected().size() > 20 ? "\n  ..." : "");
+                    .collect(Collectors.joining("\n")) + (s.rejectedCount() > 20 ? "\n  ... by reason: " + s.rejectedByReason() : "");
         }
         return text;
     }

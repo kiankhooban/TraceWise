@@ -65,7 +65,8 @@ public class Database implements AutoCloseable {
             try {
                 work.run();
                 connection.commit();
-            } catch (RuntimeException e) {
+            } catch (RuntimeException | Error e) {
+                // an Error (out of memory) must roll back too: the finally block would otherwise commit
                 connection.rollback();
                 throw e;
             } finally {

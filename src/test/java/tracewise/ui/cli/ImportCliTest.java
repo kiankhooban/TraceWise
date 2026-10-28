@@ -74,9 +74,24 @@ class ImportCliTest {
 
         String text = out.toString();
         assertEquals(20, text.split("rejected row ", -1).length - 1, text);
-        assertTrue(text.contains("10 more rejected rows"), text);
-        assertTrue(text.contains("currency not in rate table: XXX: 5") && text.contains("currency not in rate table: YYY: 5"),
+        assertTrue(text.contains("10 more; all 30 rejected rows by reason:"), text);
+        assertTrue(text.contains("currency not in rate table: XXX: 15") && text.contains("currency not in rate table: YYY: 15"),
                 text);
+    }
+
+    /** Review: re-importing a file prints one duplicate count, not one line per row. */
+    @Test
+    void reimportingAFileCountsTheDuplicatesOnce() throws IOException {
+        var lines = new java.util.ArrayList<String>(List.of(HEADER));
+        for (int i = 1; i <= 30; i++) {
+            lines.add("T" + i + ",2026-09-01T10:00:00,,C1,001,C2,100,CAD,WIRE,CA,");
+        }
+        Path file = Files.write(dir.resolve("d.csv"), lines);
+        assertEquals(0, run("import", file.toString()));
+
+        assertEquals(0, run("import", file.toString()));
+
+        assertTrue(out.toString().contains("    duplicate transaction id: 30"), out.toString());
     }
 }
 

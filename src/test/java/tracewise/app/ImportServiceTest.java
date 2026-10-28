@@ -193,5 +193,48 @@ class ImportServiceTest {
         assertFalse(repo.exists("T1"), "the first chunk must be rolled back with the rest");
         assertEquals("FAILED", audit.query(new AuditFilter("IMPORT", "big.csv")).get(0).outcome());
     }
+
+    /** Review: an Error (for example out of memory) after a saved chunk must still leave nothing behind. */
+    @Test
+    void anErrorInALaterChunkAlsoRollsBackAndIsAudited() throws IOException {
+        var calls = new int[1];
+        var failing = new SqliteTransactionRepository(db) {
+            @Override
+            public void saveAll(List<Transaction> transactions) {
+                if (++calls[0] == 2) {
+                    throw new OutOfMemoryError("simulated");
+                }
+                super.saveAll(transactions);
+            }
+        };
+
+        assertThrows(OutOfMemoryError.class, () -> newService(failing, 10).importFile(bigFile(25)));
+
+        assertFalse(repo.exists("T1"), "the first chunk must be rolled back");
+        assertEquals("FAILED", audit.query(new AuditFilter("IMPORT", "big.csv")).get(0).outcome());
+    }
+
+    /** Review: re-importing a large file rejects every row; only a sample is kept, with counts by kind. */
+    @Test
+    void manyRejectedRowsKeepASampleAndCountsByKind() throws IOException {
+        var file = bigFile(1_200);
+        newService(repo, 500).importFile(file);
+
+        var again = newService(repo, 500).importFile(file);
+
+        assertEquals(1_200, again.rejectedCount());
+        assertEquals(ImportService.REJECTED_KEPT, again.rejected().size());
+        assertEquals(java.util.Map.of("duplicate transaction id", 1_200), again.rejectedByReason());
+    }
+
+    @Test
+    void anEmptyFileIsRefusedAndAByteOrderMarkIsIgnored() throws IOException {
+        var empty = Files.write(dir.resolve("empty.csv"), new byte[0]);
+        var e = assertThrows(tracewise.ingest.ImportException.class, () -> service.importFile(empty));
+        assertTrue(e.getMessage().contains("empty"), e.getMessage());
+
+        var bom = csv("\uFEFF" + HEADER, "T1,2026-09-01T10:00:00,,CASH,001,C1,9500,CAD,CASH,CA,");
+        assertEquals(1, service.importFile(bom).rowsImported());
+    }
 }
 
