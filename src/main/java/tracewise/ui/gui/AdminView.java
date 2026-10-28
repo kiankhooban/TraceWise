@@ -25,11 +25,16 @@ import javafx.scene.layout.Priority;
 import tracewise.audit.AuditEntry;
 import tracewise.audit.AuditFilter;
 import tracewise.domain.ActorType;
+import tracewise.domain.DateRange;
+import tracewise.metrics.MetricRow;
+import tracewise.metrics.MetricsCsv;
+import tracewise.metrics.MetricsFilter;
+import tracewise.metrics.PerformanceMetrics;
 import tracewise.monitoring.DetectionRule;
 import tracewise.monitoring.RuleConfig;
 import tracewise.retrieval.RetrievedPassage;
 
-/** Rules (F02, supervisors change them), knowledge search (F04) and the audit log (F08). */
+/** Rules (F02, supervisors change them), knowledge search (F04), the audit log (F08) and performance (F12). */
 final class AdminView {
 
     private final Gui gui;
@@ -43,6 +48,16 @@ final class AdminView {
     private final javafx.scene.control.DatePicker to = new javafx.scene.control.DatePicker();
     private final ComboBox<String> actor = new ComboBox<>(FXCollections.observableArrayList("Anyone", "ANALYST",
             "SUPERVISOR", "AGENT", "SYSTEM"));
+    private final TableView<List<String>> metrics = new TableView<>();
+    private final ComboBox<String> metricsModel = new ComboBox<>(FXCollections.observableArrayList(ALL_MODELS));
+    private final ComboBox<String> metricsRule = new ComboBox<>(FXCollections.observableArrayList("All rules", "R1",
+            "R2", "R3", "R4", "R5", "R6"));
+    private final javafx.scene.control.DatePicker metricsFrom = new javafx.scene.control.DatePicker();
+    private final javafx.scene.control.DatePicker metricsTo = new javafx.scene.control.DatePicker();
+    private final Label verdicts = new Label();
+    /** What the table shows, for the CSV export. */
+    private List<PerformanceMetrics> shown = List.of();
+    private static final String ALL_MODELS = "All models";
 
     AdminView(Gui gui) {
         this.gui = gui;
@@ -50,7 +65,7 @@ final class AdminView {
 
     Node build() {
         var tabs = new TabPane(new Tab("Rules", rulesPane()), new Tab("Knowledge", knowledgePane()),
-                new Tab("Audit Log", auditPane()));
+                new Tab("Audit Log", auditPane()), new Tab("Performance", performancePane()));
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         var root = new BorderPane(tabs);
         root.setPadding(new Insets(10));
@@ -60,6 +75,7 @@ final class AdminView {
     void refresh() {
         gui.run("Loading rules", gui.facade::listRules, list -> rules.getItems().setAll(list));
         searchAudit();
+        onShowMetrics(metricsFilter());
     }
 
     private Node rulesPane() {
@@ -223,5 +239,101 @@ final class AdminView {
                 return gui.facade.exportAudit(filter, w);
             }
         }, n -> gui.info("Audit log exported", n + " entries written to " + file));
+    }
+
+    /** F12: the Supervisor's Performance screen; one column per model when all models are selected. */
+    private Node performancePane() {
+        metricsModel.setValue(ALL_MODELS);
+        metricsRule.setValue("All rules");
+        metricsFrom.setPromptText("from");
+        metricsTo.setPromptText("to");
+        metricsFrom.setPrefWidth(120);
+        metricsTo.setPrefWidth(120);
+        var show = new Button("Show");
+        show.getStyleClass().add("primary");
+        show.setOnAction(e -> onShowMetrics(metricsFilter()));
+        var export = new Button("Export CSV...");
+        export.setOnAction(e -> exportMetrics());
+        var bar = new javafx.scene.layout.FlowPane(8, 6, new Label("Model"), metricsModel, new Label("Rule"), metricsRule,
+                metricsFrom, metricsTo, show, export);
+        bar.getStyleClass().add("toolbar");
+        metrics.setPlaceholder(new Label("No metrics yet."));
+        metrics.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        verdicts.setWrapText(true);
+        var note = new Label("Precision and recall compare each case's latest verdict with the laundering labels of its "
+                + "alerts' transactions (data without labels shows \"not available\"). Rule precision is the share of a "
+                + "rule's labelled alerts that involve laundering. n is what a figure rests on; under "
+                + tracewise.metrics.Measure.MIN_SAMPLE + " it is marked too few.");
+        note.getStyleClass().add("muted");
+        note.setWrapText(true);
+        var pane = new BorderPane(metrics);
+        pane.setTop(bar);
+        pane.setBottom(new javafx.scene.layout.VBox(4, verdicts, note));
+        pane.setPadding(new Insets(8));
+        return pane;
+    }
+
+    private MetricsFilter metricsFilter() {
+        return new MetricsFilter(DateRange.ofDays(metricsFrom.getValue(), metricsTo.getValue()),
+                ALL_MODELS.equals(metricsModel.getValue()) ? null : metricsModel.getValue(),
+                "All rules".equals(metricsRule.getValue()) ? null : metricsRule.getValue());
+    }
+
+    /** The design's onShowMetrics: computes the metrics for the filters and fills the table. */
+    void onShowMetrics(MetricsFilter filter) {
+        gui.run("Computing performance metrics", () -> filter.model() == null ? gui.facade.metricsByModel(filter)
+                : List.of(gui.facade.computeMetrics(filter)), list -> {
+                    shown = list;
+                    if (filter.model() == null) { // offer every model that has run, keeping the choice
+                        var models = new java.util.ArrayList<>(List.of(ALL_MODELS));
+                        list.stream().skip(1).forEach(m -> models.add(m.model()));
+                        metricsModel.getItems().setAll(models);
+                        metricsModel.setValue(ALL_MODELS);
+                    }
+                    var columns = new java.util.ArrayList<javafx.scene.control.TableColumn<List<String>, ?>>();
+                    columns.add(Gui.column("Metric", (List<String> row) -> row.get(0), 180));
+                    for (int i = 0; i < list.size(); i++) {
+                        int c = i + 1;
+                        String title = list.get(i).model() == null ? ALL_MODELS : list.get(i).model();
+                        columns.add(Gui.column(title + " (" + list.get(i).sampleSize() + " runs)",
+                                (List<String> row) -> row.get(c), 200));
+                    }
+                    metrics.getColumns().setAll(columns);
+                    var rows = new java.util.ArrayList<List<String>>();
+                    List<MetricRow> first = list.get(0).rows();
+                    for (int r = 0; r < first.size(); r++) {
+                        var row = new java.util.ArrayList<>(List.of(first.get(r).metric()));
+                        for (PerformanceMetrics m : list) {
+                            row.add(m.rows().get(r).display());
+                        }
+                        rows.add(row);
+                    }
+                    metrics.getItems().setAll(rows);
+                    verdicts.setText(list.stream().map(m -> (m.model() == null ? ALL_MODELS : m.model()) + ": "
+                            + m.truePositives() + " escalated and laundering, " + m.falsePositives()
+                            + " escalated but not, " + m.falseNegatives() + " dismissed but laundering, "
+                            + m.trueNegatives() + " dismissed and not, " + m.inconclusive() + " inconclusive")
+                            .collect(Collectors.joining("\n")));
+                });
+    }
+
+    private void exportMetrics() {
+        if (shown.isEmpty()) {
+            return;
+        }
+        var chooser = new javafx.stage.FileChooser();
+        chooser.setTitle("Export the performance metrics");
+        chooser.setInitialFileName("tracewise-metrics.csv");
+        var file = chooser.showSaveDialog(gui.stage);
+        if (file == null) {
+            return;
+        }
+        var list = shown;
+        gui.run("Exporting the metrics", () -> {
+            try (var w = java.nio.file.Files.newBufferedWriter(file.toPath(), java.nio.charset.StandardCharsets.UTF_8)) {
+                MetricsCsv.write(list, w);
+            }
+            return file;
+        }, f -> gui.info("Metrics exported", "Written to " + f));
     }
 }

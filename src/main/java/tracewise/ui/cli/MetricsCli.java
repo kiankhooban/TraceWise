@@ -72,8 +72,7 @@ public class MetricsCli extends CliCommandBase {
         for (int i = 0; i < first.size(); i++) {
             var line = new ArrayList<>(List.of(first.get(i).metric()));
             for (PerformanceMetrics m : metrics) {
-                MetricRow row = m.rows().get(i);
-                line.add(row.value() + " (n=" + row.sampleSize() + (row.meaningful() ? ")" : ", too few)"));
+                line.add(m.rows().get(i).display());
             }
             table.add(line);
         }
