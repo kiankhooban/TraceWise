@@ -22,7 +22,7 @@ parallel = int(sys.argv[5]) if len(sys.argv) > 5 else 4
 alerts = [a.strip() for a in alerts_file.read_text().split() if a.strip()]
 out.mkdir(parents=True, exist_ok=True)
 # TRACEWISE_JAR lets a saved build keep running while the tree is rebuilt
-jar = Path(os.environ.get("TRACEWISE_JAR", "target/tracewise.jar")).resolve()
+jar = Path(os.environ.get("TRACEWISE_JAR", "cli/target/tracewise.jar")).resolve()
 
 # a resumed run must come from the same build (the prompt is compiled into it) and model, or versions would mix
 run = {"model": model, "jar_sha256": hashlib.sha256(jar.read_bytes()).hexdigest()}

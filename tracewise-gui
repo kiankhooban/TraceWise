@@ -3,4 +3,4 @@
 # Settings come from the same environment variables as the CLI (TRACEWISE_DB, TRACEWISE_ROLE, TRACEWISE_LLM, ...).
 dir=$(cd "$(dirname "$0")" && pwd)
 export TRACEWISE_HOME="$dir"
-exec java -cp "$dir/target/tracewise.jar" tracewise.ui.gui.GuiMain "$@"
+exec java -cp "$dir/gui/target/tracewise-gui.jar" tracewise.ui.gui.GuiMain "$@"

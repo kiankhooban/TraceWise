@@ -41,7 +41,7 @@ Strategy also covers `Retriever` (`EmbeddingRetriever`, context `SearchIndicator
 1. All 12 features are done and reviewed (F12: review 9, commit `60507d1`); 369 tests; design changes 1 to 40.
    NEXT (Oct 31 to Nov 2): Haiku baseline on IBM sample part 1, improvements, then report on part 2 (held out), then
    Sonnet on part 2. Make the samples with
-   `java -cp target/tracewise.jar tracewise.tools.SchemeSampler ibm <HI-Small_Trans.csv> <HI-Small_Patterns.txt> <out.csv> 20 200 <part> 42`
+   `java -cp cli/target/tracewise.jar tracewise.tools.SchemeSampler ibm <HI-Small_Trans.csv> <HI-Small_Patterns.txt> <out.csv> 20 200 <part> 42`
    (same seed and sizes for both parts, or they are not disjoint). Part 1: 9,634 rows, 223 alerts (R4 135, R5 39,
    R6 49). A full Haiku triage of part 1 is about CAD 5 (CAD 0.02 per alert): confirm the spend with Kian first. The
    IBM files live in the session scratchpad (`ibm/HI-Small_Trans.csv`, `ibm-patterns/HI-Small_Patterns.txt`);

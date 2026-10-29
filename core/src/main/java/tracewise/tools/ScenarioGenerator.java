@@ -23,7 +23,7 @@ import tracewise.domain.Transaction;
  * trigger nothing. is_laundering marks the planted laundering. Ids are neutral (C1001, EXT-2001, TX-00001)
  * because the agent reads them: a name like "STRUCT-0001" would hand it the answer. accounts(seed) maps
  * each role name (for example S-C1, the structuring customer) to its id for tests and demos.
- * Usage: java -cp target/tracewise.jar tracewise.tools.ScenarioGenerator SEED OUT.csv
+ * Usage: java -cp cli/target/tracewise.jar tracewise.tools.ScenarioGenerator SEED OUT.csv
  */
 public final class ScenarioGenerator {
 

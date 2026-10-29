@@ -25,8 +25,6 @@ import tracewise.agent.AgentFinding;
 import tracewise.agent.AgentOutcome;
 import tracewise.agent.InvestigationResult;
 import tracewise.agent.TraceStep;
-import tracewise.agent.tools.SearchIndicatorsTool;
-import tracewise.agent.tools.SimilarCasesTool;
 import tracewise.cases.state.CaseStatus;
 import tracewise.domain.Case;
 import tracewise.retrieval.RetrievedPassage;
@@ -303,8 +301,8 @@ final class CaseView implements AgentEventListener {
             steps.getItems().setAll(f.trace().steps());
         }
         var byScore = java.util.Comparator.comparingDouble(RetrievedPassage::score).reversed();
-        indicators.getItems().setAll(SearchIndicatorsTool.retrieved(f.trace().steps()).stream().sorted(byScore).toList());
-        similar.getItems().setAll(SimilarCasesTool.retrieved(f.trace().steps()).stream().sorted(byScore).toList());
+        indicators.getItems().setAll(gui.facade.retrievedIndicators(f).stream().sorted(byScore).toList());
+        similar.getItems().setAll(gui.facade.retrievedSimilarCases(f).stream().sorted(byScore).toList());
         var verdict = new Label(f.verdict() + "   confidence " + f.confidence() + (f.incomplete() ? "   (INCOMPLETE)" : ""));
         verdict.getStyleClass().add("verdict-" + f.verdict());
         var report = f.verification();

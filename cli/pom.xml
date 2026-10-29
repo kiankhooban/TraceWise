@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.github.kiankhooban</groupId>
+    <artifactId>tracewise-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>tracewise-cli</artifactId>
+  <name>TraceWise CLI</name>
+  <description>picocli commands, text and JSON output, over TraceWiseFacade</description>
+
+  <properties>
+    <tracewise.main>tracewise.ui.cli.TraceWiseCli</tracewise.main>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.github.kiankhooban</groupId>
+      <artifactId>tracewise-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>info.picocli</groupId>
+      <artifactId>picocli</artifactId>
+      <version>4.7.7</version>
+    </dependency>
+    <dependency>
+      <groupId>io.github.kiankhooban</groupId>
+      <artifactId>tracewise-core</artifactId>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>runnable-jar</id>
+            <configuration>
+              <finalName>tracewise</finalName>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

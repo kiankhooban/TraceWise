@@ -22,7 +22,8 @@ Resuming work: read `docs/stage2/HANDOFF.md` first (next task, code conventions,
   `verification-before-completion` before claiming anything works.
 - context7 for LangChain4j, JavaFX, picocli and sqlite-jdbc APIs. LangChain4j changes often.
 - Reviews: built-in `/code-review` or `deep-code-review` only.
-- Stack: Java 21, Maven Wrapper (`./mvnw`, no system Maven), JavaFX 21, picocli 4.7.7,
+- Modules (Stage 1 architecture): `core` (tracewise-core, all logic, no UI), `cli` and `gui` (front ends over
+  `TraceWiseFacade` only). Stack: Java 21, Maven Wrapper (`./mvnw`, no system Maven), JavaFX 21, picocli 4.7.7,
   sqlite-jdbc 3.53.4.0 (WAL), LangChain4j 1.21.0, bge-small-en-v1.5 quantized embeddings.
 - Features must really work: no mockups, empty methods or hard-coded demo responses.
 

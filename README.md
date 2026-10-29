@@ -24,7 +24,7 @@ ledger before a human analyst approves or dismisses the case.
 Prerequisites: Java 21 (JDK). Maven is not needed: the repository includes the Maven Wrapper.
 
 ```bash
-./mvnw package                                  # builds target/tracewise.jar and runs the tests
+./mvnw package                                  # builds the CLI and GUI jars and runs the tests
 ./tracewise import data/samples/scenarios.csv   # load the sample transactions
 ./tracewise monitor run                         # run the six monitoring rules
 ./tracewise alerts list                         # the alert queue, highest risk first
@@ -102,7 +102,7 @@ so on a fresh database built from `data/samples/scenarios.csv` they replay witho
 ```
 
 The recorded assistant questions (after the triage above) are listed in
-`src/test/java/tracewise/app/CommittedReplaysTest.java`.
+`core/src/test/java/tracewise/app/CommittedReplaysTest.java`.
 
 Replays answer only the recorded requests (same prompt, data and tool results). Retrieval results
 are left out of the match, because the local embedding model's scores differ slightly between Apple
@@ -118,7 +118,7 @@ Each investigation prints its token usage and cost in CAD.
 that must not fire, and 60 normal customers that trigger nothing:
 
 ```bash
-java -cp target/tracewise.jar tracewise.tools.ScenarioGenerator 42 data/samples/scenarios.csv
+java -cp cli/target/tracewise.jar tracewise.tools.ScenarioGenerator 42 data/samples/scenarios.csv
 ```
 
 TraceWise also reads IBM's synthetic AML data (Altman et al., NeurIPS 2023), which is not committed:
@@ -134,9 +134,11 @@ SQLite, JUnit, Maven.
 ## Repository layout
 
 ```
-src/main/java/tracewise/   application code (ui, app, ingest, monitoring, agent, llm, verification, cases,
-                           domain, persistence, audit, tools)
-src/test/java/tracewise/   JUnit tests
+core/                      tracewise-core: all logic, no user interface (app with TraceWiseFacade, ingest,
+                           monitoring, agent, llm, verification, cases, domain, persistence, audit, tools)
+cli/                       tracewise-cli: picocli commands over the facade (cli/target/tracewise.jar)
+gui/                       tracewise-gui: JavaFX views over the facade (gui/target/tracewise-gui.jar)
+<module>/src/test/java/    JUnit tests
 data/samples/              synthetic sample data
 docs/
   stage1/                  Stage 1 design report; UML in UMLet (umlet/), earlier PlantUML drafts (diagrams/)

@@ -186,6 +186,16 @@ public class TraceWiseFacade implements AutoCloseable {
         return caseService.listCases();
     }
 
+    /** F04: the indicators the agent retrieved during a finding's run, for the case view. */
+    public List<tracewise.retrieval.RetrievedPassage> retrievedIndicators(tracewise.agent.AgentFinding finding) {
+        return tracewise.agent.tools.SearchIndicatorsTool.retrieved(finding.trace().steps());
+    }
+
+    /** F04: the past cases the agent retrieved during a finding's run, for the case view. */
+    public List<tracewise.retrieval.RetrievedPassage> retrievedSimilarCases(tracewise.agent.AgentFinding finding) {
+        return tracewise.agent.tools.SimilarCasesTool.retrieved(finding.trace().steps());
+    }
+
     public Case getCase(String caseId) {
         return caseService.getCase(caseId);
     }
