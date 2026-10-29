@@ -46,11 +46,19 @@ public class TraceWiseCli {
 
     private TraceWiseFacade facade;
 
+    @picocli.CommandLine.Spec
+    picocli.CommandLine.Model.CommandSpec spec;
+
     TraceWiseFacade facade() {
         if (facade == null) {
             Path home = Path.of(System.getenv().getOrDefault("TRACEWISE_HOME", "."));
+            ModelConfig config = ModelConfig.of(provider, model, record);
+            if (!config.costKnown()) {
+                spec.commandLine().getErr().println("Note: no prices are known for " + model
+                        + ", so runs show no cost and cost limits do not apply.");
+            }
             facade = TraceWiseBootstrap.create(new AppConfig(database, System.getProperty("user.name"), role,
-                    ModelConfig.of(provider, model, record), replays, home.resolve(".env")));
+                    config, replays, home.resolve(".env")));
         }
         return facade;
     }

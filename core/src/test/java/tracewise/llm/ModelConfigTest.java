@@ -27,4 +27,12 @@ class ModelConfigTest {
         assertEquals(0, BigDecimal.ZERO.compareTo(local.inputPricePerMTok()));
         assertEquals(0, BigDecimal.ZERO.compareTo(local.outputPricePerMTok()));
     }
+
+    /** Found in review 11: a recorded OpenAI-compatible run could not be replayed under its own model name. */
+    @Test
+    void aRecordedOpenAiCompatibleRunReplaysUnderItsModel() {
+        assertEquals(0, BigDecimal.ZERO.compareTo(ModelConfig.of("replay", "llama-3.1-8b", false).inputPricePerMTok()));
+        assertEquals(0, BigDecimal.ZERO.compareTo(ModelConfig.of("OpenAI", "llama-3.1-8b", false).inputPricePerMTok()));
+        assertThrows(IllegalArgumentException.class, () -> ModelConfig.of("replay", "claude-unknown", false));
+    }
 }

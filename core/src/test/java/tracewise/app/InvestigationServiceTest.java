@@ -200,6 +200,35 @@ class InvestigationServiceTest {
         assertTrue(seen.contains(structuring.id()), seen);
     }
 
+    /**
+     * Found in review 11: the cutoff came from the case's opening alert, so a later alert linked into that case was
+     * investigated without seeing its own flagged transaction.
+     */
+    @Test
+    void anAlertLinkedIntoAnEarlierCaseSeesItsOwnFlaggedTransactions() {
+        var flagged = structuring.transactionIds().stream().map(id -> transactions.findTransaction(id).orElseThrow())
+                .map(tracewise.domain.Transaction::timestamp).max(java.util.Comparator.naturalOrder()).orElseThrow();
+        transactions.saveAll(List.of(new tracewise.domain.Transaction("TX-LATER", flagged.plus(java.time.Duration.ofDays(30)),
+                structuring.accountId(), "EXT-9999", new BigDecimal("500"), new BigDecimal("500"), "CAD",
+                tracewise.domain.PaymentChannel.WIRE, "CA", false)));
+        alerts.save(new Alert(null, "R6", structuring.accountId(), List.of("TX-LATER"), new BigDecimal("500"), 50, 2,
+                tracewise.domain.AlertStatus.NEW, flagged.plus(java.time.Duration.ofDays(30))));
+        String later = alerts.find(new AlertFilter("R6", null, null)).stream()
+                .filter(a -> a.transactionIds().equals(List.of("TX-LATER"))).findFirst().orElseThrow().id();
+        model.then(AgentRunnerTest.answer(finding()));
+        String caseId = service().investigate(structuring.id(), null).caseId();
+        var c = cases.findById(caseId).orElseThrow();
+        c.linkAlert(later);
+        cases.save(c);
+        model.then(AgentRunnerTest.toolCall("account_history", historyCall())).then(AgentRunnerTest.answer(finding()));
+        var listener = new Steps();
+
+        service().investigate(later, listener);
+
+        String seen = listener.steps.get(0).result();
+        assertTrue(seen.contains("TX-LATER"), seen);
+    }
+
     @Test
     void failedModelLeavesTheAlertOpenForAnotherTry() {
         model.then(new LLMException("overloaded", true, null));

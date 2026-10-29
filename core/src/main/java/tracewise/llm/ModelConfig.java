@@ -17,6 +17,11 @@ public record ModelConfig(String provider, String modelName, BigDecimal inputPri
             "claude-sonnet-5-5", new BigDecimal[] {new BigDecimal("2"), new BigDecimal("10")},
             "claude-opus-5-5", new BigDecimal[] {new BigDecimal("4"), new BigDecimal("20")});
 
+    /** False when no price is known (an OpenAI-compatible model): runs then show no cost and no cost limit applies. */
+    public boolean costKnown() {
+        return inputPricePerMTok.signum() > 0 || outputPricePerMTok.signum() > 0;
+    }
+
     /** The name runs are measured under (F12): a replay answers from recordings, so it is never the live model. */
     public String runLabel() {
         return "replay".equals(provider) ? modelName + " (replay)" : modelName;
@@ -25,9 +30,11 @@ public record ModelConfig(String provider, String modelName, BigDecimal inputPri
     /** A known model with its prices. Replay keeps the recorded model's prices so its cost is comparable. */
     public static ModelConfig of(String provider, String modelName, boolean record) {
         BigDecimal[] price = PRICES.get(modelName);
-        // shortcut: an OpenAI-compatible model has no published price, so its runs report no cost; add prices
-        // here if a paid provider is used
-        if (price == null && "openai".equals(provider)) {
+        // shortcut: an OpenAI-compatible model (live or replayed) has no published price, so its runs report no
+        // cost and cost limits cannot stop them; add prices here if a paid provider is used
+        boolean openAiModel = !modelName.startsWith("claude-")
+                && ("openai".equalsIgnoreCase(provider) || "replay".equalsIgnoreCase(provider));
+        if (price == null && openAiModel) {
             price = new BigDecimal[] {BigDecimal.ZERO, BigDecimal.ZERO};
         }
         if (price == null) {

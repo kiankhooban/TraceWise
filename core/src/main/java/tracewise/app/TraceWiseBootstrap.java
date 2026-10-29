@@ -2,6 +2,7 @@ package tracewise.app;
 
 import tracewise.domain.Transaction;
 import tracewise.agent.tools.AsOfLedger;
+import tracewise.agent.tools.InvestigationCutoff;
 import java.util.Optional;
 import java.util.Comparator;
 import java.math.BigDecimal;
@@ -155,10 +156,9 @@ public final class TraceWiseBootstrap {
             ActionScope scope) {
         var tools = new ToolRegistry();
         // an investigation sees the data as it stood at its alert's last flagged transaction
-        var asOf = new AsOfLedger(transactions, () -> scope.currentCase().flatMap(cases::findById)
-                .flatMap(c -> alerts.findById(c.openingAlertId()))
+        var asOf = new AsOfLedger(transactions, new InvestigationCutoff(scope, alertId -> alerts.findById(alertId)
                 .flatMap(a -> a.transactionIds().stream().map(transactions::findTransaction).flatMap(Optional::stream)
-                        .map(Transaction::timestamp).max(Comparator.naturalOrder())));
+                        .map(Transaction::timestamp).max(Comparator.naturalOrder()))));
         tools.register(new AccountHistoryTool(asOf));
         tools.register(new WindowAggregateTool(asOf));
         tools.register(new CounterpartiesTool(asOf));

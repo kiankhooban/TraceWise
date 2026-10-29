@@ -91,7 +91,7 @@ public class InvestigationService {
         }
         trace.addListener(audit);
         running = alertId;
-        scope.begin(c.id());
+        scope.begin(c.id(), alertId);
         AgentOutcome outcome;
         try {
             outcome = agent.run(task, trace);

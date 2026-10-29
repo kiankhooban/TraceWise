@@ -12,17 +12,26 @@ public class ActionScope {
 
     private final CaseRepository cases;
     private volatile String caseId;
+    private volatile String alertId;
 
     public ActionScope(CaseRepository cases) {
         this.cases = cases;
     }
 
-    public void begin(String caseId) {
+    /** alertId: the alert under investigation, which may not be the one that opened the case. */
+    public void begin(String caseId, String alertId) {
+        this.alertId = alertId;
         this.caseId = caseId;
     }
 
     public void end() {
         caseId = null;
+        alertId = null;
+    }
+
+    /** The alert under investigation, or empty when no investigation is running. */
+    public java.util.Optional<String> currentAlert() {
+        return java.util.Optional.ofNullable(alertId);
     }
 
     /** The case under investigation, or empty when no investigation is running. */

@@ -27,7 +27,7 @@ class ActionToolsTest {
         scope = new ActionScope(f.cases);
         tools = TraceWiseBootstrap.investigationTools(f.accounts, f.alerts, f.cases, (q, n) -> java.util.List.of(), f.memory,
                 f.dispatcher, scope);
-        scope.begin("CAS-00001");
+        scope.begin("CAS-00001", "ALR-00001");
     }
 
     @Test

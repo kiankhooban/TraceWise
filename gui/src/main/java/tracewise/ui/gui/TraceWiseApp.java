@@ -96,7 +96,8 @@ public class TraceWiseApp extends Application {
 
     private HBox statusBar() {
         var who = new Label(config.userName() + " (" + config.userRole() + ")   model " + config.model().modelName()
-                + (config.model().provider().equals("replay") ? " (replay)" : "") + "   database "
+                + (config.model().provider().equals("replay") ? " (replay)" : "")
+                + (config.model().costKnown() ? "" : " (no prices known: cost limits do not apply)") + "   database "
                 + config.databasePath().getFileName());
         var busy = new Label();
         var spinner = new ProgressIndicator();

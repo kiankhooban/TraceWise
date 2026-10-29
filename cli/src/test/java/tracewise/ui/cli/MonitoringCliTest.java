@@ -36,6 +36,16 @@ class MonitoringCliTest {
         assertEquals(0, run("import", file.toString()));
     }
 
+    /** Found in review 11: with no known prices every run costs 0, so cost limits silently never stop a run. */
+    @Test
+    void aModelWithNoKnownPricesIsFlaggedBecauseCostLimitsCannotApply() {
+        assertEquals(0, run("--llm", "replay", "--model", "llama-3.1-8b", "alerts", "list"));
+        assertTrue(err.toString().contains("cost limits do not apply"), err.toString());
+
+        assertEquals(0, run("--llm", "replay", "--model", "claude-haiku-5-5", "alerts", "list"));
+        assertFalse(err.toString().contains("cost limits"), err.toString());
+    }
+
     @Test
     void monitorRunThenListAlertsAndThresholdReports() throws IOException {
         assertEquals(0, run("monitor", "run"));
