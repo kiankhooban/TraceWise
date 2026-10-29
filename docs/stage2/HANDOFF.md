@@ -85,7 +85,9 @@ Logged as design changes 46 to 49; SD7, SD9 and the class diagram are redrawn in
 NEXT, in order:
 1. DONE: Sonnet 5.5 on the v6 held-out set: 27 of 30 caught, 19 of 30 cleared, CAD 19.5 total (0.26 per alert).
 2. Period 3: UI polish (discuss the look with Kian first, impeccable skill), F10 GUI details, final review,
-   fresh-clone check, class diagram and SD7/SD9, report draft, demo scripts.
+   fresh-clone check, class diagram and SD7/SD9, demo scripts; fill the TODOs in docs/stage2/Stage2-Report.md
+   (draft done 2026-10-29) and build its PDF (adapt docs/stage1/build_pdf.py). Dev token counts per period:
+   scratchpad tokens.py over the TraceWise session log (session 529e6224).
 3. Unanswered: PRs vs main; installers (jpackage) after the deadline; supervisor-only finalisation (deferred).
 
 ## 3. How Kian wants the work done (standing instructions)
