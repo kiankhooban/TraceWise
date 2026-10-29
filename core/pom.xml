@@ -32,6 +32,12 @@
       <version>1.21.0</version>
     </dependency>
     <dependency>
+      <!-- Adapter for any provider with an OpenAI-compatible API (Stage 1, OpenAiCompatibleLLMClient) -->
+      <groupId>dev.langchain4j</groupId>
+      <artifactId>langchain4j-open-ai</artifactId>
+      <version>1.21.0</version>
+    </dependency>
+    <dependency>
       <!-- bge-small-en-v1.5, quantized, run in-process: retrieval needs no key and no network (F04) -->
       <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j-embeddings-bge-small-en-v15-q</artifactId>

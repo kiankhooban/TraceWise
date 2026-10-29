@@ -27,7 +27,8 @@ public class TraceWiseCli {
             defaultValue = "${env:TRACEWISE_ROLE:-" + AppConfig.DEFAULT_ROLE + "}")
     ActorType role;
 
-    @Option(names = "--llm", description = "anthropic, or replay to answer from recorded runs without a key "
+    @Option(names = "--llm", description = "anthropic; openai for any OpenAI-compatible API (OPENAI_BASE_URL in .env); or replay to answer from "
+            + "recorded runs without a key "
             + "(default: ${DEFAULT-VALUE}).", defaultValue = "${env:TRACEWISE_LLM:-" + AppConfig.DEFAULT_PROVIDER + "}")
     String provider;
 

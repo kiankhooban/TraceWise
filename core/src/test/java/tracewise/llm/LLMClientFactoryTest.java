@@ -43,6 +43,20 @@ class LLMClientFactoryTest {
     }
 
     @Test
+    void anOpenAiCompatibleProviderIsRetriedLikeAnthropic() {
+        var client = new LLMClientFactory("k", "http://localhost:8000/v1", new ReplayStore(dir)).create(config("openai", false));
+        assertInstanceOf(RetryingLLMClient.class, client);
+        assertInstanceOf(OpenAiCompatibleLLMClient.class, ((LLMClientDecorator) client).inner);
+    }
+
+    @Test
+    void anOpenAiCompatibleProviderWithoutAnAddressNamesTheSetting() {
+        var e = assertThrows(IllegalStateException.class,
+                () -> new LLMClientFactory("k", null, new ReplayStore(dir)).create(config("openai", false)));
+        assertTrue(e.getMessage().contains("OPENAI_BASE_URL"), e.getMessage());
+    }
+
+    @Test
     void unknownProviderIsRejected() {
         assertThrows(IllegalArgumentException.class,
                 () -> new LLMClientFactory("k", new ReplayStore(dir)).create(config("gemini", false)));

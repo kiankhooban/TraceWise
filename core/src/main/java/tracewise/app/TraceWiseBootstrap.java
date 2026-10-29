@@ -75,7 +75,8 @@ public final class TraceWiseBootstrap {
     }
 
     public static TraceWiseFacade create(AppConfig config) {
-        return create(config, () -> new LLMClientFactory(apiKey(config), replayStore(config.replayDir()))
+        return create(config, () -> new LLMClientFactory(apiKey(config), setting(config, "OPENAI_BASE_URL"),
+                replayStore(config.replayDir()))
                 .create(config.model()));
     }
 
@@ -130,13 +131,19 @@ public final class TraceWiseBootstrap {
         return new ReplayStore(dir, java.util.Set.of(SearchIndicatorsTool.NAME, SimilarCasesTool.NAME));
     }
 
-    /** The key from .env, else from the environment; null when replaying, which needs none. */
+    /** The provider's key from .env, else from the environment; null when replaying, which needs none. */
     private static String apiKey(AppConfig config) {
-        if (!"anthropic".equalsIgnoreCase(config.model().provider())) {
-            return null;
-        }
-        String key = EnvFile.read(config.envFile()).get("ANTHROPIC_API_KEY");
-        return key != null ? key : System.getenv("ANTHROPIC_API_KEY");
+        return switch (config.model().provider().toLowerCase()) {
+            case "anthropic" -> setting(config, "ANTHROPIC_API_KEY");
+            case "openai" -> setting(config, "OPENAI_API_KEY");
+            default -> null;
+        };
+    }
+
+    /** A value from .env, else from the environment; read only when the model is first called. */
+    private static String setting(AppConfig config, String name) {
+        String value = EnvFile.read(config.envFile()).get(name);
+        return value != null ? value : System.getenv(name);
     }
 
     /**
