@@ -5,17 +5,28 @@ Required by the project instructions, Stage 2, section 9. Updated throughout the
 | Tool | LLM model | Purpose | Example tasks |
 |---|---|---|---|
 | Claude Code (CLI) | Claude Opus 5.5 (`claude-opus-5-5`) | Requirements analysis, domain research, design drafting, UML generation | Read the course specification, researched Canadian bank AI work and FINTRAC rules, drafted the Stage 1 design report and generated its UML diagrams (PlantUML drafts, then the submitted UMLet diagrams) |
-| Claude Code subagents (general-research) | Not exposed per subagent; inherited from the parent session unless configured otherwise | Open-web research with citations | Bank hiring signals research, AML regulation and dataset research |
-| Claude Code (CLI), Stage 2 | Claude Opus 5.5 (`claude-opus-5-5`) | Implementation, test-first, with the skills below | Wrote the F01 to F07 code and tests, the design-change log and these records; ran the live checks |
+| Claude Code subagents | Inherited from the parent session (Opus 5.5) unless set to Sonnet 5.5 | Research, diagnosis and audits run in parallel | Bank hiring signals, AML regulation and dataset research; three agents diagnosing why every IBM alert was escalated; two audits of the code against the Stage 1 design (2026-10-29) |
+| Claude Code (CLI), Stage 2 | Claude Opus 5.5 (`claude-opus-5-5`) | Implementation, test-first, with the skills below | Wrote the F01 to F12 code and tests, the three-module build, the evaluation scripts, the design-change log and these records; ran the live checks, the accuracy evaluations and two design audits against the Stage 1 report |
 | Claude Code skills and plugins | n/a (instructions loaded into the session) | Working method | superpowers (test-driven development, debugging, verification), ponytail (smallest complete change), context7 (current library docs, e.g. LangChain4j error types), jdtls (Java language server), session-report (token reports) |
-| `deep-code-review` skill | Claude Opus 5.5 for correctness, security and adversarial reviewers; Claude Sonnet 5.5 for the others and for the per-finding validators | Multi-reviewer code review before each feature was accepted | Three reviews on 2026-10-20 (F03/F05, F06, F07); every finding checked by an independent validator before it was fixed |
-| OpenAI Codex CLI | Codex default model (not exposed by the CLI) | Independent second-model adversarial review inside `deep-code-review` | Found the two-runs and budget-cap issues; agreed with Claude reviewers on the triage queue problem |
+| `deep-code-review` skill | Claude Opus 5.5 for correctness, security and adversarial reviewers; Claude Sonnet 5.5 for the others and for the per-finding validators | Multi-reviewer code review before each feature was accepted | Eleven reviews (2026-10-20 to 2026-10-29), one per feature or batch of fixes; every finding checked by an independent validator before it was fixed |
+| OpenAI Codex CLI | Codex default model (not exposed by the CLI) | Independent second-model adversarial review inside `deep-code-review` | Found the two-runs and budget-cap issues; agreed with Claude reviewers on the triage queue problem. Usage limit reached on 2026-10-27 (until 2026-11-19), so later reviews had no Codex pass |
+| Gemini through Antigravity CLI (`agy`) | Gemini, top model of Kian's plan | Tried as the second-model pass in review 10 (2026-10-29) | Returned no review: a network reset, then "Individual quota reached". Kian then asked that reviews use no models other than Claude |
 
 ## Cost
 
-**Development (Claude Code):** covered by Kian's Claude Max subscription for the Stage 2 period;
-token counts come from the `session-report` plugin and are added at the end of each period. Any
-dollar figure shown for development is an API-equivalent estimate, not money spent.
+**Development (Claude Code):** covered by Kian's Claude Max subscription; no money was spent per token.
+Token counts are summed from Claude Code's local session logs for the TraceWise session and its subagents
+(the same logs the `session-report` plugin reads), by day in Toronto time. The dollar column is an
+API-equivalent estimate only: Opus 5.5 USD 4 / 20 and Sonnet 5.5 USD 2 / 10 per million input / output
+tokens (Stage 1 price table), cache writes at 1.25 times and cache reads at 0.1 times the input price.
+
+| Period | Model calls (Opus / Sonnet) | Input (uncached) | Cache write | Cache read | Output | API-equivalent |
+|---|---|---|---|---|---|---|
+| Stage 1, 2026-09-29 to 10-06 | 384 / 68 | 928 | 2.56M | 142.9M | 0.52M | about USD 78 |
+| Stage 2 period 1, 10-20 to 10-26 | 519 / 300 | 1,754 | 7.44M | 201.1M | 0.54M | about USD 116 |
+| Stage 2 period 2, 10-27 to 10-29 (to date) | 1,931 / 903 | 5,922 | 19.51M | 675.8M | 2.10M | about USD 368 |
+
+Codex and Gemini ran under their own subscriptions and are not in these counts.
 
 **TraceWise's own model calls (Anthropic API, Kian's key):**
 
