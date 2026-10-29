@@ -140,6 +140,9 @@ Rule: nothing may go against the Stage 1 design in a large way; any deviation is
   case view through the facade, `linked_alerts` no longer shows alerts after the cutoff. Logged the smaller
   differences; SD7, SD9 and the F10 GUI details scheduled for period 3. Review 11: cutoff from the investigated
   alert, worked out once; OpenAI-model replays; unknown prices flagged. 407 tests. Design changes 46 to 49.
+- 2026-10-29 (end of week 2): Sonnet 5.5 comparison on the held-out set (27 of 30 caught, 19 of 30 false alarms
+  cleared, CAD 0.26 per alert); development token use per period recorded; Stage 2 report draft (all 7 sections,
+  period 3 items marked TODO); handoff rewritten. Functionality complete; period 3 is polish, diagrams, report, demos.
 ## Tooling (installed 2026-10-20)
 - `jdtls-lsp` plugin with `jdtls` 1.63.0 (Homebrew): Java diagnostics and navigation.
 - `ponytail` 5.3.2: level `full`; cost ledger on, webhook off, task names not sent.

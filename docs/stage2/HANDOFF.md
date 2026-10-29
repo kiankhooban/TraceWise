@@ -1,287 +1,215 @@
-# Stage 2 handoff (read this first after /compact or in a new session)
+# Stage 2 handoff (read this first in a new session or after /compact)
 
-Last updated 2026-10-28, after F12 and review 9 (commit `60507d1`). Read this file, then `CLAUDE.md` (repo root) and
-`docs/stage2/PLAN.md`. Sessions often run from `~/Brain`, where the TraceWise `CLAUDE.md` is NOT
-loaded automatically: read it explicitly.
+Last updated 2026-10-29 (end of week 2), HEAD after commit `93c8480`. Read this file, then `CLAUDE.md` (repo root),
+`docs/stage2/PLAN.md` and `docs/stage2/Stage2-Report.md`. Sessions often run from `~/Brain`, where the TraceWise
+`CLAUDE.md` is NOT loaded automatically: read it explicitly.
 
 ## 1. Where we are
 
-- Stage 1 graded 100/100 (tag `stage1-submitted`). Stage 2 due **2026-11-10**; feature freeze Nov 7;
-  Kian records the demo videos Nov 8 to 10 (we write a script per feature in week 3).
-- Period 1 (Oct 20 to 26) plan is **complete** on Oct 20: 53+ commits pushed (5 needed per period).
-  Periods 2 (Oct 27 to Nov 2) and 3 (Nov 3 to 9) still each need 5+ meaningful code commits.
-- 272 tests pass, 1 skipped (the opt-in live API test). Design changes 1 to 29 logged (GUI and F08 changes still to log).
-- Period 2 (Oct 27 to Nov 2): 12 code commits plus 2 records commits on Oct 27 (F04, the replay fix, F10 and their review fixes). No PRs: pushed to main.
+- Stage 1 graded 100/100 (tag `stage1-submitted`). Stage 2 due **2026-11-10**; feature freeze Nov 7; Kian records
+  the demo videos Nov 8 to 10 (we write a script per feature first).
+- **Functionality is complete.** All 12 features work in the GUI and the CLI; all 9 Stage 1 patterns are in code; the
+  three Maven modules of the Stage 1 architecture are in place. 407 tests pass (1 skipped: the opt-in live API test),
+  on macOS and on x86 Linux (Docker). Everything is committed and pushed to `main` (no PRs).
+- Commits: period 1 (Oct 20 to 26) 44 code commits; period 2 (Oct 27 to Nov 2) 48 code commits so far. Period 3
+  (Nov 3 to 9) still needs 5+ meaningful code commits: the UI polish and F10 GUI details provide them naturally
+  (never split commits artificially: the handout excludes them).
+- Design changes 1 to 49 logged. Collaboration log entries 1 to 16. Reviews 1 to 11 done.
+- Stage 2 report draft written (`docs/stage2/Stage2-Report.md`, all 7 handout sections; TODOs for period 3).
 
-| Feature | State | Main code |
+| Feature | Main code (core = `core/src/main/java/tracewise/`) | CLI (`cli/.../ui/cli/`) | GUI (`gui/.../ui/gui/`) |
+|---|---|---|---|
+| F01 Import | `ingest/*` (scenario, IBM, SAML-D formats), `app/ImportService` | `ImportCli` | Alerts screen, Import CSV |
+| F02 Monitoring, register, queue | `monitoring/*` (six rules, `WindowedRule`, `RiskScorer`), `app/MonitoringService` | `Monitor/Alerts/ThresholdReports/RulesCli` | Alerts screen, Admin Rules |
+| F03 Investigation | `agent/*`, `agent/tools/*` (read tools, `AsOfLedger`, `InvestigationCutoff`), `llm/*`, `app/InvestigationService` | `InvestigateCli` | Cases screen |
+| F04 Retrieval, case memory | `retrieval/*`, `agent/tools/{SearchIndicators,SimilarCases}Tool` | `IndicatorsCli`, `CasesCli` | Evidence tab, Admin Knowledge |
+| F05 Claim verification | `verification/*` | inside `investigate` | Finding tab claims table |
+| F06 Actions, approvals | `actions/*`, `agent/tools/ActionTool` and 6 action tools, `ActionScope` | `ApprovalsCli` | Approvals screen |
+| F07 Triage | `app/TriageService`, `app/TriageLimits` | `TriageCli` | Alerts screen (limits, Stop) |
+| F08 Cases, audit | `domain/Case`, `cases/state/*`, `app/CaseService`, `audit/*` | `CaseCli`, `AuditCli` | Notes, History, Admin Audit |
+| F09 Network | `network/*`, `app/NetworkService` | `NetworkCli` | Network tab (SmartGraph) |
+| F10 Assistant | `agent/AssistantTask`, `agent/tools/{QueryCases,QueryAlerts,GetCase}Tool`, `app/AssistantService` | `AskCli` (`--json`) | Assistant panel (3 details missing, see 2) |
+| F11 STR reports | `reporting/*`, `actions/{SaveReportDraft,FinaliseReport}Command`, `app/ReportService` | `ReportCli` | Report tab |
+| F12 Performance | `metrics/*`, `app/PerformanceService`, `tools/SchemeSampler`, `scripts/evaluate.py` | `MetricsCli` | Admin Performance tab |
+
+Patterns: Facade (`TraceWiseFacade`), Strategy (`DetectionRule`, `TransactionFormat`, `ReportExporter`, `Retriever`,
+`AgentTask`), Template Method (`WindowedRule`, `CliCommandBase`), Factory Method (`ActionTool.createCommand`,
+`LLMClientFactory`), Command (`ActionCommand`, `CommandDispatcher`, `ApprovalQueue`), State (`CaseState`, 5 states),
+Observer (`AgentTrace`, `AgentEventListener`), Adapter (`LangChain4jClient`: `AnthropicLLMClient`,
+`OpenAiCompatibleLLMClient`), Decorator (`LLMClientDecorator`: retry, record; `FaultInjectingTool`; `AsOfLedger`).
+
+**Accuracy results** (F12; SAML-D samples; each alert on a fresh database; data cut at the alert, 0 of 225 runs saw a
+later alert):
+
+| Held-out set (30 laundering, 30 false alarms, 15 unclear) | Haiku 5.5 | Sonnet 5.5 |
 |---|---|---|
-| F01 Import | CLI done | `ingest/*`, `app/ImportService`, `ui/cli/ImportCli` |
-| F02 Monitoring, threshold register, alert queue | CLI done | `monitoring/*`, `app/MonitoringService`, `ui/cli/{Monitor,Alerts,ThresholdReports,Rules}Cli` |
-| F03 Investigation | CLI done | `agent/*` (`AgentRunner`, `AgentTrace`, `InvestigationTask`), `agent/tools/*`, `llm/*`, `app/InvestigationService`, `ui/cli/InvestigateCli` |
-| F05 Claim verification | done (inside investigate) | `verification/*`, `agent/Claim`, `agent/TotalClaim` |
-| F06 Actions and approval queue | CLI done | `actions/*`, `agent/tools/ActionTool` and 6 action tools, `agent/tools/ActionScope`, `ui/cli/ApprovalsCli` |
-| F07 Triage | CLI done | `app/TriageService`, `app/TriageLimits`, `agent/TriageReport`, `ui/cli/TriageCli` |
-| F08 Case management, audit | core done: notes, analyst close, reopen, history, audit filters and CSV; CLI and GUI pieces in progress | `actions/{AddNote,ReopenCase}Command`, `app/CaseService`, `audit/{AuditFilter,AuditCsv}`, `domain/CaseNote` |
-| F04 Retrieval and case memory | CLI and agent tools done | `retrieval/*`, `agent/tools/{SearchIndicators,SimilarCases}Tool`, `ui/cli/{Indicators,Cases}Cli`, `resources/tracewise/fintrac-indicators.tsv` |
-| F10 Assistant | CLI done (`ask --json`) | `agent/Assistant*`, `agent/ConversationMemory`, `agent/tools/{QueryCases,QueryAlerts,GetCase}Tool`, `app/AssistantService`, `ui/cli/AskCli` |
-| F11 STR drafts and export | CLI and GUI Report tab done and reviewed | `reporting/*`, `actions/{SaveReportDraft,FinaliseReport}Command`, `app/ReportService`, `ui/cli/ReportCli`, `ui/gui/ReportTab` |
-| F09 Money-flow network | CLI `network` and GUI Network tab done and reviewed | `network/*`, `app/NetworkService`, `ui/cli/NetworkCli`, `ui/gui/NetworkView` |
-| F12 Performance dashboard | CLI `metrics` and GUI Performance tab done and reviewed (review 9) | `metrics/*`, `app/PerformanceService`, `ui/cli/MetricsCli`, `ui/gui/AdminView`, `tools/SchemeSampler` |
-| GUI (JavaFX 21) | Alerts (import, monitoring, queue, register, investigate, triage), Cases (finding, live steps, evidence, tasks), Approvals, Admin (rules, knowledge, audit log), Assistant panel | `ui/gui/*`; launch `./tracewise-gui` |
+| Laundering caught | 28 of 30 | 27 of 30 |
+| False alarms cleared | 7 of 30 (tuning set: 15) | 19 of 30 |
+| Cost per alert | CAD 0.02 | CAD 0.26 |
 
-All nine designed patterns are in code: Facade (`TraceWiseFacade`), Strategy (`DetectionRule`,
-`TransactionFormat`), Template Method (`WindowedRule`, `CliCommandBase`), Adapter (`LangChain4jClient`),
-Decorator (`LLMClientDecorator`: retry, record), Factory Method (`LLMClientFactory`,
-`ActionTool.createCommand`), Observer (`AgentTrace` and `AgentEventListener`, `AuditLog` listens),
-State (`CaseState` and 5 states), Command (`ActionCommand`, `CommandDispatcher`, `ApprovalQueue`).
-Strategy also covers `Retriever` (`EmbeddingRetriever`, context `SearchIndicatorsTool`).
+Before v4 to v6 of the instructions: 75 of 75 escalated. Report recall and false alarms cleared, not precision on the
+30/30 mix (at SAML-D's ~3% base rate precision would be ~0.05 vs 0.03 for the rules alone). IBM data cannot test
+judgment (its normal accounts look suspicious); IBM stays for the rules' per-rule precision.
 
-## 2. Next tasks, in order (plan agreed with Kian 2026-10-27, see PLAN.md "Revised schedule")
+## 2. What is left (period 3, Nov 3 to 9; then Nov 7 to 10)
 
-1. All 12 features are done and reviewed (F12: review 9, commit `60507d1`); 369 tests; design changes 1 to 40.
-   NEXT (Oct 31 to Nov 2): Haiku baseline on IBM sample part 1, improvements, then report on part 2 (held out), then
-   Sonnet on part 2. Make the samples with
-   `java -cp cli/target/tracewise.jar tracewise.tools.SchemeSampler ibm <HI-Small_Trans.csv> <HI-Small_Patterns.txt> <out.csv> 20 200 <part> 42`
-   (same seed and sizes for both parts, or they are not disjoint). Part 1: 9,634 rows, 223 alerts (R4 135, R5 39,
-   R6 49). A full Haiku triage of part 1 is about CAD 5 (CAD 0.02 per alert): confirm the spend with Kian first. The
-   IBM files live in the session scratchpad (`ibm/HI-Small_Trans.csv`, `ibm-patterns/HI-Small_Patterns.txt`);
-   re-download with the kaggle CLI if gone.
-   Kian deferred the supervisor-only finalisation rule ("if we had time"). Kian decided R1 to R3 stay as designed
-   (tested on the scenario data; IBM data cannot exercise them, as the Stage 1 report says).
-2. This week: Stage 2 report draft (records are current). The Codex cross-model pass is unavailable until
-   2026-11-19 (usage limit); Kian has not chosen between skipping it, Gemini through `agy`, or upgrading.
-3. NEW ORDER (PLAN.md "Revised schedule 2"): F12 now (Oct 28 to 30), then measure and improve on Haiku with a
-   held-out IBM sample, then Sonnet comparison; UI and UX polish in period 3 (same pages; discuss the look with Kian
-   first). Old item kept for its sampler notes: **F12** dashboard (the real period 3 feature) with the **IBM sampler** the Stage 1 report
-   describes (whole planted schemes from `HI-Small_Patterns.txt` plus the full history of their accounts plus random
-   other accounts; never a slice of rows), final review fixes, fresh-clone check.
-4. Records: UMLet class diagram update, stage2-report PDF, demo scripts.
+Kian: "we do the polishing next week". In order:
+1. **Discuss the UI look with Kian first** (he wants clean, modern, bank-like, e.g. Wealthsimple, RBC, Bloomberg
+   terminal; same pages and structure; nothing against Stage 1). Then polish with the impeccable skill.
+2. **F10 assistant GUI details** Stage 1 promised (design change 49): a verification badge per claim, a results table
+   for search requests, the selected account as context (today the GUI sends only the open case).
+3. **UML**: updated UMLet class diagram (4 figures as in Stage 1; add `AsOfLedger`, `InvestigationCutoff`,
+   `SamlDCsvFormat`, `SchemeSampler`, `metrics`, `FinaliseReportCommand`, the three modules) and redrawn SD7 and SD9.
+   Generators in `docs/stage1/umlet/`, export with `./render.sh` (UMLet). Check every diagram as a PNG against the
+   UML lecture rules (Kian's professor is strict).
+4. Final `deep-code-review` of period 3 work; fresh-clone check following the README exactly; secret scan of the
+   history (`git log -p | grep -E "sk-ant|ANTHROPIC_API_KEY="`).
+5. **Report**: fill the TODOs in `docs/stage2/Stage2-Report.md` (video links, class diagram, period 3 commits and
+   tokens, fresh-clone result), then build the PDF `stage2-report` (adapt `docs/stage1/build_pdf.py`).
+6. **Demo scripts** per feature (GUI and CLI together), then Kian records the videos (Nov 8 to 10); demo index in
+   report section 7. Use Sonnet 5.5 for live demos (the design's default) or the replays.
+7. Records at the end: period 3 token counts (`scratchpad tokens.py`, see 5), collaboration entry 17, PLAN progress.
 
-Design sources: `docs/stage1/diagrams/src/model.iuml` (full model with every member; grep the class),
-`docs/stage1/Stage1-Design-Report.md` (feature sections F01 to F12, use cases UC01 to UC17, Task 3
-traceability, Task 4 patterns), sequence diagrams SD1 to SD6 in `docs/stage1/umlet/gen_sequence_diagrams.py`.
-
-## 2b. State on 2026-10-29 (accuracy work and design audit done)
-
-Everything is committed and pushed. Commits today: 3cc4e12 (v6 agent, AsOfLedger, SAML-D GBP, evaluate.py guards,
-replays re-recorded), d717f58 (three Maven modules core/cli/gui as Stage 1 designs), b65b1b7 (FaultInjectingTool,
-OpenAiCompatibleLLMClient, Opus selectable), a3df065 (review 11 fixes), plus the records commit. 407 tests pass;
-x86 fresh build (Docker) passed on b65b1b7. NO other AI models in reviews (Kian, 2026-10-29).
-
-Layout now: `core/` (tracewise-core, all logic), `cli/` (cli/target/tracewise.jar), `gui/` (gui/target/tracewise-gui.jar).
-Build `./mvnw -q install -DskipTests`; tests `./mvnw -q install` (count reports with */target/surefire-reports, and delete
-stale reports first: old root target/ reports inflated counts by 9 until today).
-
-Accuracy (Haiku 5.5, SAML-D, each alert on a fresh database, scripts/evaluate.py, saved jar a7.jar in scratchpad sml/):
-tuning set 27 of 30 laundering caught, 15 of 30 false alarms cleared; held-out set 28 of 30 caught (1 missed,
-1 inconclusive), 7 of 30 cleared (0 of 30 before v4 to v6). No hindsight: 0 of 150 runs saw a later alert
-(checker: scratchpad leak.py). Report recall and false alarms cleared, not precision on the 30/30 mix (at SAML-D's ~3%
-base rate precision would be ~0.05 vs 0.03 for the rules alone).
-
-Design audit (two Claude subagents, 2026-10-29) and Kian's decisions: split into 3 modules (done), build both missing
-pattern classes (done), F10 assistant GUI details (badges, results table, account context) in the period 3 UI work.
-Logged as design changes 46 to 49; SD7, SD9 and the class diagram are redrawn in period 3.
-
-NEXT, in order:
-1. DONE: Sonnet 5.5 on the v6 held-out set: 27 of 30 caught, 19 of 30 cleared, CAD 19.5 total (0.26 per alert).
-2. Period 3: UI polish (discuss the look with Kian first, impeccable skill), F10 GUI details, final review,
-   fresh-clone check, class diagram and SD7/SD9, demo scripts; fill the TODOs in docs/stage2/Stage2-Report.md
-   (draft done 2026-10-29) and build its PDF (adapt docs/stage1/build_pdf.py). Dev token counts per period:
-   scratchpad tokens.py over the TraceWise session log (session 529e6224).
-3. Unanswered: PRs vs main; installers (jpackage) after the deadline; supervisor-only finalisation (deferred).
+Unanswered or deferred by Kian: PRs vs pushing to main; installers (jpackage plus GitHub Releases) after the deadline;
+supervisor-only report finalisation ("if we had time"); Docker for the CLI is optional.
 
 ## 3. How Kian wants the work done (standing instructions)
 
-- **Order**: finish open items before starting the next feature.
-- **Every feature gets reviewed** with `deep-code-review` before it is called done. Confirmed findings
-  are fixed test-first, then demo recordings are re-made if the agent's requests changed. Reviews only
-  via `/code-review` or `deep-code-review` (no other review paths).
-- **Skills**: superpowers TDD (watch each test fail first; when a compile error hides the first run,
-  switch the behaviour off and confirm the test fails), ponytail level full (never ultra; the Stage 1
-  design counts as requested, so its patterns are never cut), context7 for library APIs.
-- The Stage 1 design is the spec. Every deviation goes in `docs/stage2/design-changes.md` immediately.
+- **Order**: finish open items before starting the next thing. Short, plain answers ("good, bad, promising").
+- **Every change set is reviewed** with `deep-code-review` before it is called done; one independent validator per
+  finding; confirmed findings fixed test-first; re-record `data/replays` if the agent's requests changed.
+- **NO OTHER AI MODELS** (Kian, 2026-10-29): reviews use Claude reviewer and validator agents only; never Codex,
+  Gemini, `agy` or anything else. No Workflow tool unless Kian opts in.
+- **Skills**: superpowers TDD (watch each test fail first), ponytail level full (never ultra; the Stage 1 design
+  counts as requested, so its patterns are never cut), context7 for library APIs.
+- The Stage 1 design is the spec; nothing against it in a large way. Every deviation goes in
+  `docs/stage2/design-changes.md` immediately. When in doubt, check `docs/stage1/Stage1-Design-Report.md`.
 - Commit after each working unit and push; end messages with the session's `Claude-Session:` trailer.
-- No em dashes anywhere. Discuss before large or outward-facing actions. Kian owns the code.
-- Keep records current: `docs/ai-usage/collaboration-log.md` (one entry per milestone; Entries 1 to 9
-  so far), `docs/ai-usage/ai-tools.md` (tools and costs), `docs/stage2/PLAN.md` (status, progress log).
+- No em dashes anywhere. Discuss before large or outward-facing actions. Kian owns the code. Spend on the API is
+  fine when it serves measurement (Kian), but say the estimate first.
+- Records: `docs/ai-usage/collaboration-log.md`, `docs/ai-usage/ai-tools.md` (tools, token use per period, API
+  spend), `docs/stage2/PLAN.md` (status, progress log), `docs/stage2/design-changes.md`.
 
-## 4. The working loop per feature
+## 4. The working loop
 
 ```text
-read design -> tests first (RED) -> code (GREEN) -> commit and push per unit -> live check with Haiku
--> deep-code-review (reviewers plus Codex) -> one validator per finding -> fix confirmed ones test-first
--> re-record data/replays if prompt or tools changed -> verify replay -> update records -> commit and push
+read design -> tests first (RED) -> code (GREEN) -> commit and push per unit -> live check with Haiku if the
+agent changed -> deep-code-review (Claude reviewers) -> one validator per finding -> fix confirmed ones test-first
+-> re-record data/replays if prompt, tools or tool output changed -> full suite -> records -> commit and push
 ```
 
-How the reviews were run (cheap and repeatable):
-- Stage the diff in a run dir `/tmp/compound-engineering/ce-code-review/<run-id>/` (`full.diff`, `files.txt`).
-- Build each reviewer's prompt file with a short Python script: take lines 10 to 184 of
-  `~/.claude/skills/deep-code-review/references/subagent-template.md`, fill `{persona_file}`
-  (from `references/personas/<name>.md`), `{diff_scope_rules}`, `{schema}`, `{run_id}`, `{reviewer_name}`,
-  `{intent_summary}`, `{file_list}` and `{diff}` (as paths), then dispatch each agent with "Read <prompt
-  file> and follow it exactly". Correctness, security and adversarial run on the session model; the rest
-  on Sonnet. Agent-native and learnings get their persona file plus a review-context block.
-- NO OTHER AI MODELS (Kian, 2026-10-29): reviews use our own reviewer and validator agents only; do not call Codex, Gemini, `agy` or any other model. (Earlier: Codex hit its limit until 2026-11-19; Gemini through `agy` hit its quota.)
-- (Retired) Codex pass: `bash ~/.claude/skills/deep-code-review/scripts/cross-model-adversarial-review.sh codex <base> <run-dir>`.
-  WARNING: when Codex fails (usage limit until 2026-11-19) the script still writes "0 findings". Test Codex first:
-  `echo "Reply READY" | codex exec - -s read-only`. Reviews 6 to 8 had no Codex pass.
-  in the background, from `~/TraceWise`; it writes `adversarial-codex.json`.
-- Validators: one per finding from `references/validator-template.md` (Sonnet). Rejected findings are
-  dropped; the ones that are deferred rather than wrong go in section 6 below.
-- Five reviews so far: F03/F05, F06, F07 (2026-10-20), F04 and F10 (2026-10-27). See collaboration log Entries 7 to 11.
-- Pitfall: quiet test runs (`./mvnw -q test | grep ...`) hide compile errors; always also check `BUILD SUCCESS`.
+How reviews are run (review 11 is the template; run dir `/tmp/compound-engineering/ce-code-review/20261029-143540-4d12e291`):
+- Stage `full.diff` and `files.txt` in a run dir. Build one `shared-contract.md` from
+  `~/.claude/skills/deep-code-review/references/subagent-template.md` (the part from `<scope-rules>` to before
+  `<pr-context>`, with diff-scope rules and the findings schema filled in) plus a review-context block (intent, paths
+  to the diff). Dispatch each reviewer with "Read shared-contract.md, your persona file is <path>, your name is X".
+  Correctness, security and adversarial on the session model; the rest on Sonnet.
+- Merge: dedupe, promote cross-reviewer agreement, drop anchor-50 non-P0, route testing and maintainability-only
+  advisories to testing gaps and residual risks. Validators: one per surviving finding from `validator-template.md`.
+- Pitfall: quiet runs (`./mvnw -q`) hide compile errors; count results from `*/target/surefire-reports` after
+  deleting old reports (a stale root `target/` inflated counts by 9 until 2026-10-29).
 
-## 5. Conventions and pitfalls
+## 5. Build, run, conventions, pitfalls
+
+Build and run:
+- Modules: `core/` (tracewise-core, all logic, no UI), `cli/` and `gui/` (front ends, call only the facade). Parent
+  pom at the root; the core publishes a test jar; surefire runs from the repo root so `data/` paths resolve.
+- `./mvnw -q install -DskipTests` builds `cli/target/tracewise.jar` and `gui/target/tracewise-gui.jar`;
+  `./mvnw -q install` runs all tests. Launch: `./tracewise <command>` and `./tracewise-gui`.
+- GUI screenshots without a screen: `TRACEWISE_SNAPSHOT=<dir> [TRACEWISE_SNAPSHOT_INVESTIGATE=ALR-00001]
+  [TRACEWISE_SNAPSHOT_ASK="..."] TRACEWISE_LLM=replay TRACEWISE_MODEL=claude-haiku-5-5 ./tracewise-gui` saves a
+  PNG of every tab, then exits (Read the PNGs).
+- x86 check: copy with `git ls-files -c | grep -v '^\.env$' | rsync -a --files-from=- . <dir>/` (never `.env`), then
+  `docker run --rm --platform linux/amd64 -v <dir>:/w -w /w maven:3.9-eclipse-temurin-21 mvn -B -q install`.
+  Docker Desktop must be running (`open -a Docker`); Maven downloads sometimes fail mid-handshake: just rerun.
 
 Code:
-- Packages: `domain, ingest, monitoring, persistence, audit, app, llm, agent, agent.tools, actions,
-  cases.state, verification, retrieval, ui.cli, tools`.
+- Packages (core): `domain, ingest, monitoring, persistence, audit, app, llm, agent, agent.tools, actions,
+  cases.state, verification, retrieval, reporting, network, metrics, tools`; CLI `ui.cli`; GUI `ui.gui`.
 - New user operations: service in `app`, method on `TraceWiseFacade`, wiring in `TraceWiseBootstrap.create`.
-  `TraceWiseBootstrap.create(config, llmSupplier)` lets tests record through the real wiring;
   `investigationTools(...)` is the single place the agent's tools are registered.
-- CLI commands extend `CliCommandBase` (`execute()`, optional `print()`; `--json` is automatic) and are
-  listed in the `TraceWiseCli` subcommands.
-- Persistence: repositories take `Database` and use `Jdbc.query/update`; schema in
-  `src/main/resources/tracewise/schema.sql` (CREATE IF NOT EXISTS, no migrations; split on `;` plus
-  newline before CREATE). `db.inTransaction(Runnable)` and `inTransaction(Supplier)` nest. A lambda that
-  returns a value picks the Supplier overload (that once caused infinite recursion).
-- Money from JSON: always `ExactJson.mapper()` (exact BigDecimal, scale kept).
-- Agent safety: `PermissionPolicy` lists what the agent may do alone (priority, link, watchlist, task);
-  everything else needs a human. `ActionScope` limits agent actions to the case under investigation.
-  Only `Actor.isHuman()` can approve or reject. Linking into a case waiting for approval is refused.
-  A run that ends without a finding expires its proposals; re-runs see earlier decisions.
-- Tools expose `NAME` constants; use them instead of string literals.
-- GUI: every facade call goes through `GuiWorker` (one background thread, in order; results via
-  Platform.runLater), so the single DB connection is never shared; cancel and stop only set flags and are called
-  directly. Views get a `Gui` context (facade, worker, stage, dialogs). Verify screens without screen access:
-  `TRACEWISE_SNAPSHOT=<dir> [TRACEWISE_SNAPSHOT_INVESTIGATE=ALR-00001] [TRACEWISE_SNAPSHOT_ASK="..."] ./tracewise-gui`
-  saves a PNG of every tab and sub-tab, then exits (Read the PNGs). The terminal has no screen-recording permission.
-- Retrieval: the bge-small model loads lazily (about 2 s) through `TraceWiseBootstrap.indicatorRetriever` and
-  `CaseMemory`; unit tests use `retrieval/WordCountEmbeddingModel`, never the ONNX model (only
-  `FintracRetrievalTest`, `KnowledgeCliTest` and `CommittedReplaysTest` load the real one). Minimum score 0.70,
-  measured (design change 21). `CaseMemory.remember()` only marks the memory stale; it rebuilds from storage.
-- A run's waiting close or escalation that its own verdict does not support expires (`Verdict.supportsClose()`,
-  `supportsEscalation()`); claim verification also checks the finding's indicators against what
-  `search_indicators` returned.
+- CLI commands extend `CliCommandBase` (`execute()`, optional `print()`; `--json` automatic), listed in `TraceWiseCli`.
+- Persistence: `Database` plus `Jdbc.query/update`; schema `core/src/main/resources/tracewise/schema.sql` (CREATE IF
+  NOT EXISTS, no migrations). `db.inTransaction` nests. Money from JSON: `ExactJson.mapper()`.
+- Agent safety: `PermissionPolicy` (agent alone: priority, link, watchlist, task; the rest needs a human).
+  `ActionScope.begin(caseId, alertId)` limits actions to the case and names the alert under investigation.
+- No hindsight: while an investigation runs, the read tools see the data only up to the investigated alert's last
+  flagged transaction (`InvestigationCutoff` computes it once per alert; `AsOfLedger` applies it; `linked_alerts`
+  hides alerts with later transactions). The assistant (no investigation) sees everything.
+- LLM providers: `anthropic` (key `ANTHROPIC_API_KEY`), `openai` (any OpenAI-compatible API: `OPENAI_BASE_URL`,
+  `OPENAI_API_KEY` in `.env`), `replay`. Models with prices: `claude-haiku-5-5` (USD 0.10 / 0.50), `claude-sonnet-5-5`
+  (2 / 10, default), `claude-opus-5-5` (4 / 20). Non-Claude models cost 0 and the CLI and GUI say cost limits do not
+  apply. LangChain4j stays on 1.21.0.
+- GUI: every facade call goes through `GuiWorker` (one background thread); views get a `Gui` context.
+- Retrieval: bge-small loads lazily; unit tests use `WordCountEmbeddingModel`. Minimum score 0.70.
 - Parties outside the bank: account `CASH` or prefix `EXT-`. Session role: `--role` or `TRACEWISE_ROLE`.
 
 Tests:
-- `@TempDir` real SQLite. Shared doubles: `monitoring/InMemoryLedger`, `agent/AgentRunnerTest.ScriptedModel`
-  (`then(response or exception)`, `beforeEachCall` hook, `requests`), `actions/ActionsFixture`.
-- Sample data: `ScenarioGenerator.generate(42)`; ids are neutral (`C1037`, `EXT-2101`, `TX-00001`).
-  `ScenarioGenerator.accounts(42)` maps role names (S-C1 structuring, P-C1 pass-through, F-C1 fan-in,
-  O-C1 fan-out, L-C1/L-C2 large cash, I-C1/I-C2 international, N-Cxx normal) to ids. Expected monitoring:
-  4 threshold reports; alerts ALR-00001 R3, ALR-00002 R4, ALR-00003 R5, ALR-00004 R6. Never put scheme
-  names in anything the agent can read.
+- `@TempDir` real SQLite. Shared doubles: `monitoring/InMemoryLedger`, `agent/AgentRunnerTest.ScriptedModel`,
+  `actions/ActionsFixture`, `agent/tools/ToolRegistryTest.EchoTool`, `FaultInjectingTool` for tool failures.
+- Sample data: `ScenarioGenerator.generate(42)`; neutral ids (`C1037`, `EXT-2101`, `TX-00001`). Expected monitoring:
+  4 threshold reports; alerts ALR-00001 R3, ALR-00002 R4, ALR-00003 R5, ALR-00004 R6. Never put scheme names in
+  anything the agent can read.
 
 Replays and live runs:
-- `data/replays` holds Claude Haiku 5.5 recordings of the four sample alerts (with actions and F04 retrieval)
-  and five assistant questions asked after the replayed triage (list in `CommittedReplaysTest`). The results of
-  `search_indicators` and `similar_cases` are left out of replay matching (`TraceWiseBootstrap.replayStore`):
-  the quantized embedding model scores differently on ARM and x86. `CommittedReplaysTest` replays everything on
-  the shipped sample data and passes on Apple Silicon and on x86 (checked in Docker:
-  `--platform linux/amd64`, image `maven:3.9-eclipse-temurin-21`; the Maven wrapper's tar fails under that
-  emulation, and copy the tree from `git ls-files` so `.env` never goes in). A rejection still changes the
-  next run's prompt, so re-investigations after a rejection need a live model.
-  on a fresh database in any order: `./tracewise --llm replay --model claude-haiku-5-5 investigate ALR-00001`
-  or `... triage`. Replay matches whole requests, so after ANY change to the prompt, tool set, tool
-  output or sample data: delete `data/replays`, re-record, verify on fresh databases in and out of order,
-  and scan for keys and labels (`grep -rlE "sk-ant|ANTHROPIC_API_KEY|is_laundering" data/replays`).
-- Never put values that depend on run order or time into anything the agent sees (that is why proposal
-  ids are hidden from it and tool output uses `LinkedHashMap`, never `Map.of`).
-- Live run: `export TRACEWISE_DB=<scratch>/x.db`, then `./tracewise import data/samples/scenarios.csv`,
-  `./tracewise monitor run`, `./tracewise --model claude-haiku-5-5 --record investigate ALR-00001`
-  (about CAD 0.003 to 0.006 per alert). Build first: `./mvnw -q package -DskipTests`.
-- Live API test: `TRACEWISE_LIVE_LLM=1 ./mvnw test -Dtest=AnthropicLiveTest`.
-- Models: `claude-haiku-5-5` (USD 0.10 / 0.50 per MTok) for development and recordings;
-  `claude-sonnet-5-5` (USD 2 / 10) for real demos. `ModelConfig.of` refuses unknown models.
-  LangChain4j stays on 1.21.0 (the graded design's version).
-- Runtime API spend so far: about CAD 0.12 (recorded in `docs/ai-usage/ai-tools.md`; add new live runs there).
+- `data/replays` (35 files, Haiku 5.5, recorded 2026-10-29 with v6): the four sample alerts (triage), seven assistant
+  questions (`CommittedReplaysTest.QUESTIONS`, each in its own process after the triage), report drafts for CAS-00001,
+  2 and 4 after approving the three escalations. On the sample data v6 escalates three schemes and leaves the
+  fan-out one (ALR-00003) inconclusive. Retrieval results are left out of replay matching (ARM vs x86 scores).
+- Re-record after ANY change to prompt, tools, tool output or sample data: `git rm -r data/replays`; fresh DB:
+  `./tracewise --db X --model claude-haiku-5-5 import data/samples/scenarios.csv`, `monitor run`, `--record triage`;
+  each question `--record ask --json "<q>"`; `--role SUPERVISOR approvals approve APR-0000N` for the three; `--record
+  report draft CAS-00001` (and 2, 4); scan `grep -rlE "sk-ant|ANTHROPIC_API_KEY|is_laundering" data/replays`.
+- Live API test: `TRACEWISE_LIVE_LLM=1 ./mvnw test -pl core -Dtest=AnthropicLiveTest`.
+- TraceWise's own API spend so far: about CAD 64 (table in `docs/ai-usage/ai-tools.md`).
+
+Evaluation (F12), scratchpad `/private/tmp/claude-501/-Users-kiankhooban-Brain/529e6224-32b5-4afd-9767-3f9d109d47e5/scratchpad/`
+(may be gone in a new session; recreate from the steps):
+- SAML-D: Kaggle `berkanoztas/synthetic-transaction-monitoring-dataset-aml` (CC BY-NC-SA 4.0), `samld/SAML-D.csv`.
+  Amount is GBP for every row. Samples: `java -cp cli/target/tracewise.jar tracewise.tools.SchemeSampler samld <csv>
+  <out.csv> 40 1500 <part> 42` (parts 1 tuning, 2 held-out; same seed and sizes or they are not disjoint), import,
+  monitor, then a fixed alert list (30 laundering, 30 clean, 15 unclear) in `sml/tune2-alerts.txt`, `test2-alerts.txt`.
+- Run: `TRACEWISE_JAR=<jar> python3 -I scripts/evaluate.py <db> <alerts.txt> <outdir> <model> 3` (resumes only
+  alerts without a finding; refuses another jar or model). Score: `java -jar <jar> --db <outdir>/merged.db metrics
+  --model <model>`; per class `sml/../f12/tools/classes.py <outdir>`; hindsight check `scratchpad/leak.py
+  <merged.db> <source.db>`. Results dirs: `sml/ev-a7`, `test-a7` (Haiku), `test-sonnet`.
+- Development token counts: `python3 -I scratchpad/tokens.py` (sums the TraceWise session log 529e6224 and its
+  subagents by period; add a period 3 range).
 
 Shell and secrets:
-- NEVER `source` or `.` the `.env` file (a malformed line printed the key on 2026-10-20; that key was
-  revoked and replaced). Read it only through `EnvFile`; never print it. Nothing secret goes into the
-  Brain vault.
-- zsh: `rm -f a.db*` fails when nothing matches; `$VAR="--db x"` is not word-split, so export
-  `TRACEWISE_DB` instead.
+- NEVER `source` or `.` the `.env` file. Read it only through `EnvFile`; never print it. Nothing secret goes into the
+  Brain vault. Never copy `.env` into Docker.
+- zsh: globs that match nothing fail; a variable holding "cmd args" is not word-split (use a shell function).
 
 ## 6. Open items (known and deferred, with the reason)
 
-Before the GUI runs work on background threads (all need concurrency the CLI does not have; validators
-rejected them as unreachable today):
-- One investigation or triage at a time per service: shared `AgentRunner` and cancel flag, findings
-  appended by count, `stopRequested` reset at triage start, a cancel landing just after a run ends,
-  two runs linking the same alert or expiring each other's proposals. Fix: refuse a second concurrent
-  run (or one runner per run) and append findings with a plain INSERT.
-- The reviewer identity is the `--role` the session claims; the GUI must not trust a client-side role.
+Concurrency (one investigation, triage or question at a time per process; `ActionScope` and the cutoff hold one
+run): two simultaneous runs in one process would share the scope, the runner's cancel flag and the cutoff. The GUI
+runs everything through one worker thread, and `evaluate.py` uses one process per alert, so it is not reachable today.
 
-Accepted for now; revisit if they start to matter:
-- Triage `--max-cost` is checked between alerts, so it can overshoot by one run (at most CAD 1.00);
-  per investigation the agent stops at 12 turns or CAD 1.00 (`AgentLimits.DEFAULT`).
-- A reviewer's rejection reason goes into the agent's prompt verbatim (written by the session's own analyst).
-- `approvals` ids are COUNT(*)+1 (fine while rows are never deleted); proposals store the command's class
-  name, so renaming a command class orphans stored proposals.
-- Stored findings have no format version.
-- The agent sees flagged transaction ids but not the rule's live thresholds; on a busy account the flagged
-  rows can fall outside the 100 rows `account_history` lists. The design's other read tools (window
-  aggregates, query cases) are still to build.
-- `OpenAiCompatibleLLMClient` from the design is not built: build it or log it as a design change.
-- Triage would skip a case reopened later (F08) because it already has a finding.
+Accepted for now:
+- Triage `--max-cost` is checked between alerts (can overshoot by one run, at most CAD 1.00); per run the agent stops
+  at 12 turns or CAD 1.00.
+- `approvals` ids are COUNT(*)+1; proposals store the command class name; stored findings have no format version.
+- Triage skips a case reopened later (F08) because it already has a finding.
+- The requester can approve their own report finalisation (Kian deferred a different-person rule).
+- `linked_alerts` still filters by an alert's current status and case, which can reflect decisions made after the
+  cutoff (pre-existing; eval databases are fresh per alert, so results are unaffected).
+- Recording an `openai` run into `data/replays` could overwrite a Claude recording with an identical first request
+  (the replay key has no model name). Record other providers into a separate `--replays` folder.
+- `OPENAI_BASE_URL` over plain http would send the key in cleartext (operator configuration).
+- Testing gaps from review 11: `OpenAiCompatibleLLMClient` HTTP errors and text-only replies; `linked_alerts` on the
+  assistant path; the facade's `retrieved*` delegation; the bootstrap's `OPENAI_*` lookup.
+- Agent-native gap: the scored passages a past run retrieved show in `investigate --json` (trace) and the GUI
+  Evidence tab, but not in `case show` later.
+- Case memory can return a related but different pattern above 0.70; precedent is labelled as not evidence.
+- Case memory is an indirect prompt-injection channel; bounded by `ActionScope`, human approval and the prompt.
+- F10: conversation history goes back as user text; `ask` failures print only `{"error": ...}`; `query_cases` sums
+  alert totals per case (overlapping alerts count twice).
+- F11: rejected-claim detection is exact text only; exports are not written atomically.
+- Review 8 and 9 notes: the network's 50-counterparty cap is shared across hops; metrics load every case (fine for
+  hundreds); recall covers only alerted laundering; state the sample when quoting numbers.
 
-From the F04 review (2026-10-27), deferred or accepted with evidence:
-- Case memory can return a related but different pattern above 0.70 (a fan-out query scored 0.72 against a
-  pass-through case; unrelated patterns 0.59 to 0.65). Precedent is shown with its score and the prompt says it is
-  not evidence. The design plans retrieval tuning (keyword or hybrid behind `Retriever`) after Stage 3 testing.
-- If the agent proposes a close and then concludes ESCALATE, its escalation proposal is refused (one proposal per
-  case) and the close expires: the case is left Under Investigation with an ESCALATE finding and nothing waiting.
-  The analyst sees the finding; F08's human escalation covers it.
-- Re-investigating a decided case (F08 reopen) would let `similar_cases` return the case itself: exclude the case
-  in scope when F08 adds reopen. Case summaries show the decision as a prefix, not a separate field.
-- Case memory is an indirect prompt-injection channel: past narratives (agent output over imported CSV text) reach
-  later runs. Bounded by `ActionScope`, human approval, and the prompt rule that precedent is not evidence.
-
-From the F10 review (2026-10-27), deferred or accepted:
-- The assistant shares the investigation's `AgentRunner` (one cancel flag): with the GUI, cancelling an
-  investigation would cancel a concurrent question. Part of the concurrency work above.
-- Conversation history goes back into the next question as user text, not as earlier assistant turns; each CLI
-  `ask` is its own session, so this matters for the GUI chat only. The context (case, account) of earlier
-  questions is not stored with them.
-- Replayed findings verify indicators against the live search; a cited indicator at the edge of the results
-  could drop out on another CPU (the current recordings pass on x86).
-- `query_cases` sums the alert totals of a case, so alerts over the same transactions would count twice.
-- `ask` failures print only `{"error": ...}` (no trace), unlike `investigate --json`; documented for Stage 3.
-
-From the F11 review (2026-10-27), rejected or accepted:
-- The requester can approve their own finalisation (validator: the queue is a confirmation step and roles are
-  self-declared with `--role`, so a different-person rule enforces little). Kian to decide; see section 2.
-- `ApprovalQueue.enqueue` skips the Pending Approval move for any command on an escalated case; only
-  `FinaliseReportCommand` can get there today (every other command refuses an escalated case in `validate`).
-- Rejected-claim detection matches exact text only (ids, plain or grouped amounts, indicator text); a paraphrase of a
-  rejected claim passes. The analyst reviews the text, and the narrative is never given the rejected claims as facts.
-- The narrative is free text from the model; only its rejected-claim mentions are checked deterministically.
-- Exports are not written atomically; a failed write leaves the report final so the export can be retried.
-
-Real data (IBM HI-Small, checked 2026-10-28; the file is in the session scratchpad, not the repo):
-- Import: 4,495,903 of 5,078,345 rows in 12.5 minutes, about 220 MB; 582,422 rejected (BTC, RUB, SAR, ILS have no
-  Bank of Canada rate); 457,898 accounts. Laundering is planted later in the file: the first 100,000 rows hold 5.
-- Monitoring on 100,000 rows: 19 s, 684 alerts (R4 659). On the full file it ran over 25 minutes and passed 100,000
-  alerts: R4 is very noisy on IBM data; F12's per-rule precision will show it.
-- One busy account (1,926 transactions on one day) cost CAD 0.10 to investigate, CAD 0.083 with `window_aggregates`.
-  Prompt caching would cut it further; it is not in the design.
-
-From review 8 (2026-10-28), rejected or accepted:
-- The facade's `transactionsFor` returns rows with the label; no view shows it (validator: speculative).
-- No agent tool for the network; F09 is a view for people (validator: not required).
-- The 50-counterparty cap is shared across hops, so on a hub account hop 1 can fill it and hops 2 and 3 add nothing.
-- The import checks `exists()` per row (an index lookup); a whole 5M-row import holds the write lock for its duration.
-
-From review 9 (F12, 2026-10-28), accepted:
-- Average turns and cost cover runs with a finding (labelled so); a failed run's cost is not counted anywhere.
-- Parts of a sample share no row and no chosen account, but an unchosen counterparty can appear in both (27 on the
-  real file), each time with different transactions. Parts are disjoint only with the same seed and sizes.
-- Comparing models on the same database: the second model's runs see the first model's decided proposals. Use a
-  fresh database per model for the Sonnet comparison.
-- Recall covers investigated cases whose opening alert is labelled; laundering never alerted is not in it. A sample
-  is richer in laundering than the full file, so precision on it is higher; state the sample when quoting numbers.
-- Metrics load every case (one query per case) on the GUI worker: fine for hundreds of cases.
-
+Real data notes: IBM HI-Small (5.08M rows) imports in 12.5 minutes (582,422 rows rejected for BTC, RUB, SAR, ILS with
+no Bank of Canada rate); monitoring the whole file passes 100,000 alerts (R4 is very noisy on IBM). A busy IBM
+account cost CAD 0.08 to investigate.
