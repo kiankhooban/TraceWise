@@ -61,60 +61,34 @@ Design sources: `docs/stage1/diagrams/src/model.iuml` (full model with every mem
 `docs/stage1/Stage1-Design-Report.md` (feature sections F01 to F12, use cases UC01 to UC17, Task 3
 traceability, Task 4 patterns), sequence diagrams SD1 to SD6 in `docs/stage1/umlet/gen_sequence_diagrams.py`.
 
-## 2b. IN PROGRESS (2026-10-29, written before /compact): making the agent dismiss false alarms
+## 2b. State on 2026-10-29 (accuracy work and design audit done)
 
-Kian: "try to go further" (goal: dismiss most false alarms while still catching laundering). NO other AI models in
-reviews (Kian, 2026-10-29). Spend is approved (he said cost is not the concern).
+Everything is committed and pushed. Commits today: 3cc4e12 (v6 agent, AsOfLedger, SAML-D GBP, evaluate.py guards,
+replays re-recorded), d717f58 (three Maven modules core/cli/gui as Stage 1 designs), b65b1b7 (FaultInjectingTool,
+OpenAiCompatibleLLMClient, Opus selectable), a3df065 (review 11 fixes), plus the records commit. 407 tests pass;
+x86 fresh build (Docker) passed on b65b1b7. NO other AI models in reviews (Kian, 2026-10-29).
 
-Committed and pushed: three-way scoring (6656710), agent fixes (a52d8b4), SAML-D format and SchemeSampler (57c1b1b),
-handoff 85fb50a. HEAD is 85fb50a plus this handoff commit.
+Layout now: `core/` (tracewise-core, all logic), `cli/` (cli/target/tracewise.jar), `gui/` (gui/target/tracewise-gui.jar).
+Build `./mvnw -q install -DskipTests`; tests `./mvnw -q install` (count reports with */target/surefire-reports, and delete
+stale reports first: old root target/ reports inflated counts by 9 until today).
 
-UNCOMMITTED, everything below is in the working tree, partly STAGED (the v5 batch was staged with `git add -A
-data/replays src scripts docs`; later edits are unstaged). Commit them together once the steps below pass:
-- v5/v6 prompt (`InvestigationTask`): describe the account's usual activity over its EARLIER history, ask whether the
-  flagged activity is new for it, check where the money came from; red flags (cash or many senders paid on, repeated
-  amounts just below a threshold in the original currency, unusual destinations); routine is a legitimate
-  explanation; "the data ends at the alert". `AssistantTask` prompt: data_covers caveat.
-- Review 10 fixes (all test-first, each new test sabotage-checked): `AsOfLedger` (Decorator: read tools see data only
-  up to the alert's last flagged transaction while an investigation runs; wired in
-  `TraceWiseBootstrap.investigationTools` via `ActionScope.currentCase()`); `SamlDCsvFormat` reads Amount as GBP for
-  every row (TRY rate removed); `scripts/evaluate.py` run.json guard (same jar+model to resume) and "no finding"
-  status; tests: `AsOfLedgerTest`, InvestigationServiceTest no-hindsight, `SqliteAlertRepositoryTest`, SAML-D part
-  disjointness in `SchemeSamplerTest`, unclear counters in `PerformanceServiceTest`, GBP in `SamlDCsvFormatTest`,
-  prompt tests. Design changes 44 and 45 logged (44's v5 numbers were measured WITH hindsight: rewrite them with v6).
-- data/replays: currently the v5 recordings (staged); they no longer match (prompts changed): CommittedReplaysTest and
-  MetricsCliTest's replay test fail until re-recorded.
+Accuracy (Haiku 5.5, SAML-D, each alert on a fresh database, scripts/evaluate.py, saved jar a7.jar in scratchpad sml/):
+tuning set 27 of 30 laundering caught, 15 of 30 false alarms cleared; held-out set 28 of 30 caught (1 missed,
+1 inconclusive), 7 of 30 cleared (0 of 30 before v4 to v6). No hindsight: 0 of 150 runs saw a later alert
+(checker: scratchpad leak.py). Report recall and false alarms cleared, not precision on the 30/30 mix (at SAML-D's ~3%
+base rate precision would be ~0.05 vs 0.03 for the rules alone).
 
-Review 10 (deep-code-review of e21b08d..staged, run dir /tmp/compound-engineering/ce-code-review/20261028-223306-f3d9d79d):
-confirmed and fixed: hindsight leak (P1), SAML-D amounts in GBP (P1, verified on the data), assistant caveat, resume
-guard, test gaps, blank line in design-changes. Rejected by validators: subprocess timeout, 90 s HTTP timeout,
-sampler history-depth proxy. Still TO DO from it: report recall and false alarms cleared (not precision on the 30/30
-mix; at SAML-D's ~3% base rate precision would be ~0.05 vs 0.03 for the rules alone), and say "26 of 30" style
-numbers come from SAML-D samples. No cross-model pass (Codex limit, Gemini quota; and now Kian's rule).
-
-Evaluation data (scratchpad /private/tmp/claude-501/-Users-kiankhooban-Brain/529e6224-32b5-4afd-9767-3f9d109d47e5/
-scratchpad/sml/): `tune.csv`/`test.csv` (SchemeSampler samld 40 schemes 1500 others, parts 1 and 2, seed 42;
-verified 0 shared rows, 0 shared evaluated accounts); re-imported with the GBP fix as `tune2.db`/`test2.db` with
-`tune2-alerts.txt`/`test2-alerts.txt` (75 each: 30 laundering, 30 clean, 15 unclear). Saved build `a6.jar` = v6.
-Results (Haiku 5.5):
-- committed agent: 75 of 75 escalated (confidence ~0.8 for every class, so no threshold lever).
-- v6 tuning (`ev-a6`): laundering 28 of 30 escalated (2 dismissed); clean 12 of 30 dismissed, 15 escalated, 3 inc.
-- v6 held-out (`test-a6`): RUNNING when this was written (resume with the same command if it stopped:
-  `TRACEWISE_JAR=$S/a6.jar python3 -I scripts/evaluate.py $S/test2.db $S/test2-alerts.txt $S/test-a6 claude-haiku-5-5 3`
-  from ~/TraceWise; it repeats only alerts with no finding). Score: `java -jar $S/a6.jar --db $S/test-a6/merged.db
-  metrics --model claude-haiku-5-5`, classes: `python3 -I .../scratchpad/f12/tools/classes.py $S/test-a6`.
-- A network outage made many runs fail with 0 tokens; resume fixed it. Sonnet on the old (flawed) part 2 was stopped
-  after 39 alerts and does not count.
+Design audit (two Claude subagents, 2026-10-29) and Kian's decisions: split into 3 modules (done), build both missing
+pattern classes (done), F10 assistant GUI details (badges, results table, account context) in the period 3 UI work.
+Logged as design changes 46 to 49; SD7, SD9 and the class diagram are redrawn in period 3.
 
 NEXT, in order:
-1. When test-a6 finishes: record the v6 held-out numbers (rewrite design change 44's numbers; add collaboration
-   entry 16, ai-tools costs: today's SAML-D/IBM work about CAD 26 plus ~CAD 10 Sonnet stopped plus v6 runs).
-2. Re-record replays (git rm -r data/replays; fresh DB: import data/samples/scenarios.csv, monitor, --record triage;
-   the 7 questions with --record ask each in its own process; approve all; --record report draft CAS-00001/2/4;
-   scan for keys/labels), full test suite, x86 Docker check (Docker Desktop must be running: `open -a Docker`; copy
-   with `git ls-files -c | grep -v '^\.env$' | rsync -a --files-from=- . <dir>/`), then commit and push.
-3. Sonnet on the v6 held-out set (Kian approved ~CAD 20), as the model comparison.
-4. Then period 3: UI polish (discuss the look with Kian first), final review, report.
+1. Sonnet 5.5 on the v6 held-out set (Kian approved ~CAD 20), as the model comparison:
+   `TRACEWISE_JAR=$S/a7.jar python3 -I scripts/evaluate.py $S/test2.db $S/test2-alerts.txt $S/test-sonnet claude-sonnet-5-5 3`
+   (S = scratchpad sml/; rebuild a jar from HEAD first if the agent's requests changed: they did not since a7).
+2. Period 3: UI polish (discuss the look with Kian first, impeccable skill), F10 GUI details, final review,
+   fresh-clone check, class diagram and SD7/SD9, report draft, demo scripts.
+3. Unanswered: PRs vs main; installers (jpackage) after the deadline; supervisor-only finalisation (deferred).
 
 ## 3. How Kian wants the work done (standing instructions)
 

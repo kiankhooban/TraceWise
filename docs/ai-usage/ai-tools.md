@@ -33,6 +33,9 @@ dollar figure shown for development is an API-equivalent estimate, not money spe
 | 2026-10-28 | Accuracy work on IBM data: Haiku baseline and a second instruction set (66 runs), three versions on a fixed 75-alert set (225 runs) | Claude Haiku 5.5 | about 5.8 |
 | 2026-10-28 | Capability check on IBM data: 20 alerts | Claude Sonnet 5.5 | about 4.1 |
 | 2026-10-28 | Accuracy work on SAML-D: four instruction versions on a 75-alert tuning set (300 runs), v5 on a 75-alert held-out set, replay re-recordings | Claude Haiku 5.5 | about 16.5 |
+| 2026-10-28 | Model comparison started on the SAML-D held-out set before the review 10 fixes, stopped after 39 alerts (does not count) | Claude Sonnet 5.5 | about 10 |
+| 2026-10-29 | v6 instructions with the data cut at the alert: 75-alert tuning set and 75-alert held-out set (150 runs with a finding, plus runs lost to a network outage that cost nothing) | Claude Haiku 5.5 | about 3.7 |
+| 2026-10-29 | The same two sets again after `linked_alerts` stopped showing later alerts (150 runs), and the re-recorded replays | Claude Haiku 5.5 | about 3.6 |
 
 The cost per run is computed by TraceWise from token counts and the published prices (USD 0.10 in /
 0.50 out per million tokens for Haiku 5.5, converted at the Bank of Canada rate); the Anthropic Console

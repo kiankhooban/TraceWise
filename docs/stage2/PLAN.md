@@ -43,20 +43,22 @@ Finish all functionality this week; spend period 3 on a UI and UX polish (real c
   on a different, held-out sample. Then Sonnet 5.5 (the design's default model) on the same held-out sample for the
   comparison. Stage 2 report draft.
 - Nov 3 to 7 (period 3): UI and UX polish of the existing screens (no change to the pages or their structure; clean,
-  modern, bank-like; design to be discussed with Kian first, audit with the impeccable skill), final review,
-  fresh-clone check, class diagram.
+  modern, bank-like; design to be discussed with Kian first, audit with the impeccable skill), including the three
+  F10 assistant details Stage 1 promised (verification badge per claim, results table for searches, the selected
+  account as context; design change 49), final review, fresh-clone check, updated class diagram and sequence
+  diagrams SD7 and SD9 (design change 49).
 - Nov 7 to 10: freeze, demo scripts, Kian records the videos, report PDF.
 Rule: nothing may go against the Stage 1 design in a large way; any deviation is small and logged.
 
 | Feature | Status | Implemented in | Video |
 |---|---|---|---|
-| F01 Transaction Data Import | Working (CLI); GUI pending | `ingest/*`, `app/ImportService`, `persistence/SqliteTransactionRepository`, `ui/cli/ImportCli` | |
-| F02 Rule-Based Monitoring, Threshold Reporting and Alert Queue | Working (CLI); GUI pending | `monitoring/*` (six rules, `WindowedRule`, `RiskScorer`), `app/MonitoringService`, alert, register and rule-config repositories, `ui/cli/{Monitor,Alerts,ThresholdReports,Rules}Cli` | |
-| F03 Autonomous Alert Investigation | Working (CLI); GUI pending | `agent/*` (`AgentRunner`, `AgentTrace`, `InvestigationTask`), `agent/tools/*` (`ToolRegistry`, read tools), `llm/*` (retry, record, replay decorators, factory), `app/InvestigationService`, `ui/cli/InvestigateCli` | |
+| F01 Transaction Data Import | Working (CLI and GUI Alerts screen import) | `ingest/*`, `app/ImportService`, `persistence/SqliteTransactionRepository`, `ui/cli/ImportCli` | |
+| F02 Rule-Based Monitoring, Threshold Reporting and Alert Queue | Working (CLI and GUI: alert queue, register, Rules tab) | `monitoring/*` (six rules, `WindowedRule`, `RiskScorer`), `app/MonitoringService`, alert, register and rule-config repositories, `ui/cli/{Monitor,Alerts,ThresholdReports,Rules}Cli` | |
+| F03 Autonomous Alert Investigation | Working (CLI and GUI Cases screen) | `agent/*` (`AgentRunner`, `AgentTrace`, `InvestigationTask`), `agent/tools/*` (`ToolRegistry`, read tools), `llm/*` (retry, record, replay decorators, factory), `app/InvestigationService`, `ui/cli/InvestigateCli` | |
 | F04 Indicator Retrieval and Case Memory | Working (CLI and agent tools); GUI Evidence tab and Knowledge screen pending | `retrieval/*` (`Retriever`, `EmbeddingRetriever`, `CaseMemory`, `IndicatorCorpus`), `agent/tools/{SearchIndicators,SimilarCases}Tool`, `resources/tracewise/fintrac-indicators.tsv`, `ui/cli/{Indicators,Cases}Cli` | |
-| F05 Claim Verification | Working (CLI, inside `investigate`) | `verification/*` (`ClaimVerifier`, `VerificationReport`), `agent/Claim`, `agent/TotalClaim` | |
-| F06 Agent Actions and Approval Queue | Working (CLI); GUI pending; report-draft action comes with F11 | `actions/*` (`ActionCommand` and six commands, `CommandDispatcher`, `PermissionPolicy`, `ApprovalQueue`, `PendingAction`), `agent/tools/ActionTool` and six action tools, `persistence/SqliteApprovalRepository`, `ui/cli/ApprovalsCli` | |
-| F07 Autonomous Queue Triage | Working (CLI); GUI pending | `app/TriageService`, `app/TriageLimits`, `agent/TriageReport`, `ui/cli/TriageCli` | |
+| F05 Claim Verification | Working (CLI inside `investigate`, GUI claims table) | `verification/*` (`ClaimVerifier`, `VerificationReport`), `agent/Claim`, `agent/TotalClaim` | |
+| F06 Agent Actions and Approval Queue | Working (CLI and GUI Approvals screen) | `actions/*` (`ActionCommand` and six commands, `CommandDispatcher`, `PermissionPolicy`, `ApprovalQueue`, `PendingAction`), `agent/tools/ActionTool` and six action tools, `persistence/SqliteApprovalRepository`, `ui/cli/ApprovalsCli` | |
+| F07 Autonomous Queue Triage | Working (CLI and GUI, with limits and Stop) | `app/TriageService`, `app/TriageLimits`, `agent/TriageReport`, `ui/cli/TriageCli` | |
 | F08 Case Management and Audit Trail | Working (CLI and GUI) | `domain/Case`, `cases/state/*`, `persistence/SqliteCaseRepository`, `audit/AuditLog` | |
 | F09 Money-Flow Network View | Working (CLI and GUI Network tab) | `network/*` (`MoneyFlowGraph`, `AccountNode`, `FlowEdge`), `app/NetworkService`, `ui/cli/NetworkCli`, `ui/gui/NetworkView`, `resources/tracewise/smartgraph.*` | |
 | F10 Natural-Language Analyst Assistant | Working (CLI, `ask --json`); GUI Assistant panel pending | `agent/{AssistantTask,AssistantAnswer,AssistantContext,ConversationMemory,AgentJson}`, `agent/tools/{QueryCases,QueryAlerts,GetCase}Tool`, `app/AssistantService`, `ui/cli/AskCli` | |
@@ -128,6 +130,16 @@ Rule: nothing may go against the Stage 1 design in a large way; any deviation is
   Performance tab, and the IBM sampler with disjoint tuning and held-out parts. Live check: Haiku on 8 IBM alerts,
   precision 0.625 (5 of 8), all escalated, CAD 0.17. Review fixes: held-out part shared rows with the tuning part,
   verdict counts in every output, replays measured apart, failed-only models shown. 369 tests. Design changes 38 to 40.
+- 2026-10-28 to 29 (accuracy, review 10): IBM cannot test judgment (normal accounts look suspicious), so the agent is
+  measured on SAML-D (Strategy format class). Six instruction versions on fixed 75-alert sets, each alert on a fresh
+  database. Review 10: the agent saw data after its alert (fixed with `AsOfLedger`) and SAML-D amounts are GBP; all
+  figures re-measured. v6, Haiku 5.5, held-out set: 28 of 30 laundering caught, 7 of 30 false alarms cleared (0 of 30
+  before; tuning set 15 of 30). 390 tests (earlier counts included stale results of renamed test classes). Design changes 41 to 45.
+- 2026-10-29 (design audit): two Claude subagents compared the code with the Stage 1 report. Fixed: three Maven
+  modules as designed (core, cli, gui), `FaultInjectingTool` and `OpenAiCompatibleLLMClient` built, Opus selectable,
+  case view through the facade, `linked_alerts` no longer shows alerts after the cutoff. Logged the smaller
+  differences; SD7, SD9 and the F10 GUI details scheduled for period 3. Review 11: cutoff from the investigated
+  alert, worked out once; OpenAI-model replays; unknown prices flagged. 407 tests. Design changes 46 to 49.
 ## Tooling (installed 2026-10-20)
 - `jdtls-lsp` plugin with `jdtls` 1.63.0 (Homebrew): Java diagnostics and navigation.
 - `ponytail` 5.3.2: level `full`; cost ledger on, webhook off, task names not sent.

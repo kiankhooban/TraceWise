@@ -391,3 +391,35 @@ were fixed: verdict counts and a stricter recall that counts inconclusive as mis
 measured apart from live runs, models with only failed runs get a column, and turns and cost are labelled as
 covering runs with a finding. 369 tests pass.
 
+## Entry 16: Teaching the agent to clear false alarms (2026-10-28 to 2026-10-29)
+
+**Task:** Make the agent dismiss most false alarms while still catching laundering, measured on alerts it was never
+tuned on.
+
+**Input/Instruction:** Kian asked how the agent performs, whether the data was the problem, and to "try to go
+further" on clearing false alarms, keeping everything inside the Stage 1 design. Later he asked that reviews use no
+AI models other than Claude.
+
+**AI Contribution:** Diagnosed (three Claude subagents) why every IBM alert was escalated: the tools never said the
+data covers only two weeks, and IBM's normal accounts behave suspiciously, so IBM cannot test judgment. Proposed
+SAML-D, checked it against the Stage 1 report (a new class behind the existing format Strategy), added
+`SamlDCsvFormat` and a SAML-D mode to the sampler, and built `scripts/evaluate.py` (each alert on a fresh database,
+fixed alert lists). Rewrote the investigation instructions over six versions, keeping only what the numbers
+supported: describe the account's usual activity, ask whether the flagged activity is new for it, check where the
+money came from, and treat long-standing routine as a legitimate explanation.
+
+**Human Contribution:** Rejected making up data, required every change to fit Stage 1, chose Haiku first and
+Sonnet last as the comparison, and approved the spend.
+
+**Outcome:** The tenth `deep-code-review` (Claude reviewers only, one validator per finding) found two serious
+problems: the agent could read transactions from after its alert (one account had 122 of 149 transactions later),
+and SAML-D amounts are in pounds whatever the payment currency, so 10% of laundering rows had been dropped. Both were
+fixed test-first (`AsOfLedger` cuts the data at the alert), the earlier SAML-D figures were discarded and everything
+was re-measured. A design audit then found `linked_alerts` still showed alerts raised after the cutoff (66 of 75
+held-out runs); after that fix (0 of 150 runs) the final v6, Haiku 5.5: on the tuning set 27 of 30 laundering
+caught and 15 of 30 false alarms cleared; on the held-out set 28 of 30 caught (one missed, one inconclusive) and 7
+of 30 cleared, against 0 of 30 before. The drop from 15 to 7 shows much of the tuning gain does not carry over. On the sample data the re-recorded triage escalates three of the four planted schemes and leaves the fan-out one inconclusive. A second audit (two Claude subagents) compared the code with the Stage 1 report: the three
+Maven modules, `FaultInjectingTool`, `OpenAiCompatibleLLMClient` and Opus were missing; Kian chose to build them all
+(design changes 46 to 49). Review 11 then found the cutoff came from the case's opening alert, not the investigated
+one, and four smaller problems; all fixed test-first. 407 tests pass (earlier counts in this log from Entry 11 on
+included up to 9 stale results from renamed test classes).
