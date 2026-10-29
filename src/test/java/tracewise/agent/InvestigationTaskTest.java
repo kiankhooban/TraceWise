@@ -106,10 +106,26 @@ class InvestigationTaskTest {
                 InvestigationTask.SYSTEM_PROMPT);
     }
 
+    /**
+     * SAML-D baseline: the agent escalated all 75 alerts, clean ones included, because dismissing needed "a clear
+     * legitimate explanation" and an account's own long-standing habits never counted as one.
+     */
+    @Test
+    void theAgentComparesTheFlaggedActivityWithTheAccountsOwnHistory() {
+        String prompt = InvestigationTask.SYSTEM_PROMPT;
+        assertTrue(prompt.contains("new for this account"), prompt);
+        assertTrue(prompt.contains("Long-standing routine is a legitimate explanation"), prompt);
+        assertFalse(prompt.contains("DISMISS when there is a clear legitimate explanation"), prompt);
+        // SAML-D v4: structuring and deposit-send seen through fan-out alerts were dismissed as routine payments
+        assertTrue(prompt.contains("where the money came from"), prompt);
+        assertTrue(prompt.contains("original currency"), prompt);
+    }
+
     /** IBM baseline: the agent read the edges of two weeks of data as facts about the account. */
     @Test
     void theInstructionsSayTheDataCoversOnlyItsDates() {
         assertTrue(InvestigationTask.SYSTEM_PROMPT.contains("data_covers"), InvestigationTask.SYSTEM_PROMPT);
         assertTrue(InvestigationTask.SYSTEM_PROMPT.contains("money held before the data starts"));
+        assertTrue(InvestigationTask.SYSTEM_PROMPT.contains("ends at the alert"), "review 10: no hindsight");
     }
 }

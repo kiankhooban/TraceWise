@@ -52,6 +52,8 @@ public class LinkedAlertsTool implements AgentTool {
         }
         var rows = alerts.find(AlertFilter.ALL).stream()
                 .filter(a -> a.status() != AlertStatus.CLOSED && related.contains(a.accountId()))
+                // during an investigation the ledger hides later transactions, so a later alert is hidden too
+                .filter(a -> a.transactionIds().stream().allMatch(id -> ledger.findTransaction(id).isPresent()))
                 .sorted(java.util.Comparator.comparing(Alert::id)).map(this::row).toList();
         var result = new LinkedHashMap<String, Object>();
         result.put("account_id", account);

@@ -25,6 +25,11 @@ public class ActionScope {
         caseId = null;
     }
 
+    /** The case under investigation, or empty when no investigation is running. */
+    public java.util.Optional<String> currentCase() {
+        return java.util.Optional.ofNullable(caseId);
+    }
+
     /** Why the agent may not submit this command now, or null if it may. */
     String problemWith(ActionCommand command) {
         String current = caseId;

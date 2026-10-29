@@ -163,4 +163,42 @@ class SchemeSamplerTest {
             }
         }
     }
+
+    /**
+     * Review 10: the held-out SAML-D part must share no row and no chosen account with the tuning part, even when
+     * laundering groups trade with each other or with the same accounts (A-B-K is one group by a chain of transfers).
+     */
+    @Test
+    void samlDPartsShareNoRowAndNoChosenAccount() throws Exception {
+        transactions = Files.write(dir.resolve("p.csv"), List.of(SAMLD_HEADER, samld("A", "B", 1), samld("K", "B", 1),
+                samld("C", "D", 1), samld("E", "F", 1), samld("G", "H", 1), samld("L", "M", 1), samld("B", "C", 0),
+                samld("F", "N", 0), samld("H", "N", 0), samld("N", "O", 0), samld("P", "Q", 0), samld("R", "S", 0),
+                samld("T", "U", 0), samld("V", "W", 0)));
+        int checked = 0;
+        for (long seed = 1; seed <= 40; seed++) {
+            SchemeSampler.Sample one;
+            SchemeSampler.Sample two;
+            try {
+                one = SchemeSampler.sampleSamlD(transactions, dir.resolve("a" + seed), 1, 1, 1, seed);
+                two = SchemeSampler.sampleSamlD(transactions, dir.resolve("b" + seed), 1, 1, 2, seed);
+            } catch (IllegalArgumentException e) {
+                continue; // this order ran out of candidates far enough from part 1
+            }
+            checked++;
+            if (one.schemeAccounts().contains("A")) {
+                assertEquals(java.util.Set.of("A", "B", "K"), one.schemeAccounts(), "a chain of transfers is one group");
+            }
+            var rowsOne = new HashSet<>(rows(one.file()).subList(1, rows(one.file()).size()));
+            var chosenTwo = new HashSet<>(two.schemeAccounts());
+            chosenTwo.addAll(two.otherAccounts());
+            for (String line : rows(two.file()).subList(1, rows(two.file()).size())) {
+                assertFalse(rowsOne.contains(line), "seed " + seed + ": " + line);
+            }
+            for (String line : rowsOne) {
+                String[] f = line.split(",");
+                assertFalse(chosenTwo.contains(f[2]) || chosenTwo.contains(f[3]), "seed " + seed + ": " + line);
+            }
+        }
+        assertTrue(checked >= 20, "only " + checked + " seeds could be checked");
+    }
 }

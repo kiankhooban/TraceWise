@@ -191,11 +191,16 @@ class PerformanceServiceTest {
     void aCleanAlertOnAnAccountThatLaundersElsewhereIsCountedApart() {
         caseFor(alert("R4", "A1"), finding(Verdict.ESCALATE));
         caseFor(alert("R4", "N1"), finding(Verdict.ESCALATE));
+        caseFor(alert("R5", "A1"), finding(Verdict.DISMISS));
+        caseFor(alert("R6", "A1"), finding(Verdict.INCONCLUSIVE));
 
         var m = service.compute(MetricsFilter.ALL);
 
         assertEquals(1, m.falsePositives(), "only the clean alert on a clean account");
+        assertEquals(0, m.trueNegatives(), "a dismissal on an account that launders elsewhere is not a true negative");
         assertEquals(1, m.unclearEscalated());
+        assertEquals(1, m.unclearDismissed());
+        assertEquals(1, m.unclearInconclusive());
         assertMeasure(0.0, 1, m.precision());
         var row = m.rows().stream().filter(r -> r.metric().equals("escalated, clean alert on a laundering account"))
                 .findFirst().orElseThrow();

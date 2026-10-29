@@ -156,6 +156,50 @@ class InvestigationServiceTest {
         assertEquals(1, audit.query(new AuditFilter("INVESTIGATION_STARTED", structuring.id())).size());
     }
 
+    /** Review 10: the agent's tools see the account as it stood at the alert, not months of later activity. */
+    @Test
+    void theAgentSeesNoTransactionAfterTheAlertsLastFlaggedOne() {
+        var flagged = structuring.transactionIds().stream().map(id -> transactions.findTransaction(id).orElseThrow())
+                .map(tracewise.domain.Transaction::timestamp).max(java.util.Comparator.naturalOrder()).orElseThrow();
+        transactions.saveAll(List.of(new tracewise.domain.Transaction("TX-LATER", flagged.plus(java.time.Duration.ofDays(30)),
+                structuring.accountId(), "EXT-9999", new BigDecimal("500"), new BigDecimal("500"), "CAD",
+                tracewise.domain.PaymentChannel.WIRE, "CA", false)));
+        model.then(AgentRunnerTest.toolCall("account_history", "{\"account_id\":\"" + structuring.accountId() + "\"}"))
+                .then(AgentRunnerTest.answer(finding()));
+        var listener = new Steps();
+
+        service().investigate(structuring.id(), listener);
+
+        String seen = listener.steps.get(0).result();
+        assertFalse(seen.contains("TX-LATER"), seen);
+        assertTrue(seen.contains(structuring.transactionIds().get(0)), seen);
+    }
+
+    /**
+     * Found in the design audit after review 10: linked_alerts listed alerts raised on transactions after the cutoff,
+     * so the agent still learned what the account did next (66 of 75 held-out runs).
+     */
+    @Test
+    void theAgentSeesNoAlertRaisedAfterTheAlertsLastFlaggedTransaction() {
+        var flagged = structuring.transactionIds().stream().map(id -> transactions.findTransaction(id).orElseThrow())
+                .map(tracewise.domain.Transaction::timestamp).max(java.util.Comparator.naturalOrder()).orElseThrow();
+        transactions.saveAll(List.of(new tracewise.domain.Transaction("TX-LATER", flagged.plus(java.time.Duration.ofDays(30)),
+                structuring.accountId(), "EXT-9999", new BigDecimal("500"), new BigDecimal("500"), "CAD",
+                tracewise.domain.PaymentChannel.WIRE, "CA", false)));
+        alerts.save(new Alert(null, "R6", structuring.accountId(), List.of("TX-LATER"), new BigDecimal("500"), 50, 2,
+                tracewise.domain.AlertStatus.NEW, flagged.plus(java.time.Duration.ofDays(30))));
+        String later = alerts.find(new AlertFilter("R6", null, null)).stream()
+                .filter(a -> a.transactionIds().equals(List.of("TX-LATER"))).findFirst().orElseThrow().id();
+        model.then(AgentRunnerTest.toolCall("linked_alerts", historyCall())).then(AgentRunnerTest.answer(finding()));
+        var listener = new Steps();
+
+        service().investigate(structuring.id(), listener);
+
+        String seen = listener.steps.get(0).result();
+        assertFalse(seen.contains(later), seen);
+        assertTrue(seen.contains(structuring.id()), seen);
+    }
+
     @Test
     void failedModelLeavesTheAlertOpenForAnotherTry() {
         model.then(new LLMException("overloaded", true, null));

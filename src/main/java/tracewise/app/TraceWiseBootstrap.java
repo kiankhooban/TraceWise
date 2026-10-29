@@ -1,5 +1,9 @@
 package tracewise.app;
 
+import tracewise.domain.Transaction;
+import tracewise.agent.tools.AsOfLedger;
+import java.util.Optional;
+import java.util.Comparator;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.function.Supplier;
@@ -143,10 +147,15 @@ public final class TraceWiseBootstrap {
             CaseRepository cases, Retriever indicators, CaseMemory memory, CommandDispatcher dispatcher,
             ActionScope scope) {
         var tools = new ToolRegistry();
-        tools.register(new AccountHistoryTool(transactions));
-        tools.register(new WindowAggregateTool(transactions));
-        tools.register(new CounterpartiesTool(transactions));
-        tools.register(new LinkedAlertsTool(transactions, alerts, cases));
+        // an investigation sees the data as it stood at its alert's last flagged transaction
+        var asOf = new AsOfLedger(transactions, () -> scope.currentCase().flatMap(cases::findById)
+                .flatMap(c -> alerts.findById(c.openingAlertId()))
+                .flatMap(a -> a.transactionIds().stream().map(transactions::findTransaction).flatMap(Optional::stream)
+                        .map(Transaction::timestamp).max(Comparator.naturalOrder())));
+        tools.register(new AccountHistoryTool(asOf));
+        tools.register(new WindowAggregateTool(asOf));
+        tools.register(new CounterpartiesTool(asOf));
+        tools.register(new LinkedAlertsTool(asOf, alerts, cases));
         tools.register(new SearchIndicatorsTool(indicators));
         tools.register(new SimilarCasesTool(memory));
         tools.register(new QueryCasesTool(cases, alerts));

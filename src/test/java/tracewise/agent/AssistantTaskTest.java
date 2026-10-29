@@ -87,4 +87,10 @@ class AssistantTaskTest {
         assertNotNull(task.outputProblem("```json\n{\"kind\": \"MAYBE\", \"answer\": \"a\", \"cited_transactions\": []}\n```"));
         assertNotNull(task.outputProblem("Just prose."));
     }
+
+    /** Review 10: the assistant shares the read tools, so it must not read the edges of the data as facts either. */
+    @Test
+    void theAssistantKnowsTheDataCoversOnlyItsDates() {
+        assertTrue(AssistantTask.SYSTEM_PROMPT.contains("data_covers"), AssistantTask.SYSTEM_PROMPT);
+    }
 }

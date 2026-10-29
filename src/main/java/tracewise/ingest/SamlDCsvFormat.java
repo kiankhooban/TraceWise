@@ -16,21 +16,15 @@ import tracewise.domain.Transaction;
 /**
  * SAML-D layout (Oztas et al., IEEE ICEBE 2023; CC BY-NC-SA 4.0): a UK bank's transactions with 11 normal and 17
  * suspicious typologies. The bank is in the UK, so UK counterparties are domestic. Cash rows name two accounts; the
- * cash counter replaces the one that handed over or took the cash, as in the scenario format. The typology column
- * is never kept: it names the answer.
+ * cash counter replaces the one that handed over or took the cash, as in the scenario format. Amounts are in pounds
+ * whatever the payment currency, so no row is rejected for its currency. The typology column is never kept: it names
+ * the answer.
  */
 public class SamlDCsvFormat implements TransactionFormat {
 
     static final List<String> HEADER = List.of("Time", "Date", "Sender_account", "Receiver_account", "Amount",
             "Payment_currency", "Received_currency", "Sender_bank_location", "Receiver_bank_location", "Payment_type",
             "Is_laundering", "Laundering_type");
-
-    private static final Map<String, String> CURRENCY_CODES = Map.ofEntries(
-            Map.entry("UK pounds", "GBP"), Map.entry("Euro", "EUR"), Map.entry("Turkish lira", "TRY"),
-            Map.entry("Swiss franc", "CHF"), Map.entry("Dirham", "AED"), Map.entry("Pakistani rupee", "PKR"),
-            Map.entry("Naira", "NGN"), Map.entry("US dollar", "USD"), Map.entry("Yen", "JPY"),
-            Map.entry("Moroccan dirham", "MAD"), Map.entry("Mexican Peso", "MXN"), Map.entry("Albanian lek", "ALL"),
-            Map.entry("Indian rupee", "INR"));
 
     private static final Map<String, String> COUNTRY_CODES = Map.ofEntries(
             Map.entry("Pakistan", "PK"), Map.entry("Austria", "AT"), Map.entry("Albania", "AL"), Map.entry("Japan", "JP"),
@@ -45,6 +39,9 @@ public class SamlDCsvFormat implements TransactionFormat {
             "Cash Withdrawal", PaymentChannel.CASH);
 
     private static final String HOME = "UK";
+
+    /** Amount is in pounds whatever Payment_currency says: its mean is about 10,000 for every currency. */
+    private static final String AMOUNT_CURRENCY = "GBP";
 
     private final CurrencyConverter converter;
 
@@ -87,10 +84,6 @@ public class SamlDCsvFormat implements TransactionFormat {
         if (amount.signum() <= 0) {
             throw new IllegalArgumentException("amount must be positive");
         }
-        String currency = CURRENCY_CODES.get(row.get(5));
-        if (currency == null) {
-            throw new IllegalArgumentException("unknown currency: " + row.get(5));
-        }
         PaymentChannel channel = CHANNELS.get(row.get(9));
         if (channel == null) {
             throw new IllegalArgumentException("unknown payment type: " + row.get(9));
@@ -101,7 +94,7 @@ public class SamlDCsvFormat implements TransactionFormat {
         String sender = row.get(9).equals("Cash Deposit") ? Transaction.CASH : row.get(2);
         String receiver = row.get(9).equals("Cash Withdrawal") ? Transaction.CASH : row.get(3);
         return new Transaction(derivedId(row, rowNumber), when.toInstant(ZoneOffset.UTC), sender, receiver,
-                converter.toCad(amount, currency), amount, currency, channel, foreignCountry(row),
+                converter.toCad(amount, AMOUNT_CURRENCY), amount, AMOUNT_CURRENCY, channel, foreignCountry(row),
                 "1".equals(row.get(10)));
     }
 

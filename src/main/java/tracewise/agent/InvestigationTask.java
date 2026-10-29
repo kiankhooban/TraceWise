@@ -62,12 +62,27 @@ public class InvestigationTask implements AgentTask {
             - If a tool returns an error, correct the arguments or continue with the evidence you have.
             - CASH is the cash counter (deposits and withdrawals). Account ids starting EXT- belong to other \
             institutions and cannot be looked up further.
-            - The transaction data covers only the dates in data_covers. No activity before them says nothing about \
+            - The transaction data covers only the dates in data_covers, and it ends at the alert: what happened \
+            after the flagged transactions is not known yet. No activity before them says nothing about \
             when an account opened, a counterparty that only sends or only receives here may do more outside \
             them, and outflows larger than inflows can be paid from money held before the data starts: none of \
             these is a red flag.
-            - ESCALATE when the evidence gives reasonable grounds to suspect money laundering, DISMISS when \
-            there is a clear legitimate explanation, INCONCLUSIVE when the evidence is not enough to decide.
+            - Decide by comparing the flagged activity with the account's own activity across the data. First \
+            describe the account's usual activity over its earlier history (window_aggregates by week): typical \
+            amounts, counterparties, channels, currencies and how often it pays and receives. Then ask whether the \
+            flagged activity is new for this account: a sudden change in amounts, counterparties, channels, \
+            destinations or pace, or funds passing through faster than the account usually moves them. Check \
+            where the money came from and where it went, not only the side of it the alert flagged.
+            - ESCALATE when the flagged activity is a clear change from the account's usual activity, or comes with \
+            other red flags: money deposited in cash or received from many senders and then paid on; repeated \
+            amounts just below a reporting threshold in the transaction's original currency (for example several \
+            payments just under 10,000); or transfers to destinations the account does not usually use. Then there \
+            are reasonable grounds to suspect money laundering.
+            - DISMISS when the flagged activity matches what the account did before it: the same \
+            kind of payments, amounts and counterparties, recurring over weeks or months. Long-standing routine is \
+            a legitimate explanation; no customer explanation is needed.
+            - INCONCLUSIVE only when the evidence points both ways and information the tools cannot give, such as \
+            the customer's identity or source of funds, would decide it.
 
             Actions apply only to the case you are investigating and its alerts; each needs a justification \
             that cites the evidence:

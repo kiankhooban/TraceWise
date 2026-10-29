@@ -4,8 +4,11 @@ database and scored with F12 (`tracewise metrics`).
 
 Usage: python3 -I scripts/evaluate.py <monitored.db> <alerts.txt> <out-dir> <model> [parallel]
 Run from the repository root (the CLI reads .env there); build first with ./mvnw -q package -DskipTests,
-or set TRACEWISE_JAR to a saved build.
+or set TRACEWISE_JAR to a saved build. Running again into the same out-dir repeats only the alerts whose
+run left no finding (a failed model call, for example).
 """
+import hashlib
+import json
 import os
 import shutil
 import sqlite3
@@ -21,9 +24,26 @@ out.mkdir(parents=True, exist_ok=True)
 # TRACEWISE_JAR lets a saved build keep running while the tree is rebuilt
 jar = Path(os.environ.get("TRACEWISE_JAR", "target/tracewise.jar")).resolve()
 
+# a resumed run must come from the same build (the prompt is compiled into it) and model, or versions would mix
+run = {"model": model, "jar_sha256": hashlib.sha256(jar.read_bytes()).hexdigest()}
+run_file = out / "run.json"
+if run_file.exists() and json.loads(run_file.read_text()) != run:
+    sys.exit(f"{out} holds a run of another build or model ({run_file}); use a new out-dir")
+run_file.write_text(json.dumps(run))
+
+
+def has_finding(alert):
+    db = out / f"{alert}.db"
+    if not db.exists():
+        return False
+    with sqlite3.connect(db) as s:
+        return s.execute("SELECT COUNT(*) FROM findings").fetchone()[0] > 0
+
 
 def investigate(alert):
     db = out / f"{alert}.db"
+    if has_finding(alert):  # resume: a re-run only repeats alerts whose run left no finding
+        return alert, 0
     shutil.copy(base, db)
     log = subprocess.run(["java", "-jar", str(jar), "--db", str(db), "--model", model, "investigate", alert],
                          capture_output=True, text=True)
@@ -33,7 +53,7 @@ def investigate(alert):
 
 with ThreadPoolExecutor(parallel) as pool:
     for alert, code in pool.map(investigate, alerts):
-        print(alert, "ok" if code == 0 else f"exit {code}", flush=True)
+        print(alert, f"exit {code}" if code != 0 else "ok" if has_finding(alert) else "no finding", flush=True)
 
 merged = out / "merged.db"
 shutil.copy(base, merged)
@@ -54,7 +74,7 @@ for alert in alerts:
         runs += 1
     s.close()
 m.commit()
-# self-check: one finished run per alert, and no more findings than runs
+# self-check: one finished run per alert (a resumed alert keeps only its last run), no more findings than runs
 assert runs == len(alerts), f"{runs} finished runs for {len(alerts)} alerts"
 assert findings <= runs
 print(f"merged {findings} findings from {runs} runs into {merged}")

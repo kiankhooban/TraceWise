@@ -81,13 +81,25 @@ class SamlDCsvFormatTest {
     }
 
     @Test
-    void theTypologyIsNeverKeptAndUnpublishedCurrenciesAreRejected() {
+    void theTypologyIsNeverKept() {
         var t = parse("10:35:19,2022-10-07,1,2,5.00,UK pounds,UK pounds,UK,UK,ACH,1,Structuring");
         assertFalse(t.toString().contains("Structuring"), "the typology names the answer");
         assertEquals(PaymentChannel.ACH, t.channel());
+    }
 
-        var e = assertThrows(IllegalArgumentException.class,
-                () -> parse("10:35:19,2022-10-07,1,2,5.00,Naira,Naira,Nigeria,UK,Cross-border,0,Normal_Fan_In"));
-        assertTrue(e.getMessage().contains("NGN"), e.getMessage());
+    /**
+     * Found in review 10: SAML-D's Amount is in pounds whatever the payment currency (its mean is about 10,000 for
+     * every currency), so a yen or naira row is converted from GBP and never rejected for its currency.
+     */
+    @Test
+    void theAmountIsInPoundsWhateverThePaymentCurrency() {
+        var yen = parse("10:35:19,2022-10-07,1,2,1000.00,Yen,Yen,UK,Japan,Cross-border,0,Normal_Fan_Out");
+        var naira = parse("10:35:19,2022-10-07,1,2,1000.00,Naira,Naira,Nigeria,UK,Cross-border,0,Normal_Fan_In");
+
+        assertEquals("GBP", yen.currency());
+        assertEquals(0, new BigDecimal("1881.00").compareTo(yen.amountCad()), yen.amountCad().toString());
+        assertEquals("JP", yen.counterpartyCountry());
+        assertEquals(0, new BigDecimal("1881.00").compareTo(naira.amountCad()));
+        assertEquals("NG", naira.counterpartyCountry());
     }
 }
