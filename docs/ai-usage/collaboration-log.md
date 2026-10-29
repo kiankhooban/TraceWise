@@ -418,7 +418,9 @@ fixed test-first (`AsOfLedger` cuts the data at the alert), the earlier SAML-D f
 was re-measured. A design audit then found `linked_alerts` still showed alerts raised after the cutoff (66 of 75
 held-out runs); after that fix (0 of 150 runs) the final v6, Haiku 5.5: on the tuning set 27 of 30 laundering
 caught and 15 of 30 false alarms cleared; on the held-out set 28 of 30 caught (one missed, one inconclusive) and 7
-of 30 cleared, against 0 of 30 before. The drop from 15 to 7 shows much of the tuning gain does not carry over. On the sample data the re-recorded triage escalates three of the four planted schemes and leaves the fan-out one inconclusive. A second audit (two Claude subagents) compared the code with the Stage 1 report: the three
+of 30 cleared, against 0 of 30 before. The drop from 15 to 7 shows much of the tuning gain does not carry over.
+Sonnet 5.5 (the design's default) on the same held-out set caught 27 of 30 and cleared 19 of 30, at about ten
+times the cost per alert (CAD 0.26 against 0.02): the instructions work, and the stronger model applies them better. On the sample data the re-recorded triage escalates three of the four planted schemes and leaves the fan-out one inconclusive. A second audit (two Claude subagents) compared the code with the Stage 1 report: the three
 Maven modules, `FaultInjectingTool`, `OpenAiCompatibleLLMClient` and Opus were missing; Kian chose to build them all
 (design changes 46 to 49). Review 11 then found the cutoff came from the case's opening alert, not the investigated
 one, and four smaller problems; all fixed test-first. 407 tests pass (earlier counts in this log from Entry 11 on

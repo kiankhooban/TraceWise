@@ -134,7 +134,7 @@ Rule: nothing may go against the Stage 1 design in a large way; any deviation is
   measured on SAML-D (Strategy format class). Six instruction versions on fixed 75-alert sets, each alert on a fresh
   database. Review 10: the agent saw data after its alert (fixed with `AsOfLedger`) and SAML-D amounts are GBP; all
   figures re-measured. v6, Haiku 5.5, held-out set: 28 of 30 laundering caught, 7 of 30 false alarms cleared (0 of 30
-  before; tuning set 15 of 30). 390 tests (earlier counts included stale results of renamed test classes). Design changes 41 to 45.
+  before; tuning set 15 of 30). Sonnet 5.5 on the held-out set: 27 of 30 caught, 19 of 30 cleared, CAD 0.26 per alert. 390 tests (earlier counts included stale results of renamed test classes). Design changes 41 to 45.
 - 2026-10-29 (design audit): two Claude subagents compared the code with the Stage 1 report. Fixed: three Maven
   modules as designed (core, cli, gui), `FaultInjectingTool` and `OpenAiCompatibleLLMClient` built, Opus selectable,
   case view through the facade, `linked_alerts` no longer shows alerts after the cutoff. Logged the smaller

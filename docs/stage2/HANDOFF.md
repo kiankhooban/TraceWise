@@ -83,9 +83,7 @@ pattern classes (done), F10 assistant GUI details (badges, results table, accoun
 Logged as design changes 46 to 49; SD7, SD9 and the class diagram are redrawn in period 3.
 
 NEXT, in order:
-1. Sonnet 5.5 on the v6 held-out set (Kian approved ~CAD 20), as the model comparison:
-   `TRACEWISE_JAR=$S/a7.jar python3 -I scripts/evaluate.py $S/test2.db $S/test2-alerts.txt $S/test-sonnet claude-sonnet-5-5 3`
-   (S = scratchpad sml/; rebuild a jar from HEAD first if the agent's requests changed: they did not since a7).
+1. DONE: Sonnet 5.5 on the v6 held-out set: 27 of 30 caught, 19 of 30 cleared, CAD 19.5 total (0.26 per alert).
 2. Period 3: UI polish (discuss the look with Kian first, impeccable skill), F10 GUI details, final review,
    fresh-clone check, class diagram and SD7/SD9, report draft, demo scripts.
 3. Unanswered: PRs vs main; installers (jpackage) after the deadline; supervisor-only finalisation (deferred).
