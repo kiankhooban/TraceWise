@@ -43,6 +43,8 @@ final class CaseView implements AgentEventListener {
     private final ComboBox<String> statusFilter = new ComboBox<>();
     private final Label title = new Label("Select a case");
     private final Label subtitle = new Label();
+    private final javafx.scene.layout.GridPane facts = new javafx.scene.layout.GridPane();
+    private final java.util.Map<String, CaseStatus> statusByLabel = new java.util.LinkedHashMap<>();
     private final Button investigate = new Button("Investigate");
     private final Button cancel = new Button("Cancel");
     private final VBox finding = new VBox(8);
@@ -71,16 +73,18 @@ final class CaseView implements AgentEventListener {
     Node build() {
         statusFilter.getItems().add(ALL);
         for (CaseStatus s : CaseStatus.values()) {
-            statusFilter.getItems().add(s.name());
+            statusByLabel.put(Display.label(s), s);
+            statusFilter.getItems().add(Display.label(s));
         }
         statusFilter.setValue(ALL);
         statusFilter.setOnAction(e -> refresh());
-        var reload = new Button("Refresh");
-        reload.setOnAction(e -> refresh());
-        var listBar = new HBox(8, new Label("Status"), statusFilter, reload);
+        var listBar = new HBox(8, Gui.label("State", "muted"), statusFilter, Gui.button("Refresh  F5", this::refresh));
+        listBar.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         listBar.getStyleClass().add("toolbar");
-        cases.getColumns().setAll(List.of(Gui.column("Case", Case::id, 85), Gui.column("Status", Case::status, 150),
-                Gui.column("Verdict", c -> c.latestFinding() == null ? "" : c.latestFinding().verdict(), 105)));
+        cases.getColumns().setAll(List.of(Gui.column("Case", Case::id, 92, "mono"),
+                Gui.column("State", c -> Display.label(c.status()), 112),
+                Gui.styled("Finding", c -> c.latestFinding() == null ? "" : c.latestFinding().verdict() + " " + c.latestFinding().confidence(),
+                        c -> c.latestFinding() == null ? null : "verdict-" + c.latestFinding().verdict(), 128, "mono")));
         cases.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         cases.setPlaceholder(new Label("No cases yet. Investigate an alert."));
         cases.getSelectionModel().selectedItemProperty().addListener((o, old, c) -> {
@@ -89,10 +93,10 @@ final class CaseView implements AgentEventListener {
             }
         });
         var left = new BorderPane(cases);
-        left.setTop(listBar);
-        left.setMinWidth(340);
+        left.setTop(new VBox(Gui.panelHead("CASE", "Cases"), listBar));
+        left.setMinWidth(300);
 
-        title.getStyleClass().add("section-title");
+        title.getStyleClass().addAll("section-title", "mono");
         subtitle.getStyleClass().add("muted");
         investigate.getStyleClass().add("primary");
         investigate.setDisable(true);
@@ -118,20 +122,28 @@ final class CaseView implements AgentEventListener {
                 return id;
             }, this::changed));
         });
+        investigate.setText("Investigate  F2");
+        investigate.setMinWidth(Region.USE_PREF_SIZE);
+        for (var b : List.of(cancel, close, reopen)) {
+            b.setMinWidth(Region.USE_PREF_SIZE);
+        }
         var buttons = new HBox(8, investigate, cancel, spacer, close, reopen);
-        var header = new VBox(4, title, subtitle, buttons);
-        header.getStyleClass().add("toolbar");
+        facts.getStyleClass().add("facts");
+        var header = new VBox(8, new HBox(12, title, subtitle), facts, buttons);
+        header.setPadding(new Insets(12, 14, 10, 14));
+        header.setStyle("-fx-border-color: transparent transparent -tw-line transparent;");
 
-        steps.getColumns().setAll(List.of(Gui.column("Turn", TraceStep::turn, 45), Gui.column("Tool", TraceStep::toolName, 140),
-                Gui.column("Arguments", s -> oneLine(s.arguments(), 160), 260),
-                Gui.column("Result", s -> (s.error() ? "ERROR: " : "") + oneLine(s.result(), 300), 420),
-                Gui.column("ms", TraceStep::durationMs, 55)));
+        steps.getColumns().setAll(List.of(Gui.column("Turn", TraceStep::turn, 48, "mono", "num"),
+                Gui.column("Tool", TraceStep::toolName, 150, "mono"),
+                Gui.column("Arguments", s -> oneLine(s.arguments(), 160), 250, "mono", "muted"),
+                Gui.styled("Result", s -> (s.error() ? "ERROR " : "") + oneLine(s.result(), 300), s -> s.error() ? "bad" : null, 420, "mono"),
+                Gui.column("ms", TraceStep::durationMs, 60, "mono", "num", "muted")));
         steps.setPlaceholder(new Label("No agent steps."));
-        indicators.getColumns().setAll(List.of(Gui.column("Score", RetrievedPassage::score, 60),
+        indicators.getColumns().setAll(List.of(Gui.column("Score", p -> String.format("%.3f", p.score()), 64, "mono", "num"),
                 Gui.column("FINTRAC indicator", RetrievedPassage::text, 520), Gui.column("Source", RetrievedPassage::source, 300)));
         indicators.setPlaceholder(new Label("The agent retrieved no indicators."));
-        similar.getColumns().setAll(List.of(Gui.column("Score", RetrievedPassage::score, 60),
-                Gui.column("Case", RetrievedPassage::source, 90), Gui.column("Decision and summary", RetrievedPassage::text, 720)));
+        similar.getColumns().setAll(List.of(Gui.column("Score", p -> String.format("%.3f", p.score()), 64, "mono", "num"),
+                Gui.column("Case", RetrievedPassage::source, 92, "mono"), Gui.column("Decision and summary", RetrievedPassage::text, 720)));
         similar.setPlaceholder(new Label("No similar past case."));
         var evidence = new VBox(6, new Label("Indicators retrieved"), indicators, new Label("Similar past cases"), similar);
         VBox.setVgrow(indicators, Priority.ALWAYS);
@@ -147,15 +159,19 @@ final class CaseView implements AgentEventListener {
         notesPane.setBottom(new HBox(6, noteText, addNote));
         notesPane.setPadding(new Insets(8));
         notes.setPlaceholder(new Label("No notes yet."));
-        history.getColumns().setAll(List.of(Gui.column("Time (UTC)", tracewise.audit.AuditEntry::timestamp, 125),
-                Gui.column("Who", e -> e.actor().name(), 120), Gui.column("Event", tracewise.audit.AuditEntry::eventType, 150),
-                Gui.column("Target", tracewise.audit.AuditEntry::target, 90),
+        history.getColumns().setAll(List.of(Gui.column("Time UTC", tracewise.audit.AuditEntry::timestamp, 140, "mono", "muted"),
+                Gui.column("Actor", e -> e.actor().type() + " " + e.actor().name(), 170, "mono"),
+                Gui.column("Event", tracewise.audit.AuditEntry::eventType, 170, "mono"),
+                Gui.column("Target", tracewise.audit.AuditEntry::target, 96, "mono"),
                 Gui.column("Details", e -> oneLine(e.details(), 200), 480)));
         var reportPane = new javafx.scene.control.ScrollPane(report.build());
         reportPane.setFitToWidth(true);
         detail.getTabs().setAll(new Tab("Finding", new javafx.scene.control.ScrollPane(finding)), new Tab("Agent steps", steps),
                 new Tab("Evidence", evidence), new Tab("Tasks", tasks), new Tab("Notes", notesPane),
                 new Tab("Network", network.build()), new Tab("Report", reportPane), new Tab("History", history));
+        for (int i = 0; i < detail.getTabs().size(); i++) {
+            detail.getTabs().get(i).setGraphic(Gui.label(String.valueOf(i + 1), "muted", "mono"));
+        }
         detail.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         ((javafx.scene.control.ScrollPane) detail.getTabs().get(0).getContent()).setFitToWidth(true);
         var right = new BorderPane(detail);
@@ -163,9 +179,7 @@ final class CaseView implements AgentEventListener {
 
         var split = new SplitPane(left, right);
         split.setDividerPositions(0.34);
-        var root = new BorderPane(split);
-        root.setPadding(new Insets(10));
-        return root;
+        return split;
     }
 
     /** The case on screen, or null: the assistant's context. */
@@ -181,7 +195,7 @@ final class CaseView implements AgentEventListener {
     void refresh() {
         String status = statusFilter.getValue();
         gui.run("Loading cases", gui.facade::listCases, all -> {
-            cases.getItems().setAll(all.stream().filter(c -> ALL.equals(status) || c.status().name().equals(status)).toList());
+            cases.getItems().setAll(all.stream().filter(c -> ALL.equals(status) || c.status() == statusByLabel.get(status)).toList());
             if (shown != null) {
                 showCase(shown.id());
             } else if (!cases.getItems().isEmpty()) {
@@ -270,8 +284,10 @@ final class CaseView implements AgentEventListener {
 
     private void show(Case c) {
         shown = c;
-        title.setText(c.id() + "   " + c.status());
-        subtitle.setText("Alerts " + String.join(", ", c.alertIds()) + "   opened " + Gui.text(c.openedAt()) + " UTC");
+        title.setText(c.id());
+        subtitle.setText(Display.label(c.status()) + "   alerts " + String.join(", ", c.alertIds()) + "   opened "
+                + Gui.text(c.openedAt()) + " UTC");
+        showFacts(c);
         investigate.setDisable(running != null || decided(c));
         close.setDisable(running != null || c.status() == CaseStatus.CLOSED || c.status() == CaseStatus.ESCALATED);
         reopen.setDisable(running != null || c.status() != CaseStatus.CLOSED);
@@ -303,25 +319,61 @@ final class CaseView implements AgentEventListener {
         var byScore = java.util.Comparator.comparingDouble(RetrievedPassage::score).reversed();
         indicators.getItems().setAll(gui.facade.retrievedIndicators(f).stream().sorted(byScore).toList());
         similar.getItems().setAll(gui.facade.retrievedSimilarCases(f).stream().sorted(byScore).toList());
-        var verdict = new Label(f.verdict() + "   confidence " + f.confidence() + (f.incomplete() ? "   (INCOMPLETE)" : ""));
-        verdict.getStyleClass().add("verdict-" + f.verdict());
+        var verdict = Gui.label(f.verdict().toString(), "verdict-" + f.verdict());
         var report = f.verification();
-        var verification = new Label("Verification: " + report.status() + ", " + report.summary());
-        var narrative = new TextArea(f.narrative());
+        boolean verified = report.status() == tracewise.verification.VerificationStatus.VERIFIED;
+        var verdictLine = new HBox(12, verdict, Gui.label("confidence " + f.confidence(), "mono", "soft"),
+                Gui.label((verified ? "VER " : "UNVER ") + report.summary(), "mono", verified ? "ok" : "bad"));
+        if (f.incomplete()) {
+            verdictLine.getChildren().add(Gui.label("INCOMPLETE", "mono", "wait"));
+        }
+        var narrative = Gui.label(f.narrative(), "prose");
         narrative.setWrapText(true);
-        narrative.setEditable(false);
-        narrative.setPrefRowCount(6);
+        narrative.setMaxWidth(720);
         var checks = new TableView<ClaimCheck>(FXCollections.observableArrayList(report.checks()));
-        checks.getColumns().setAll(List.of(Gui.column("", k -> k.confirmed() ? "OK" : "REJECTED", 80),
-                Gui.column("Claim", ClaimCheck::claim, 560), Gui.column("Why rejected", ClaimCheck::reason, 260)));
+        checks.getColumns().setAll(List.of(Gui.styled("", k -> k.confirmed() ? "VER" : "REJ", k -> k.confirmed() ? "ok" : "bad", 52, "mono"),
+                Gui.column("Claim", ClaimCheck::claim, 600, "mono"), Gui.column("Why rejected", ClaimCheck::reason, 260)));
         checks.setPrefHeight(Math.min(320, 34 + 26 * report.checks().size()));
         var t = f.trace();
         var cost = new Label("Model " + t.pricing().modelName() + ": " + t.usage().inputTokens() + " input + "
                 + t.usage().outputTokens() + " output tokens, CAD " + t.costCad().setScale(4, RoundingMode.HALF_UP));
-        cost.getStyleClass().add("muted");
-        finding.getChildren().addAll(verdict, verification, section("Narrative"), narrative, section("Claims checked"),
+        cost.getStyleClass().addAll("muted", "mono");
+        finding.getChildren().addAll(verdictLine, narrative, section("Claims checked against the data"),
                 checks, section("Indicators the agent cited"),
                 new Label(f.indicators().isEmpty() ? "None" : "- " + String.join("\n- ", f.indicators())), cost);
+    }
+
+    /** The fact header: what the alert that opened the case flagged, from existing facade reads. */
+    private void showFacts(Case c) {
+        facts.getChildren().clear();
+        String opening = c.openingAlertId();
+        gui.run("Loading the facts of " + c.id(), () -> {
+            var alert = gui.facade.listAlerts(tracewise.monitoring.AlertFilter.ALL).stream()
+                    .filter(a -> a.id().equals(opening)).findFirst().orElse(null);
+            return alert == null ? null
+                    : CaseFacts.of(alert, gui.facade.transactionsFor(alert.accountId(), tracewise.domain.DateRange.ALL));
+        }, f -> {
+            if (f == null || shown == null || !shown.id().equals(c.id())) {
+                return;
+            }
+            AgentFinding finding = c.latestFinding();
+            String[][] cells = {{"Trigger", f.trigger(), null}, {"Subject", f.subject(), null},
+                    {"Window", f.window(), null}, {"Flagged CAD", f.net(), null}, {"Risk", f.risk(), f.riskStyle()},
+                    {"Finding", finding == null ? "none yet" : finding.verdict() + " " + finding.confidence(),
+                            finding == null ? null : "verdict-" + finding.verdict()}};
+            for (int i = 0; i < cells.length; i++) {
+                var value = Gui.label(cells[i][1], "mono");
+                value.setMinWidth(Region.USE_PREF_SIZE);
+                if (cells[i][2] != null) {
+                    value.getStyleClass().add(cells[i][2]);
+                }
+                var cell = new VBox(2, Gui.label(cells[i][0], "muted"), value);
+                cell.setPadding(new Insets(5, 10, 5, 8));
+                cell.setMinWidth(Region.USE_PREF_SIZE);
+                cell.setStyle("-fx-border-color: -tw-line; -fx-border-width: 1 " + (i == cells.length - 1 ? "1" : "0") + " 1 1;");
+                facts.add(cell, i, 0);
+            }
+        });
     }
 
     private static Label section(String text) {

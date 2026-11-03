@@ -167,7 +167,7 @@
     -fx-background-radius: 0;
     -fx-background-insets: 0;
     -fx-border-color: transparent -tw-line transparent transparent;
-    -fx-padding: 5 12 5 12;
+    -fx-padding: 5 9 5 9;
 }
 .tab-pane > .tab-header-area > .headers-region > .tab .tab-label { -fx-text-fill: -tw-muted; -fx-font-size: 12.5px; }
 .tab-pane > .tab-header-area > .headers-region > .tab:selected {
