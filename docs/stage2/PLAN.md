@@ -143,6 +143,9 @@ Rule: nothing may go against the Stage 1 design in a large way; any deviation is
 - 2026-10-29 (end of week 2): Sonnet 5.5 comparison on the held-out set (27 of 30 caught, 19 of 30 false alarms
   cleared, CAD 0.26 per alert); development token use per period recorded; Stage 2 report draft (all 7 sections,
   period 3 items marked TODO); handoff rewritten. Functionality complete; period 3 is polish, diagrams, report, demos.
+- 2026-11-02 (UI): research (Bloomberg Terminal, AML tools, dense data UIs, fonts) and a design agreed with Kian
+  (docs/stage2/ui-design.md); built the theme (Source Sans 3 + JetBrains Mono, dark and day), shell with command bar
+  and keys, Alerts, Assistant and Cases screens. 418 tests. Approvals, Admin and polish next.
 ## Tooling (installed 2026-10-20)
 - `jdtls-lsp` plugin with `jdtls` 1.63.0 (Homebrew): Java diagnostics and navigation.
 - `ponytail` 5.3.2: level `full`; cost ledger on, webhook off, task names not sent.
