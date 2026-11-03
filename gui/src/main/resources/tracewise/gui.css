@@ -115,7 +115,7 @@
 .separator-v { -fx-min-width: 1px; -fx-pref-width: 1px; -fx-max-width: 1px; -fx-min-height: 18px; -fx-background-color: -tw-line; }
 
 /* Controls: square, hairline, no gradients or shadows */
-.button, .toggle-button, .combo-box, .menu-button, .date-picker {
+.button, .toggle-button, .combo-box, .menu-button {
     -fx-background-color: -tw-panel;
     -fx-background-radius: 0;
     -fx-background-insets: 0;
@@ -146,6 +146,9 @@
     -fx-highlight-fill: -tw-selected;
     -fx-highlight-text-fill: -tw-text;
 }
+.date-picker { -fx-background-color: transparent; -fx-background-insets: 0; -fx-padding: 0; -fx-border-color: transparent; }
+.date-picker > .arrow-button { -fx-background-color: -tw-panel; -fx-background-radius: 0; -fx-border-color: -tw-strong; -fx-border-width: 1 1 1 0; }
+.date-picker > .arrow-button > .arrow { -fx-background-color: -tw-muted; }
 .text-field:focused, .text-area:focused { -fx-border-color: -tw-accent; }
 .text-area .content { -fx-background-color: -tw-chrome; -fx-background-radius: 0; }
 .text-area.prose-box, .text-area.prose-box .content { -fx-background-color: -tw-bg; -fx-border-color: transparent; }
@@ -222,6 +225,7 @@
 .table-row-cell .table-cell.risk-med, .table-row-cell .table-cell.wait,
 .table-row-cell .table-cell.verdict-INCONCLUSIVE { -fx-text-fill: -tw-amber; }
 .table-row-cell .table-cell.risk-low { -fx-text-fill: -tw-muted; }
+.table-row-cell .table-cell.group { -fx-font-family: "Source Sans 3 Semibold"; -fx-text-fill: -tw-accent; }
 .table-row-cell .table-cell.ok, .table-row-cell .table-cell.verdict-DISMISS { -fx-text-fill: -tw-green; }
 .table-view .placeholder .label { -fx-text-fill: -tw-muted; }
 .list-cell { -fx-background-color: -tw-bg; -fx-text-fill: -tw-text; -fx-padding: 4 8 4 8; }

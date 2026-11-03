@@ -8,7 +8,6 @@ import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
-import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Dialog;
@@ -47,7 +46,7 @@ final class AdminView {
     private final javafx.scene.control.DatePicker to = new javafx.scene.control.DatePicker();
     private final ComboBox<String> actor = new ComboBox<>(FXCollections.observableArrayList("Anyone", "ANALYST",
             "SUPERVISOR", "AGENT", "SYSTEM"));
-    private final TableView<List<String>> metrics = new TableView<>();
+    private final TableView<PerformanceRows.Line> metrics = new TableView<>();
     private final ComboBox<String> metricsModel = new ComboBox<>(FXCollections.observableArrayList(ALL_MODELS));
     private final ComboBox<String> metricsRule = new ComboBox<>(FXCollections.observableArrayList("All rules", "R1",
             "R2", "R3", "R4", "R5", "R6"));
@@ -63,10 +62,14 @@ final class AdminView {
 
     Node build() {
         var tabs = new TabPane(new Tab("Rules", rulesPane()), new Tab("Knowledge", knowledgePane()),
-                new Tab("Audit Log", auditPane()), new Tab("Performance", performancePane()));
+                new Tab("Audit log", auditPane()), new Tab("Performance", performancePane()));
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+        for (int i = 0; i < tabs.getTabs().size(); i++) {
+            tabs.getTabs().get(i).setGraphic(Gui.label(String.valueOf(i + 1), "muted", "mono"));
+        }
         var root = new BorderPane(tabs);
-        root.setPadding(new Insets(10));
+        root.setTop(Gui.panelHead("ADMN", "Administration", Gui.label(gui.config.userRole() + " " + gui.config.userName(),
+                "muted", "mono")));
         return root;
     }
 
@@ -77,14 +80,15 @@ final class AdminView {
     }
 
     private Node rulesPane() {
-        rules.getColumns().setAll(List.of(Gui.column("Rule", DetectionRule::id, 60), Gui.column("Kind", DetectionRule::kind, 110),
-                Gui.column("Enabled", r -> r.config().enabled() ? "yes" : "no", 70),
+        rules.getColumns().setAll(List.of(Gui.column("Rule", DetectionRule::id, 52, "mono"),
+                Gui.column("Name", r -> Display.ruleName(r.id()), 190),
+                Gui.styled("State", r -> r.config().enabled() ? "ON" : "OFF", r -> r.config().enabled() ? "ok" : "muted", 60, "mono"),
                 Gui.column("Parameters", r -> new TreeMap<>(r.config().parameters()).entrySet().stream()
-                        .map(e -> e.getKey() + " = " + e.getValue().toPlainString()).collect(Collectors.joining(",   ")), 700)));
-        var edit = new Button("Edit rule...");
+                        .map(e -> e.getKey() + " " + e.getValue().toPlainString()).collect(Collectors.joining("   ")), 640, "mono")));
+        rules.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        var edit = Gui.button("Edit rule...", () -> editRule(rules.getSelectionModel().getSelectedItem()));
         boolean supervisor = gui.config.userRole() == ActorType.SUPERVISOR;
         edit.setDisable(!supervisor);
-        edit.setOnAction(e -> editRule(rules.getSelectionModel().getSelectedItem()));
         var note = new Label(supervisor ? "Changes apply to the next monitoring run and are audited."
                 : "Only a Compliance Supervisor can change rules (start with TRACEWISE_ROLE=SUPERVISOR).");
         note.getStyleClass().add("muted");
@@ -92,7 +96,6 @@ final class AdminView {
         bar.getStyleClass().add("toolbar");
         var pane = new BorderPane(rules);
         pane.setTop(bar);
-        pane.setPadding(new Insets(8));
         return pane;
     }
 
@@ -151,20 +154,20 @@ final class AdminView {
     }
 
     private Node knowledgePane() {
-        knowledge.getColumns().setAll(List.of(Gui.column("Score", RetrievedPassage::score, 60),
-                Gui.column("Indicator or past case", RetrievedPassage::text, 640), Gui.column("Source", RetrievedPassage::source, 320)));
+        knowledge.getColumns().setAll(List.of(Gui.column("Score", p -> String.format("%.3f", p.score()), 64, "mono", "num"),
+                Gui.column("Indicator or past case", RetrievedPassage::text, 640),
+                Gui.column("Source", RetrievedPassage::source, 320, "mono", "muted")));
+        knowledge.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         knowledge.setPlaceholder(new Label("Search FINTRAC's indicators and the decided cases in plain words."));
         query.setPromptText("deposits below the reporting threshold");
         query.setOnAction(e -> search());
-        var go = new Button("Search");
+        var go = Gui.button("Search", this::search);
         go.getStyleClass().add("primary");
-        go.setOnAction(e -> search());
         HBox.setHgrow(query, Priority.ALWAYS);
         var bar = new HBox(8, query, go);
         bar.getStyleClass().add("toolbar");
         var pane = new BorderPane(knowledge);
         pane.setTop(bar);
-        pane.setPadding(new Insets(8));
         return pane;
     }
 
@@ -189,24 +192,25 @@ final class AdminView {
         target.setPrefColumnCount(9);
         from.setPromptText("from");
         to.setPromptText("to");
-        from.setPrefWidth(120);
-        to.setPrefWidth(120);
+        from.setPrefWidth(112);
+        to.setPrefWidth(112);
         actor.setValue("Anyone");
-        var go = new Button("Filter");
-        go.setOnAction(e -> searchAudit());
-        var export = new Button("Export CSV...");
-        export.setOnAction(e -> exportAudit());
-        var bar = new HBox(8, new Label("Event"), eventType, new Label("Target"), target, new Label("Actor"), actor,
-                from, to, go, export);
+        var go = Gui.button("Filter", this::searchAudit);
+        var export = Gui.button("Export CSV...", this::exportAudit);
+        var bar = new javafx.scene.layout.FlowPane(8, 6, Gui.label("Event", "muted"), eventType, Gui.label("Target", "muted"),
+                target, Gui.label("Actor", "muted"), actor, from, to, go, export);
         bar.getStyleClass().add("toolbar");
-        audit.getColumns().setAll(List.of(Gui.column("Time (UTC)", AuditEntry::timestamp, 130),
-                Gui.column("Actor", e -> e.actor().name() + " (" + e.actor().type() + ")", 150),
-                Gui.column("Event", AuditEntry::eventType, 150), Gui.column("Target", AuditEntry::target, 100),
-                Gui.column("Details", e -> e.details() == null ? "" : e.details().replaceAll("\\s+", " "), 500),
-                Gui.column("Outcome", AuditEntry::outcome, 90)));
+        audit.getColumns().setAll(List.of(Gui.column("Time UTC", AuditEntry::timestamp, 136, "mono", "muted"),
+                Gui.column("Actor", e -> Display.actor(e.actor()), 62, "mono"),
+                Gui.column("Who", e -> e.actor().name(), 110),
+                Gui.column("Event", AuditEntry::eventType, 176, "mono"), Gui.column("Target", AuditEntry::target, 96, "mono"),
+                Gui.column("Outcome", AuditEntry::outcome, 84, "mono"),
+                Gui.column("Details", e -> e.details() == null ? "" : e.details().replaceAll("\\s+", " "), 240)));
+        audit.getColumns().stream().limit(6).forEach(c -> c.setMinWidth(c.getPrefWidth())); // only Details gives way
+        audit.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        audit.setPlaceholder(new Label("Nothing in the audit log matches these filters."));
         var pane = new BorderPane(audit);
         pane.setTop(bar);
-        pane.setPadding(new Insets(8));
         return pane;
     }
 
@@ -247,27 +251,26 @@ final class AdminView {
         metricsTo.setPromptText("to");
         metricsFrom.setPrefWidth(120);
         metricsTo.setPrefWidth(120);
-        var show = new Button("Show");
+        var show = Gui.button("Show", () -> onShowMetrics(metricsFilter()));
         show.getStyleClass().add("primary");
-        show.setOnAction(e -> onShowMetrics(metricsFilter()));
-        var export = new Button("Export CSV...");
-        export.setOnAction(e -> exportMetrics());
-        var bar = new javafx.scene.layout.FlowPane(8, 6, new Label("Model"), metricsModel, new Label("Rule"), metricsRule,
-                metricsFrom, metricsTo, show, export);
+        var export = Gui.button("Export CSV...", this::exportMetrics);
+        var bar = new javafx.scene.layout.FlowPane(8, 6, Gui.label("Model", "muted"), metricsModel, Gui.label("Rule", "muted"),
+                metricsRule, metricsFrom, metricsTo, show, export);
         bar.getStyleClass().add("toolbar");
         metrics.setPlaceholder(new Label("No metrics yet."));
-        metrics.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        var note = new Label("Precision and recall compare each case's latest verdict with the label of the alert that "
+        metrics.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        var sample = Gui.label("n is how many cases, runs or alerts a figure rests on. Amber: n under "
+                + tracewise.metrics.Measure.MIN_SAMPLE + ", too few to rely on.", "wait");
+        sample.setWrapText(true);
+        var note = Gui.label("Precision and recall compare each case's latest verdict with the label of the alert that "
                 + "opened it (laundering if any of its transactions is); inconclusive verdicts are counted apart, and data "
                 + "without labels shows \"not available\". Rule precision is the share of a "
-                + "rule's labelled alerts that involve laundering. n is what a figure rests on; under "
-                + tracewise.metrics.Measure.MIN_SAMPLE + " it is marked too few.");
-        note.getStyleClass().add("muted");
+                + "rule's labelled alerts that involve laundering.", "muted");
         note.setWrapText(true);
+        var notes = new javafx.scene.layout.VBox(4, sample, note);
+        notes.setPadding(new Insets(8, 12, 8, 12));
         var pane = new BorderPane(metrics);
-        pane.setTop(bar);
-        pane.setBottom(note);
-        pane.setPadding(new Insets(8));
+        pane.setTop(new javafx.scene.layout.VBox(bar, notes));
         return pane;
     }
 
@@ -288,14 +291,17 @@ final class AdminView {
                         metricsModel.getItems().setAll(models);
                         metricsModel.setValue(ALL_MODELS);
                     }
-                    List<List<String>> table = PerformanceMetrics.table(list);
-                    var columns = new java.util.ArrayList<javafx.scene.control.TableColumn<List<String>, ?>>();
-                    for (int c = 0; c < table.get(0).size(); c++) {
+                    var columns = new java.util.ArrayList<javafx.scene.control.TableColumn<PerformanceRows.Line, ?>>();
+                    columns.add(Gui.styled("Metric", PerformanceRows.Line::name, l -> l.group() ? "group" : null, 300));
+                    for (int c = 0; c < list.size(); c++) {
                         int col = c;
-                        columns.add(Gui.column(table.get(0).get(c), (List<String> row) -> row.get(col), c == 0 ? 260 : 200));
+                        var m = list.get(c);
+                        columns.add(Gui.styled(m.label() + "  " + m.sampleSize() + (m.sampleSize() == 1 ? " run" : " runs"),
+                                l -> l.group() ? "" : l.cells().get(col),
+                                l -> l.group() ? null : PerformanceRows.style(l.rows().get(col)), 210, "mono", "num"));
                     }
                     metrics.getColumns().setAll(columns);
-                    metrics.getItems().setAll(table.subList(1, table.size()));
+                    metrics.getItems().setAll(PerformanceRows.of(list.stream().map(PerformanceMetrics::rows).toList()));
                 });
     }
 
