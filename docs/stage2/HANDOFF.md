@@ -51,7 +51,29 @@ Before v4 to v6 of the instructions: 75 of 75 escalated. Report recall and false
 30/30 mix (at SAML-D's ~3% base rate precision would be ~0.05 vs 0.03 for the rules alone). IBM data cannot test
 judgment (its normal accounts look suspicious); IBM stays for the rules' per-rule precision.
 
-## 2. What is left (period 3, Nov 3 to 9; then Nov 7 to 10)
+## 2a. UI work in progress (started 2026-11-02)
+
+Design agreed with Kian after research: `docs/stage2/ui-design.md` (rules with sources, colours, fonts, additions).
+Previews (private to Kian): https://claude.ai/artifact/XHJTtn37TDv1NpKHN6DL5A (Alerts, Case, Approvals, Case day,
+font pairings). Kian chose: this design, dark by default with a Day/Night switch, fonts Source Sans 3 + JetBrains Mono,
+and all extras I proposed (key legend and F-keys, age column, command bar); NOT approving from the Case screen.
+
+Done in `d829fe5`: fonts bundled (OFL, licences in `gui/src/main/resources/tracewise/fonts/`), `gui.css` rebuilt on
+named colours plus `day.css`, `Theme` (fonts, theme, remembered choice, `TRACEWISE_THEME`), shell (top bar with
+`Command` bar, numbered screen tabs, key bar, Ctrl+1-4, Ctrl+K, F2, F3, F5), `Display` (risk level, rule names from
+Stage 1, enum labels, age), `Gui.styled/column(..., classes)`, `Gui.panelHead`, Alerts screen and Assistant panel.
+
+TODO, one commit each (period 3), checking each with the snapshot mode (dark and `TRACEWISE_THEME=day`):
+1. Cases screen: panel strips (CASE), case list with readable states and verdict codes, fact header (trigger, subject,
+   window, net activity, risk, finding), case tabs numbered, Finding tab as prose plus a claims table with VER codes,
+   Agent steps as a timestamped log, Evidence, Tasks, Notes, Report, History, Network (smartgraph.css colours).
+2. Approvals: APRV strip, proposal table with finding and VER codes, AGENT/HUMAN, decision panel, F9/F10.
+3. Admin: ADMN strip; Rules, Knowledge, Audit (actor type AGENT/HUMAN/SYSTEM), Performance (group metrics, drop the
+   repeated "too few" noise into one note).
+4. Dialogs, status filters with readable labels, empty states; day theme check on every screen.
+5. Design change 50 (keys, command bar, age column, themes); F10 GUI details (design change 49) next.
+
+
 
 Kian: "we do the polishing next week". In order:
 1. **Discuss the UI look with Kian first** (he wants clean, modern, bank-like, e.g. Wealthsimple, RBC, Bloomberg
