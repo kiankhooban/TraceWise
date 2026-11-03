@@ -1,7 +1,7 @@
 # Stage 2 handoff (read this first in a new session or after /compact)
 
-Last updated 2026-10-29 (end of week 2), HEAD after commit `93c8480`. Read this file, then `CLAUDE.md` (repo root),
-`docs/stage2/PLAN.md` and `docs/stage2/Stage2-Report.md`. Sessions often run from `~/Brain`, where the TraceWise
+Last updated 2026-11-02 21:55 (UI work under way), HEAD `c35b6c1`. Read this file, then `CLAUDE.md` (repo root),
+`docs/stage2/ui-design.md` (the agreed UI design), `docs/stage2/PLAN.md` and `docs/stage2/Stage2-Report.md`. Sessions often run from `~/Brain`, where the TraceWise
 `CLAUDE.md` is NOT loaded automatically: read it explicitly.
 
 ## 1. Where we are
@@ -9,7 +9,7 @@ Last updated 2026-10-29 (end of week 2), HEAD after commit `93c8480`. Read this 
 - Stage 1 graded 100/100 (tag `stage1-submitted`). Stage 2 due **2026-11-10**; feature freeze Nov 7; Kian records
   the demo videos Nov 8 to 10 (we write a script per feature first).
 - **Functionality is complete.** All 12 features work in the GUI and the CLI; all 9 Stage 1 patterns are in code; the
-  three Maven modules of the Stage 1 architecture are in place. 407 tests pass (1 skipped: the opt-in live API test),
+  three Maven modules of the Stage 1 architecture are in place. 418 tests pass (1 skipped: the opt-in live API test),
   on macOS and on x86 Linux (Docker). Everything is committed and pushed to `main` (no PRs).
 - Commits: period 1 (Oct 20 to 26) 44 code commits; period 2 (Oct 27 to Nov 2) 48 code commits so far. Period 3
   (Nov 3 to 9) still needs 5+ meaningful code commits: the UI polish and F10 GUI details provide them naturally
@@ -74,12 +74,33 @@ TODO, one commit each (period 3), checking each with the snapshot mode (dark and
    repeated "too few" noise into one note).
 4. Dialogs, status filters with readable labels, empty states; day theme check on every screen.
 5. Design change 50 (keys, command bar, age column, themes); F10 GUI details (design change 49) next.
+   ApprovalsView has no approve/reject methods callable from a key yet: add them (package-private) for F9/F10, the
+   way AlertsView got `investigateSelected()` and `startTriage()` for F2/F3 (wired in `TraceWiseApp` accelerators).
 
+How to check the UI (sample data with real replayed findings; costs nothing):
+```bash
+cd ~/TraceWise && ./mvnw -q -o install -DskipTests
+R=<scratch>/ui; mkdir -p $R/png; t() { ./tracewise --db $R/s.db --llm replay --model claude-haiku-5-5 "$@"; }
+t import data/samples/scenarios.csv; t monitor run; t triage
+TRACEWISE_DB=$R/s.db TRACEWISE_LLM=replay TRACEWISE_MODEL=claude-haiku-5-5 TRACEWISE_SNAPSHOT=$R/png \
+  TRACEWISE_SNAPSHOT_ASK="Why is account C1037 risky?" [TRACEWISE_THEME=day] ./tracewise-gui   # then Read the PNGs
+```
+JavaFX family names per weight (verified): "Source Sans 3", "Source Sans 3 Medium", "Source Sans 3 Semibold",
+"JetBrains Mono", "JetBrains Mono Medium", "JetBrains Mono SemiBold". Style classes in `gui.css`: `mono`, `num`,
+`muted`, `soft`, `prose`, `panel-head/-code/-name`, `risk-high/med/low`, `verdict-<VERDICT>`, `ok`, `bad`, `wait`;
+a state class on a table cell needs the `.table-cell.<class>` rule (plain `.risk-high` loses to `.table-cell`).
 
+Lesson from this round (Kian, 2026-11-02): my first three mockups were generic ("AI slop"). What worked: research
+first (Bloomberg, AML tools, dense-data UIs, fonts, with sources), one coherent system with each choice traced to a
+source, real data from the sample cases in every preview. Keep that bar.
+
+Commit timing: `d829fe5` and `bcf0402` landed 21:44 and 21:50 on Nov 2, so they count for period 2. Period 3 (Nov 3
+to 9) still needs 5+ meaningful code commits: the remaining UI units provide them.
+
+## 2. What is left (period 3, Nov 3 to 9; then Nov 7 to 10)
 
 Kian: "we do the polishing next week". In order:
-1. **Discuss the UI look with Kian first** (he wants clean, modern, bank-like, e.g. Wealthsimple, RBC, Bloomberg
-   terminal; same pages and structure; nothing against Stage 1). Then polish with the impeccable skill.
+1. DONE (2026-11-02): UI look discussed and agreed (section 2a); the build is in progress there.
 2. **F10 assistant GUI details** Stage 1 promised (design change 49): a verification badge per claim, a results table
    for search requests, the selected account as context (today the GUI sends only the open case).
 3. **UML**: updated UMLet class diagram (4 figures as in Stage 1; add `AsOfLedger`, `InvestigationCutoff`,
