@@ -126,6 +126,7 @@ final class Gui {
         codeLabel.getStyleClass().add("panel-code");
         var nameLabel = new javafx.scene.control.Label(name);
         nameLabel.getStyleClass().add("panel-name");
+        nameLabel.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE); // CSS cannot say "min = pref"
         var head = new javafx.scene.layout.HBox(codeLabel, nameLabel);
         head.getChildren().addAll(rest);
         head.getStyleClass().add("panel-head");

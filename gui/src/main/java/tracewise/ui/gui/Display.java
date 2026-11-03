@@ -48,4 +48,9 @@ final class Display {
         }
         return String.format("%dd %02dh", minutes / (24 * 60), minutes / 60 % 24);
     }
+
+    /** Who acted, as the audit split shows it: the agent proposes, a human decides (Lucinity, four-eyes review). */
+    static String actor(tracewise.domain.Actor actor) {
+        return actor == null ? "" : actor.isHuman() ? "HUMAN" : actor.type().name();
+    }
 }

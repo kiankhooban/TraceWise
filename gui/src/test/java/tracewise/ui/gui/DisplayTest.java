@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import tracewise.cases.state.CaseStatus;
+import tracewise.domain.Actor;
+import tracewise.domain.ActorType;
 import tracewise.domain.AlertStatus;
 
 /** How raw values read on screen (docs/stage2/ui-design.md): every state is a word, never a code or a colour alone. */
@@ -43,5 +45,14 @@ class DisplayTest {
         assertEquals("2h 05m", Display.age(Duration.ofMinutes(125)));
         assertEquals("3d 04h", Display.age(Duration.ofHours(76)));
         assertEquals("now", Display.age(Duration.ofMinutes(-5)), "a clock ahead of the data is not a negative age");
+    }
+
+    @Test
+    void actorsReadAsAgentHumanOrSystem() {
+        assertEquals("AGENT", Display.actor(Actor.AGENT));
+        assertEquals("SYSTEM", Display.actor(Actor.SYSTEM));
+        assertEquals("HUMAN", Display.actor(new Actor("kian", ActorType.ANALYST)));
+        assertEquals("HUMAN", Display.actor(new Actor("lead", ActorType.SUPERVISOR)));
+        assertEquals("", Display.actor(null));
     }
 }

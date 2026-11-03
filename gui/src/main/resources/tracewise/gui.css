@@ -110,6 +110,7 @@
 }
 .key-bar .label { -fx-font-family: "JetBrains Mono"; -fx-font-size: 11px; -fx-text-fill: -tw-muted; }
 .key-bar .key { -fx-text-fill: -tw-text; }
+.side-panel { -fx-background-color: -tw-bg; -fx-border-color: transparent transparent transparent -tw-line; }
 .toolbar { -fx-alignment: center-left; -fx-padding: 7 12 7 12; -fx-spacing: 6; -fx-border-color: transparent transparent -tw-line transparent; }
 .separator-v { -fx-min-width: 1px; -fx-pref-width: 1px; -fx-max-width: 1px; -fx-min-height: 18px; -fx-background-color: -tw-line; }
 
@@ -213,12 +214,15 @@
 .table-cell { -fx-text-fill: -tw-text; -fx-padding: 0 8 0 8; -fx-font-size: 12.5px; -fx-alignment: center-left; -fx-border-color: transparent; }
 .table-cell.mono { -fx-font-size: 12px; }
 .table-cell.muted { -fx-text-fill: -tw-muted; }
-.table-cell.risk-high, .table-cell.bad { -fx-text-fill: -tw-red; }
-.table-cell.risk-med, .table-cell.wait { -fx-text-fill: -tw-amber; }
-.table-cell.risk-low { -fx-text-fill: -tw-muted; }
-.table-cell.ok { -fx-text-fill: -tw-green; }
 .table-row-cell:empty .table-cell { -fx-border-color: transparent; }
 .table-row-cell:selected .table-cell { -fx-text-fill: -tw-text; }
+/* state colours outrank the selected-row rule above, so a selected row keeps its HIGH, VER, ESCALATE colours */
+.table-row-cell .table-cell.risk-high, .table-row-cell .table-cell.bad,
+.table-row-cell .table-cell.verdict-ESCALATE { -fx-text-fill: -tw-red; }
+.table-row-cell .table-cell.risk-med, .table-row-cell .table-cell.wait,
+.table-row-cell .table-cell.verdict-INCONCLUSIVE { -fx-text-fill: -tw-amber; }
+.table-row-cell .table-cell.risk-low { -fx-text-fill: -tw-muted; }
+.table-row-cell .table-cell.ok, .table-row-cell .table-cell.verdict-DISMISS { -fx-text-fill: -tw-green; }
 .table-view .placeholder .label { -fx-text-fill: -tw-muted; }
 .list-cell { -fx-background-color: -tw-bg; -fx-text-fill: -tw-text; -fx-padding: 4 8 4 8; }
 .list-cell:filled:selected { -fx-background-color: -tw-selected; }
@@ -249,4 +253,3 @@
 .chat-meta.ok { -fx-text-fill: -tw-green; }
 .chat-meta.bad { -fx-text-fill: -tw-red; }
 .chat-meta.wait { -fx-text-fill: -tw-amber; }
-.panel-name { -fx-min-width: -fx-pref-width; }

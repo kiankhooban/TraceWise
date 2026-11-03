@@ -20,6 +20,23 @@ record CaseFacts(String trigger, String subject, String window, String net, Stri
         return text;
     }
 
+    /** One flagged transaction from the subject's side: In when the money arrived, Out when it left. */
+    record Flow(String direction, String id, String amount, String counterparty, String time) {
+    }
+
+    private static final DateTimeFormatter MINUTE = DateTimeFormatter.ofPattern("MM-dd HH:mm").withZone(ZoneOffset.UTC);
+
+    /** The alert's flagged transactions in time order. */
+    static List<Flow> flows(Alert alert, List<Transaction> accountTransactions) {
+        Set<String> flagged = Set.copyOf(alert.transactionIds());
+        return accountTransactions.stream().filter(t -> flagged.contains(t.id()))
+                .sorted(java.util.Comparator.comparing(Transaction::timestamp)).map(t -> {
+                    boolean in = t.receiverAccountId().equals(alert.accountId());
+                    return new Flow(in ? "In" : "Out", t.id(), Gui.cad(t.amountCad()),
+                            in ? t.senderAccountId() : t.receiverAccountId(), MINUTE.format(t.timestamp()));
+                }).toList();
+    }
+
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("MM-dd").withZone(ZoneOffset.UTC);
 
     /** accountTransactions: the subject account's transactions; only the alert's flagged ones count. */

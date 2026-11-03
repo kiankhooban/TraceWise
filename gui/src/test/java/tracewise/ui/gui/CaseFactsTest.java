@@ -47,4 +47,13 @@ class CaseFactsTest {
         assertEquals("not loaded", facts.window());
         assertEquals("none", facts.net());
     }
+
+    @Test
+    void flaggedFlowsReadInOrOutFromTheSubjectsSide() {
+        var flows = CaseFacts.flows(alert, List.of(tx("TX-2", "2026-09-16", "C1059", "EXT-2137", "45500.00"),
+                tx("TX-1", "2026-09-15", "EXT-2224", "C1059", "48000.00"),
+                tx("TX-9", "2026-09-30", "C1059", "EXT-1", "10.00")));
+        assertEquals(List.of(new CaseFacts.Flow("In", "TX-1", "48,000.00", "EXT-2224", "09-15 12:00"),
+                new CaseFacts.Flow("Out", "TX-2", "45,500.00", "EXT-2137", "09-16 12:00")), flows);
+    }
 }

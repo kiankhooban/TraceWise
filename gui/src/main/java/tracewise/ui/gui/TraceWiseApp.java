@@ -123,6 +123,16 @@ public class TraceWiseApp extends Application {
                 alerts.startTriage();
             }
         });
+        keys.put(new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.F9), () -> {
+            if (tabs.getSelectionModel().getSelectedItem() == approvalsTab) {
+                approvals.approveSelected();
+            }
+        });
+        keys.put(new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.F10), () -> {
+            if (tabs.getSelectionModel().getSelectedItem() == approvalsTab) {
+                approvals.rejectSelected();
+            }
+        });
         keys.put(new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.F5), () -> {
             var t = tabs.getSelectionModel().getSelectedItem();
             if (t == alertsTab) {
@@ -181,7 +191,7 @@ public class TraceWiseApp extends Application {
     private HBox keyBar(Runnable toggleTheme) {
         var bar = new HBox();
         for (String[] k : new String[][] {{"Ctrl+1-4", "Screens"}, {"Ctrl+K", "Command"}, {"F2", "Investigate"},
-                {"F3", "Triage"}, {"F5", "Refresh"}}) {
+                {"F3", "Triage"}, {"F9", "Approve"}, {"F10", "Reject"}, {"F5", "Refresh"}}) {
             var key = Gui.label(k[0], "key");
             bar.getChildren().add(new HBox(6, key, new Label(k[1])));
         }
