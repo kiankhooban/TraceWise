@@ -63,10 +63,12 @@ named colours plus `day.css`, `Theme` (fonts, theme, remembered choice, `TRACEWI
 `Command` bar, numbered screen tabs, key bar, Ctrl+1-4, Ctrl+K, F2, F3, F5), `Display` (risk level, rule names from
 Stage 1, enum labels, age), `Gui.styled/column(..., classes)`, `Gui.panelHead`, Alerts screen and Assistant panel.
 
+Done in the next commit: Cases screen (CASE strip, readable states, fact header via `CaseFacts`, numbered case tabs,
+Finding as prose plus VER/REJ claims, steps and history as mono logs). Still to polish there: the case list cuts
+"Pending approval" and "INCONCLUSIVE" (widen the list or shorten), Tasks/Notes/Report/Evidence tab interiors,
+Network colours in `smartgraph.css` (dark and day).
+
 TODO, one commit each (period 3), checking each with the snapshot mode (dark and `TRACEWISE_THEME=day`):
-1. Cases screen: panel strips (CASE), case list with readable states and verdict codes, fact header (trigger, subject,
-   window, net activity, risk, finding), case tabs numbered, Finding tab as prose plus a claims table with VER codes,
-   Agent steps as a timestamped log, Evidence, Tasks, Notes, Report, History, Network (smartgraph.css colours).
 2. Approvals: APRV strip, proposal table with finding and VER codes, AGENT/HUMAN, decision panel, F9/F10.
 3. Admin: ADMN strip; Rules, Knowledge, Audit (actor type AGENT/HUMAN/SYSTEM), Performance (group metrics, drop the
    repeated "too few" noise into one note).
