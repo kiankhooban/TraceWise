@@ -69,13 +69,12 @@ Finding as prose plus VER/REJ claims, steps and history as mono logs). Still to 
 Network colours in `smartgraph.css` (dark and day).
 
 TODO, one commit each (period 3), checking each with the snapshot mode (dark and `TRACEWISE_THEME=day`):
-2. Approvals: APRV strip, proposal table with finding and VER codes, AGENT/HUMAN, decision panel, F9/F10.
-3. Admin: ADMN strip; Rules, Knowledge, Audit (actor type AGENT/HUMAN/SYSTEM), Performance (group metrics, drop the
-   repeated "too few" noise into one note).
+2. DONE `da34670`: Approvals (APRV strip, queue with finding and VER codes, AGENT/HUMAN decision panel, inline reject
+   reason, F9/F10, Enter opens the case). Also fixed: state colours now survive row selection; verdict cells coloured.
+3. DONE `096d38d`: Admin (ADMN strip, rule names, ON/OFF, audit actor AGENT/HUMAN/SYSTEM, grouped Performance with
+   "value  n=N", amber under the minimum sample, explained once).
 4. Dialogs, status filters with readable labels, empty states; day theme check on every screen.
 5. Design change 50 (keys, command bar, age column, themes); F10 GUI details (design change 49) next.
-   ApprovalsView has no approve/reject methods callable from a key yet: add them (package-private) for F9/F10, the
-   way AlertsView got `investigateSelected()` and `startTriage()` for F2/F3 (wired in `TraceWiseApp` accelerators).
 
 How to check the UI (sample data with real replayed findings; costs nothing):
 ```bash
