@@ -1,0 +1,18 @@
+/* Daytime theme: the same names as gui.css with light values (docs/stage2/ui-design.md). Loaded after gui.css. */
+.root {
+    -tw-bg: #F7F8FA;
+    -tw-chrome: #EDF0F3;
+    -tw-panel: #FFFFFF;
+    -tw-line: #D5DBE2;
+    -tw-faint: #E6EAEF;
+    -tw-strong: #9AA4B1;
+    -tw-text: #14171C;
+    -tw-soft: #2F3742;
+    -tw-muted: #5A6472;
+    -tw-accent: #0B7470;
+    -tw-on-accent: #FFFFFF;
+    -tw-red: #B3361B;
+    -tw-amber: #8A5A00;
+    -tw-green: #1F7A4A;
+    -tw-selected: #E3F2F1;
+}

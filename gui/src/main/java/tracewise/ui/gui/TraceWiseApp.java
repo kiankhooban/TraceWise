@@ -33,6 +33,7 @@ public class TraceWiseApp extends Application {
 
     @Override
     public void start(Stage stage) {
+        Theme.loadFonts();
         worker = new GuiWorker(Platform::runLater);
         var gui = new Gui(facade, worker, stage, config);
         var alerts = new AlertsView(gui);
@@ -40,11 +41,12 @@ public class TraceWiseApp extends Application {
         var approvals = new ApprovalsView(gui);
         var admin = new AdminView(gui);
         var assistant = new AssistantView(gui, caseView::currentCaseId);
-        var alertsTab = new Tab("Alerts", alerts.build());
-        var casesTab = new Tab("Cases", caseView.build());
-        var approvalsTab = new Tab("Approvals", approvals.build());
-        var adminTab = new Tab("Admin", admin.build());
+        var alertsTab = screen("1", "Alerts", alerts.build());
+        var casesTab = screen("2", "Cases", caseView.build());
+        var approvalsTab = screen("3", "Approvals", approvals.build());
+        var adminTab = screen("4", "Admin", admin.build());
         var tabs = new TabPane(alertsTab, casesTab, approvalsTab, adminTab);
+        tabs.getStyleClass().add("screens");
         tabs.getSelectionModel().selectedItemProperty().addListener((o, old, tab) -> {
             if (tab == alertsTab) {
                 alerts.refresh();
@@ -69,9 +71,70 @@ public class TraceWiseApp extends Application {
         var split = new javafx.scene.control.SplitPane(tabs, assistant.build());
         split.setDividerPositions(0.74);
         var root = new BorderPane(split);
-        root.setTop(statusBar());
+        var command = new javafx.scene.control.TextField();
+        command.setPromptText("Command or id: ALRT, CASE CAS-00001, APRV, ADMN, ASK <question>   Ctrl+K");
+        command.getStyleClass().add("command");
+        command.setOnAction(e -> {
+            var c = Command.parse(command.getText());
+            if (c == null) {
+                return;
+            }
+            switch (c.target()) {
+                case ALERTS -> tabs.getSelectionModel().select(alertsTab);
+                case CASES -> {
+                    if (c.argument().isEmpty()) {
+                        tabs.getSelectionModel().select(casesTab);
+                    } else {
+                        gui.openCase.accept(c.argument());
+                    }
+                }
+                case APPROVALS -> tabs.getSelectionModel().select(approvalsTab);
+                case ADMIN -> tabs.getSelectionModel().select(adminTab);
+                case ASK -> assistant.onSubmit(c.argument());
+                case UNKNOWN -> gui.info("Unknown command", "Try ALRT, CASE CAS-00001, APRV, ADMN or ASK followed by a question.");
+            }
+            command.clear();
+        });
+        root.setTop(topBar(command));
+        boolean[] day = {Theme.day()};
+        root.setBottom(keyBar(() -> {
+            day[0] = !day[0];
+            Theme.remember(day[0]);
+            Theme.apply(root.getScene(), day[0]);
+        }));
         var scene = new Scene(root, 1280, 800);
-        scene.getStylesheets().add(TraceWiseApp.class.getResource("/tracewise/gui.css").toExternalForm());
+        Theme.apply(scene, day[0]);
+        var keys = scene.getAccelerators();
+        var tabList = java.util.List.of(alertsTab, casesTab, approvalsTab, adminTab);
+        for (int i = 0; i < tabList.size(); i++) {
+            Tab t = tabList.get(i);
+            keys.put(new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.valueOf("DIGIT" + (i + 1)),
+                    javafx.scene.input.KeyCombination.SHORTCUT_DOWN), () -> tabs.getSelectionModel().select(t));
+        }
+        keys.put(new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.K,
+                javafx.scene.input.KeyCombination.SHORTCUT_DOWN), command::requestFocus);
+        keys.put(new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.F2), () -> {
+            if (tabs.getSelectionModel().getSelectedItem() == alertsTab) {
+                alerts.investigateSelected();
+            }
+        });
+        keys.put(new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.F3), () -> {
+            if (tabs.getSelectionModel().getSelectedItem() == alertsTab) {
+                alerts.startTriage();
+            }
+        });
+        keys.put(new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.F5), () -> {
+            var t = tabs.getSelectionModel().getSelectedItem();
+            if (t == alertsTab) {
+                alerts.refresh();
+            } else if (t == casesTab) {
+                caseView.refresh();
+            } else if (t == approvalsTab) {
+                approvals.refresh();
+            } else {
+                admin.refresh();
+            }
+        });
         stage.setTitle("TraceWise");
         stage.setScene(scene);
         stage.show();
@@ -94,25 +157,50 @@ public class TraceWiseApp extends Application {
         }
     }
 
-    private HBox statusBar() {
-        var who = new Label(config.userName() + " (" + config.userRole() + ")   model " + config.model().modelName()
-                + (config.model().provider().equals("replay") ? " (replay)" : "")
-                + (config.model().costKnown() ? "" : " (no prices known: cost limits do not apply)") + "   database "
-                + config.databasePath().getFileName());
+    /** A screen tab with its keyboard number (Ctrl+1 to Ctrl+4). */
+    private static Tab screen(String key, String name, javafx.scene.Node content) {
+        var tab = new Tab(name, content);
+        tab.setGraphic(Gui.label(key, "panel-code"));
+        return tab;
+    }
+
+    private HBox topBar(javafx.scene.control.TextField command) {
+        var wordmark = Gui.label("TRACEWISE", "wordmark");
+        var mark = Gui.label(">", "command-mark");
+        HBox.setHgrow(command, Priority.ALWAYS);
+        var identity = Gui.label(config.userRole() + " " + config.userName() + "   MODEL " + config.model().runLabel()
+                + (config.model().costKnown() ? "" : " (no prices known: cost limits do not apply)") + "   DB "
+                + config.databasePath().getFileName(), "identity");
+        identity.setPadding(new Insets(0, 14, 0, 14));
+        var bar = new HBox(wordmark, mark, command, identity);
+        bar.getStyleClass().add("top-bar");
+        return bar;
+    }
+
+    /** The key legend, what the app is busy with, and the day or night switch. */
+    private HBox keyBar(Runnable toggleTheme) {
+        var bar = new HBox();
+        for (String[] k : new String[][] {{"Ctrl+1-4", "Screens"}, {"Ctrl+K", "Command"}, {"F2", "Investigate"},
+                {"F3", "Triage"}, {"F5", "Refresh"}}) {
+            var key = Gui.label(k[0], "key");
+            bar.getChildren().add(new HBox(6, key, new Label(k[1])));
+        }
+        var spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
         var busy = new Label();
         var spinner = new ProgressIndicator();
-        spinner.setPrefSize(16, 16);
+        spinner.setPrefSize(14, 14);
         spinner.setVisible(false);
         worker.onStatus(s -> {
             busy.setText(s.isEmpty() ? "" : s + "...");
             spinner.setVisible(!s.isEmpty());
         });
-        var spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-        var bar = new HBox(8, new Label("TraceWise"), who, spacer, busy, spinner);
-        bar.getStyleClass().add("status-bar");
-        bar.setPadding(new Insets(6, 12, 6, 12));
-        bar.getChildren().get(0).getStyleClass().add("brand");
+        var theme = new Label("Day / Night");
+        theme.getStyleClass().add("key");
+        theme.setOnMouseClicked(e -> toggleTheme.run());
+        theme.setCursor(javafx.scene.Cursor.HAND);
+        bar.getChildren().addAll(spacer, busy, spinner, theme);
+        bar.getStyleClass().add("key-bar");
         return bar;
     }
 

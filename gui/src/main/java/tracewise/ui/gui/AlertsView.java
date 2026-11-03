@@ -36,6 +36,8 @@ import tracewise.monitoring.MonitoringSummary;
 final class AlertsView {
 
     private static final String ALL = "All";
+    private static final java.time.format.DateTimeFormatter LOG_TIME =
+            java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss").withZone(java.time.ZoneId.systemDefault());
 
     private final Gui gui;
     private final TableView<Alert> alerts = new TableView<>();
@@ -57,32 +59,28 @@ final class AlertsView {
         rule.setValue(ALL);
         status.setValue(ALL);
         minTotal.setPromptText("min total CAD");
-        minTotal.setPrefColumnCount(9);
-        var apply = new Button("Apply");
-        apply.setOnAction(e -> refresh());
-        var importCsv = new Button("Import CSV...");
-        importCsv.setOnAction(e -> onImport());
-        var monitor = new Button("Run Monitoring");
-        monitor.getStyleClass().add("primary");
-        monitor.setOnAction(e -> onRunMonitoring());
-        var investigate = new Button("Investigate");
-        investigate.setOnAction(e -> onInvestigate());
+        minTotal.setPrefColumnCount(10);
+        minTotal.getStyleClass().add("mono");
         maxAlerts.setPrefColumnCount(3);
-        maxCost.setPrefColumnCount(5);
-        var triage = new Button("Triage Queue");
+        maxCost.setPrefColumnCount(4);
+        maxAlerts.getStyleClass().addAll("mono", "num");
+        maxCost.getStyleClass().addAll("mono", "num");
+        var triage = Gui.button("Start triage  F3", this::startTriage);
         triage.getStyleClass().add("primary");
-        triage.setOnAction(e -> onTriage());
+        stop.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
         stop.setDisable(true);
         stop.setOnAction(e -> gui.facade.stopTriage()); // only sets a flag: safe on the UI thread
-        var spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-        var toolbar = new HBox(8, importCsv, monitor, investigate, new Label("  Triage: max alerts"), maxAlerts,
-                new Label("max CAD"), maxCost, triage, stop, spacer, new Label("Rule"), rule, new Label("Status"), status,
-                minTotal, apply);
+        var toolbar = new javafx.scene.layout.FlowPane(6, 6, Gui.button("Import CSV", this::onImport),
+                Gui.button("Run monitoring", this::onRunMonitoring), Gui.button("Investigate  F2", this::investigateSelected),
+                sep(), Gui.label("Triage up to", "muted"), maxAlerts, Gui.label("alerts or", "muted"), maxCost,
+                Gui.label("CAD", "muted"), triage, stop, sep(), Gui.label("Rule", "muted"), rule,
+                Gui.label("Status", "muted"), status, minTotal, Gui.button("Apply", this::refresh));
+        toolbar.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         toolbar.getStyleClass().add("toolbar");
         activity.setEditable(false);
-        activity.setPrefRowCount(7);
-        activity.setPromptText("Agent activity during triage appears here.");
+        activity.setWrapText(false);
+        activity.getStyleClass().addAll("mono", "prose-box");
+        activity.setPromptText("Agent steps appear here while triage runs: time, alert, tool, result.");
         alerts.setRowFactory(t -> {
             var row = new javafx.scene.control.TableRow<Alert>();
             row.setOnMouseClicked(e -> {
@@ -93,31 +91,44 @@ final class AlertsView {
             return row;
         });
 
-        alerts.getColumns().setAll(List.of(Gui.column("Alert", Alert::id, 95), Gui.column("Rule", Alert::ruleId, 50),
-                Gui.column("Account", Alert::accountId, 90), Gui.column("Total CAD", Alert::totalCad, 110),
-                Gui.column("Risk", Alert::riskScore, 50), Gui.column("Priority", Alert::priority, 60),
-                Gui.column("Status", Alert::status, 80), Gui.column("Flagged", a -> a.transactionIds().size(), 60),
-                Gui.column("Created (UTC)", Alert::createdAt, 130)));
-        alerts.setPlaceholder(new Label("No alerts. Import transactions and run monitoring."));
-        reports.getColumns().setAll(List.of(Gui.column("Report", ThresholdReport::id, 95),
-                Gui.column("Rule", ThresholdReport::ruleId, 50), Gui.column("Account", ThresholdReport::accountId, 90),
-                Gui.column("Total CAD", ThresholdReport::totalCad, 110),
-                Gui.column("Transactions", r -> r.transactionIds().size(), 90),
-                Gui.column("Window start (UTC)", ThresholdReport::windowStart, 140),
-                Gui.column("Window end (UTC)", ThresholdReport::windowEnd, 140)));
-        reports.setPlaceholder(new Label("No threshold reports yet."));
+        alerts.getColumns().setAll(List.of(
+                Gui.column("Age", a -> Display.age(java.time.Duration.between(a.createdAt(), java.time.Instant.now())), 64, "mono", "muted"),
+                Gui.column("Alert", Alert::id, 96, "mono"),
+                Gui.column("Rule", a -> a.ruleId() + "  " + Display.ruleName(a.ruleId()), 170),
+                Gui.column("Account", Alert::accountId, 80, "mono"),
+                Gui.column("Total CAD", Alert::totalCad, 110, "mono", "num"),
+                Gui.styled("Risk", a -> Display.riskLevel(a.riskScore()) + " " + a.riskScore(), a -> Display.riskStyle(a.riskScore()), 84, "mono"),
+                Gui.column("Pri", Alert::priority, 44, "mono", "num"),
+                Gui.column("Status", a -> Display.label(a.status()), 90),
+                Gui.column("Tx", a -> a.transactionIds().size(), 44, "mono", "num"),
+                Gui.column("Created UTC", Alert::createdAt, 146, "mono", "muted")));
+        alerts.setPlaceholder(new Label("No alerts. Import transactions (Import CSV), then run monitoring."));
+        reports.getColumns().setAll(List.of(Gui.column("Report", ThresholdReport::id, 96, "mono"),
+                Gui.column("Rule", r -> r.ruleId() + "  " + Display.ruleName(r.ruleId()), 200),
+                Gui.column("Account", ThresholdReport::accountId, 80, "mono"),
+                Gui.column("Total CAD", ThresholdReport::totalCad, 110, "mono", "num"),
+                Gui.column("Tx", r -> r.transactionIds().size(), 44, "mono", "num"),
+                Gui.column("Window start UTC", ThresholdReport::windowStart, 140, "mono"),
+                Gui.column("Window end UTC", ThresholdReport::windowEnd, 140, "mono")));
+        reports.setPlaceholder(new Label("No threshold reports yet. Run monitoring after an import."));
 
-        var queue = new BorderPane(alerts);
-        queue.setBottom(count);
-        BorderPane.setMargin(count, new Insets(6, 0, 0, 0));
-        var tabs = new TabPane(new Tab("Alert queue", queue), new Tab("Threshold Report Register", reports));
+        count.getStyleClass().add("muted");
+        var tabs = new TabPane(new Tab("Alert queue", alerts), new Tab("Threshold Report Register", reports));
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-        var root = new BorderPane(new javafx.scene.control.SplitPane(tabs, activity));
-        ((javafx.scene.control.SplitPane) root.getCenter()).setOrientation(javafx.geometry.Orientation.VERTICAL);
-        ((javafx.scene.control.SplitPane) root.getCenter()).setDividerPositions(0.78);
-        root.setTop(toolbar);
-        root.setPadding(new Insets(10));
-        return root;
+        var queue = new javafx.scene.layout.VBox(Gui.panelHead("ALRT", "Alert queue", count), toolbar, tabs);
+        javafx.scene.layout.VBox.setVgrow(tabs, Priority.ALWAYS);
+        var log = new BorderPane(activity);
+        log.setTop(Gui.panelHead("LOG", "Agent activity"));
+        var split = new javafx.scene.control.SplitPane(queue, log);
+        split.setOrientation(javafx.geometry.Orientation.VERTICAL);
+        split.setDividerPositions(0.72);
+        return split;
+    }
+
+    private static Region sep() {
+        var r = new Region();
+        r.getStyleClass().add("separator-v");
+        return r;
     }
 
     void refresh() {
@@ -173,7 +184,7 @@ final class AlertsView {
         }
     }
 
-    private void onInvestigate() {
+    void investigateSelected() {
         Alert a = alerts.getSelectionModel().getSelectedItem();
         if (a == null) {
             gui.info("Select an alert", "Select the alert to investigate in the queue.");
@@ -182,7 +193,7 @@ final class AlertsView {
         }
     }
 
-    private void onTriage() {
+    void startTriage() {
         TriageLimits limits;
         try {
             limits = new TriageLimits(Integer.parseInt(maxAlerts.getText().strip()), new BigDecimal(maxCost.getText().strip()),
@@ -196,13 +207,15 @@ final class AlertsView {
         var listener = new AgentEventListener() {
             @Override
             public void onStep(TraceStep s) {
-                String line = "[" + s.subject() + "] turn " + s.turn() + "  " + s.toolName() + (s.error() ? "  ERROR" : "") + "\n";
+                String line = String.format("%s  %-10s %-20s %s%n", LOG_TIME.format(java.time.Instant.now()), s.subject(),
+                        s.toolName(), s.error() ? "ERROR" : "ok");
                 Platform.runLater(() -> activity.appendText(line));
             }
 
             @Override
             public void onFinished(AgentOutcome o) {
-                Platform.runLater(() -> activity.appendText("[" + o.subject() + "] " + o.status() + "\n"));
+                Platform.runLater(() -> activity.appendText(String.format("%s  %-10s %-20s %s%n",
+                        LOG_TIME.format(java.time.Instant.now()), o.subject(), "finished", o.status())));
             }
         };
         gui.worker.submit("Triaging the alert queue", () -> gui.facade.triage(limits, listener), report -> {

@@ -79,6 +79,65 @@ final class Gui {
         return c;
     }
 
+    /** A column with style classes on its header and cells ("mono", "num"). */
+    static <S> TableColumn<S, String> column(String title, Function<S, Object> value, double width, String... classes) {
+        return styled(title, value, s -> null, width, classes);
+    }
+
+    /** As column(...), plus a per-row state class (e.g. "risk-high") so colour always comes with the cell's words. */
+    static <S> TableColumn<S, String> styled(String title, Function<S, Object> value, Function<S, String> state,
+            double width, String... classes) {
+        var c = column(title, value, width);
+        c.getStyleClass().addAll(classes);
+        c.setCellFactory(col -> new javafx.scene.control.TableCell<>() {
+            private String applied;
+
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty ? null : item);
+                if (applied != null) {
+                    getStyleClass().remove(applied);
+                    applied = null;
+                }
+                S row = empty || getTableRow() == null ? null : getTableRow().getItem();
+                if (row != null) {
+                    applied = state.apply(row);
+                    if (applied != null) {
+                        getStyleClass().add(applied);
+                    }
+                }
+            }
+        });
+        return c;
+    }
+
+    /** A button that never truncates its label. */
+    static javafx.scene.control.Button button(String text, Runnable action) {
+        var b = new javafx.scene.control.Button(text);
+        b.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+        b.setOnAction(e -> action.run());
+        return b;
+    }
+
+    /** A panel title strip: a short code, a name, and optional details after it. */
+    static javafx.scene.layout.HBox panelHead(String code, String name, javafx.scene.Node... rest) {
+        var codeLabel = new javafx.scene.control.Label(code);
+        codeLabel.getStyleClass().add("panel-code");
+        var nameLabel = new javafx.scene.control.Label(name);
+        nameLabel.getStyleClass().add("panel-name");
+        var head = new javafx.scene.layout.HBox(codeLabel, nameLabel);
+        head.getChildren().addAll(rest);
+        head.getStyleClass().add("panel-head");
+        return head;
+    }
+
+    static javafx.scene.control.Label label(String text, String... classes) {
+        var l = new javafx.scene.control.Label(text);
+        l.getStyleClass().addAll(classes);
+        return l;
+    }
+
     static String text(Object value) {
         if (value == null) {
             return "";

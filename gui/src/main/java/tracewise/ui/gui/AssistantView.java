@@ -1,6 +1,7 @@
 package tracewise.ui.gui;
 
 import java.util.function.Supplier;
+import java.util.List;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -29,28 +30,25 @@ final class AssistantView {
     }
 
     Node build() {
-        var title = new Label("Assistant");
-        title.getStyleClass().add("section-title");
-        var hint = new Label("Ask about accounts, alerts and cases. It reads only; changes go through investigations "
-                + "and approvals.");
-        hint.setWrapText(true);
-        hint.getStyleClass().add("muted");
-        messages.setPadding(new Insets(4));
+        messages.setPadding(new Insets(12));
         var scroll = new ScrollPane(messages);
         scroll.setFitToWidth(true);
         messages.heightProperty().addListener((o, a, b) -> scroll.setVvalue(1.0));
-        question.setPromptText("Why is account C1037 risky?");
+        question.setPromptText("ask about an account, alert or case");
+        question.getStyleClass().add("command");
         question.setOnAction(e -> onSubmit(question.getText()));
-        var ask = new Button("Ask");
+        var ask = Gui.button("Ask", () -> onSubmit(question.getText()));
         ask.getStyleClass().add("primary");
-        ask.setOnAction(e -> onSubmit(question.getText()));
         HBox.setHgrow(question, Priority.ALWAYS);
-        var input = new HBox(6, question, ask);
+        var input = new HBox(6, Gui.label(">", "command-mark"), question, ask);
+        input.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        input.setPadding(new Insets(6, 8, 6, 0));
+        input.setStyle("-fx-border-color: -tw-line transparent transparent transparent;");
         var root = new BorderPane(scroll);
-        root.setTop(new VBox(4, title, hint));
+        var spacer = new javafx.scene.layout.Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        root.setTop(Gui.panelHead("ASK", "Assistant", spacer, Gui.label("reads only", "muted")));
         root.setBottom(input);
-        BorderPane.setMargin(scroll, new Insets(8, 0, 8, 0));
-        root.setPadding(new Insets(10));
         root.setMinWidth(300);
         return root;
     }
@@ -60,28 +58,36 @@ final class AssistantView {
             return;
         }
         question.clear();
-        add("You", text, "chat-user");
+        messages.getChildren().add(Gui.label("> " + text, "chat-q"));
         String caseId = currentCase.get();
         gui.worker.submit("Asking the assistant", () -> gui.facade.ask(text, new AssistantContext(caseId, null)),
-                this::answered, e -> add("Assistant", e.getMessage(), "chat-error"));
+                this::answered, e -> add(e.getMessage(), "chat-error", List.of()));
     }
 
     private void answered(AssistantAnswer a) {
-        String cited = a.claims().isEmpty() ? "" : "\nCited: " + String.join(", ",
-                a.claims().stream().map(c -> c.transactionId()).toList());
-        String check = a.kind() == AssistantAnswer.Kind.ANSWER
-                ? "\nVerification: " + a.verification().status() + ", " + a.verification().summary() : "";
-        add("Assistant" + (a.kind() == AssistantAnswer.Kind.ANSWER ? "" : " (" + a.kind().name().toLowerCase() + ")"),
-                a.text() + cited + check, "chat-assistant");
+        var meta = new java.util.ArrayList<Label>();
+        if (a.kind() != AssistantAnswer.Kind.ANSWER) {
+            meta.add(Gui.label(a.kind().name(), "chat-meta", "wait"));
+        }
+        if (!a.claims().isEmpty()) {
+            meta.add(Gui.label("Cited    " + String.join(" ", a.claims().stream().map(c -> c.transactionId()).toList()),
+                    "chat-meta"));
+        }
+        if (a.kind() == AssistantAnswer.Kind.ANSWER) {
+            boolean ok = a.verification().status() == tracewise.verification.VerificationStatus.VERIFIED;
+            meta.add(Gui.label("Checked  " + (ok ? "VER " : "UNVER ") + a.verification().summary(), "chat-meta",
+                    ok ? "ok" : "bad"));
+        }
+        add(a.text(), "chat-a", meta);
     }
 
-    private void add(String who, String text, String style) {
-        var name = new Label(who);
-        name.getStyleClass().add("chat-name");
+    private void add(String text, String style, List<Label> meta) {
         var body = new Label(text);
         body.setWrapText(true);
-        var bubble = new VBox(2, name, body);
-        bubble.getStyleClass().addAll("chat", style);
-        messages.getChildren().add(bubble);
+        body.getStyleClass().add(style);
+        var block = new VBox(6, body);
+        block.getChildren().addAll(meta);
+        block.getStyleClass().add("chat");
+        messages.getChildren().add(block);
     }
 }
