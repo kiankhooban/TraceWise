@@ -43,7 +43,8 @@ final class AlertsView {
     private final TableView<Alert> alerts = new TableView<>();
     private final TableView<ThresholdReport> reports = new TableView<>();
     private final ComboBox<String> rule = new ComboBox<>(FXCollections.observableArrayList(ALL, "R1", "R2", "R3", "R4", "R5", "R6"));
-    private final ComboBox<String> status = new ComboBox<>(FXCollections.observableArrayList(ALL, "NEW", "IN_CASE", "CLOSED"));
+    private final ComboBox<String> status = new ComboBox<>(FXCollections.observableArrayList(ALL,
+            Display.label(AlertStatus.NEW), Display.label(AlertStatus.IN_CASE), Display.label(AlertStatus.CLOSED)));
     private final TextField minTotal = new TextField();
     private final Label count = new Label();
     private final TextField maxAlerts = new TextField("50");
@@ -70,11 +71,14 @@ final class AlertsView {
         stop.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
         stop.setDisable(true);
         stop.setOnAction(e -> gui.facade.stopTriage()); // only sets a flag: safe on the UI thread
+        // the filters wrap as one group, so a label never ends a line apart from its control
+        var filters = new HBox(6, Gui.label("Rule", "muted"), rule, Gui.label("Status", "muted"), status, minTotal,
+                Gui.button("Apply", this::refresh));
+        filters.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         var toolbar = new javafx.scene.layout.FlowPane(6, 6, Gui.button("Import CSV", this::onImport),
                 Gui.button("Run monitoring", this::onRunMonitoring), Gui.button("Investigate  F2", this::investigateSelected),
                 sep(), Gui.label("Triage up to", "muted"), maxAlerts, Gui.label("alerts or", "muted"), maxCost,
-                Gui.label("CAD", "muted"), triage, stop, sep(), Gui.label("Rule", "muted"), rule,
-                Gui.label("Status", "muted"), status, minTotal, Gui.button("Apply", this::refresh));
+                Gui.label("CAD", "muted"), triage, stop, sep(), filters);
         toolbar.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         toolbar.getStyleClass().add("toolbar");
         activity.setEditable(false);
@@ -135,7 +139,7 @@ final class AlertsView {
         AlertFilter filter;
         try {
             filter = new AlertFilter(ALL.equals(rule.getValue()) ? null : rule.getValue(),
-                    ALL.equals(status.getValue()) ? null : AlertStatus.valueOf(status.getValue()),
+                    Display.parse(AlertStatus.class, status.getValue()),
                     minTotal.getText().isBlank() ? null : new BigDecimal(minTotal.getText().strip()));
         } catch (NumberFormatException e) {
             gui.info("Invalid filter", "The minimum total must be a number, for example 10000.");

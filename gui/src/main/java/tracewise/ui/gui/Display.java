@@ -53,4 +53,14 @@ final class Display {
     static String actor(tracewise.domain.Actor actor) {
         return actor == null ? "" : actor.isHuman() ? "HUMAN" : actor.type().name();
     }
+
+    /** The constant whose label() is text, or null (for "All" and other non-status choices). */
+    static <E extends Enum<E>> E parse(Class<E> type, String text) {
+        for (E e : type.getEnumConstants()) {
+            if (label(e).equals(text)) {
+                return e;
+            }
+        }
+        return null;
+    }
 }

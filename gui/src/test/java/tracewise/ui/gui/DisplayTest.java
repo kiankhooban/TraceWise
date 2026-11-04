@@ -55,4 +55,11 @@ class DisplayTest {
         assertEquals("HUMAN", Display.actor(new Actor("lead", ActorType.SUPERVISOR)));
         assertEquals("", Display.actor(null));
     }
+
+    @Test
+    void aFilterLabelReadsBackAsItsStatus() {
+        assertEquals(AlertStatus.IN_CASE, Display.parse(AlertStatus.class, "In case"));
+        assertEquals(CaseStatus.PENDING_APPROVAL, Display.parse(CaseStatus.class, "Pending approval"));
+        assertNull(Display.parse(AlertStatus.class, "All"), "a label that is no status means no filter");
+    }
 }

@@ -44,14 +44,13 @@ final class CaseView implements AgentEventListener {
     private final Label title = new Label("Select a case");
     private final Label subtitle = new Label();
     private final javafx.scene.layout.GridPane facts = new javafx.scene.layout.GridPane();
-    private final java.util.Map<String, CaseStatus> statusByLabel = new java.util.LinkedHashMap<>();
     private final Button investigate = new Button("Investigate");
     private final Button cancel = new Button("Cancel");
     private final VBox finding = new VBox(8);
     private final TableView<TraceStep> steps = new TableView<>();
     private final TableView<RetrievedPassage> indicators = new TableView<>();
     private final TableView<RetrievedPassage> similar = new TableView<>();
-    private final ListView<String> tasks = new ListView<>();
+    private final TableView<tracewise.domain.FollowUpTask> tasks = new TableView<>();
     private final ListView<String> notes = new ListView<>();
     private final javafx.scene.control.TextField noteText = new javafx.scene.control.TextField();
     private final TableView<tracewise.audit.AuditEntry> history = new TableView<>();
@@ -73,7 +72,6 @@ final class CaseView implements AgentEventListener {
     Node build() {
         statusFilter.getItems().add(ALL);
         for (CaseStatus s : CaseStatus.values()) {
-            statusByLabel.put(Display.label(s), s);
             statusFilter.getItems().add(Display.label(s));
         }
         statusFilter.setValue(ALL);
@@ -81,10 +79,10 @@ final class CaseView implements AgentEventListener {
         var listBar = new HBox(8, Gui.label("State", "muted"), statusFilter, Gui.button("Refresh  F5", this::refresh));
         listBar.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         listBar.getStyleClass().add("toolbar");
-        cases.getColumns().setAll(List.of(Gui.column("Case", Case::id, 92, "mono"),
-                Gui.column("State", c -> Display.label(c.status()), 112),
-                Gui.styled("Finding", c -> c.latestFinding() == null ? "" : c.latestFinding().verdict() + " " + c.latestFinding().confidence(),
-                        c -> c.latestFinding() == null ? null : "verdict-" + c.latestFinding().verdict(), 128, "mono")));
+        cases.getColumns().setAll(List.of(Gui.column("Case", Case::id, 86, "mono"),
+                Gui.column("State", c -> Display.label(c.status()), 128),
+                Gui.styled("Finding", c -> c.latestFinding() == null ? "" : c.latestFinding().verdict(), // confidence: in the fact header
+                        c -> c.latestFinding() == null ? null : "verdict-" + c.latestFinding().verdict(), 112, "mono")));
         cases.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         cases.setPlaceholder(new Label("No cases yet. Investigate an alert."));
         cases.getSelectionModel().selectedItemProperty().addListener((o, old, c) -> {
@@ -94,7 +92,7 @@ final class CaseView implements AgentEventListener {
         });
         var left = new BorderPane(cases);
         left.setTop(new VBox(Gui.panelHead("CASE", "Cases"), listBar));
-        left.setMinWidth(300);
+        left.setMinWidth(330);
 
         title.getStyleClass().addAll("section-title", "mono");
         subtitle.getStyleClass().add("muted");
@@ -140,12 +138,18 @@ final class CaseView implements AgentEventListener {
                 Gui.column("ms", TraceStep::durationMs, 60, "mono", "num", "muted")));
         steps.setPlaceholder(new Label("No agent steps."));
         indicators.getColumns().setAll(List.of(Gui.column("Score", p -> String.format("%.3f", p.score()), 64, "mono", "num"),
-                Gui.column("FINTRAC indicator", RetrievedPassage::text, 520), Gui.column("Source", RetrievedPassage::source, 300)));
+                Gui.column("FINTRAC indicator", RetrievedPassage::text, 520), Gui.column("Source", RetrievedPassage::source, 220, "mono", "muted")));
+        indicators.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        indicators.getColumns().get(0).setMinWidth(64);
+        indicators.getColumns().get(2).setMinWidth(150);
         indicators.setPlaceholder(new Label("The agent retrieved no indicators."));
         similar.getColumns().setAll(List.of(Gui.column("Score", p -> String.format("%.3f", p.score()), 64, "mono", "num"),
                 Gui.column("Case", RetrievedPassage::source, 92, "mono"), Gui.column("Decision and summary", RetrievedPassage::text, 720)));
+        similar.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        similar.getColumns().get(0).setMinWidth(64);
+        similar.getColumns().get(1).setMinWidth(92);
         similar.setPlaceholder(new Label("No similar past case."));
-        var evidence = new VBox(6, new Label("Indicators retrieved"), indicators, new Label("Similar past cases"), similar);
+        var evidence = new VBox(6, section("Indicators retrieved"), indicators, section("Similar past cases"), similar);
         VBox.setVgrow(indicators, Priority.ALWAYS);
         VBox.setVgrow(similar, Priority.ALWAYS);
         evidence.setPadding(new Insets(8));
@@ -159,6 +163,11 @@ final class CaseView implements AgentEventListener {
         notesPane.setBottom(new HBox(6, noteText, addNote));
         notesPane.setPadding(new Insets(8));
         notes.setPlaceholder(new Label("No notes yet."));
+        tasks.getColumns().setAll(List.of(Gui.styled("", t -> t.done() ? "DONE" : "OPEN", t -> t.done() ? "ok" : "wait", 60, "mono"),
+                Gui.column("Follow-up task", tracewise.domain.FollowUpTask::description, 600)));
+        tasks.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        tasks.setPlaceholder(new Label("No follow-up tasks. The agent adds one when a person must act."));
+        history.setPlaceholder(new Label("Nothing recorded for this case yet."));
         history.getColumns().setAll(List.of(Gui.column("Time UTC", tracewise.audit.AuditEntry::timestamp, 140, "mono", "muted"),
                 Gui.column("Actor", e -> e.actor().type() + " " + e.actor().name(), 170, "mono"),
                 Gui.column("Event", tracewise.audit.AuditEntry::eventType, 170, "mono"),
@@ -178,7 +187,7 @@ final class CaseView implements AgentEventListener {
         right.setTop(header);
 
         var split = new SplitPane(left, right);
-        split.setDividerPositions(0.34);
+        split.setDividerPositions(0.35);
         return split;
     }
 
@@ -195,7 +204,7 @@ final class CaseView implements AgentEventListener {
     void refresh() {
         String status = statusFilter.getValue();
         gui.run("Loading cases", gui.facade::listCases, all -> {
-            cases.getItems().setAll(all.stream().filter(c -> ALL.equals(status) || c.status() == statusByLabel.get(status)).toList());
+            cases.getItems().setAll(all.stream().filter(c -> ALL.equals(status) || c.status() == Display.parse(CaseStatus.class, status)).toList());
             if (shown != null) {
                 showCase(shown.id());
             } else if (!cases.getItems().isEmpty()) {
@@ -302,7 +311,7 @@ final class CaseView implements AgentEventListener {
                 .toList());
         gui.run("Loading the history of " + c.id(), () -> gui.facade.caseHistory(c.id()), h -> history.getItems().setAll(h));
         AgentFinding f = c.latestFinding();
-        tasks.getItems().setAll(c.tasks().stream().map(t -> (t.done() ? "[done] " : "[open] ") + t.description()).toList());
+        tasks.getItems().setAll(c.tasks());
         finding.getChildren().clear();
         if (f == null) {
             finding.getChildren().add(new Label("No finding yet. Investigate the alert to let the agent work on it."));

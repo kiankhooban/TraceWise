@@ -190,18 +190,21 @@ class NetworkView {
                         || (t.senderAccountId().equals(accountId) && t.receiverAccountId().equals(toAccount)))
                 .toList(), rows -> {
                     var table = new TableView<Transaction>();
-                    table.getColumns().setAll(List.of(Gui.column("Transaction", Transaction::id, 120),
-                            Gui.column("Time (UTC)", Transaction::timestamp, 130),
-                            Gui.column("From", Transaction::senderAccountId, 100),
-                            Gui.column("To", Transaction::receiverAccountId, 100),
-                            Gui.column("Amount (CAD)", Transaction::amountCad, 110),
-                            Gui.column("Channel", Transaction::channel, 80)));
+                    table.getColumns().setAll(List.of(Gui.column("Transaction", Transaction::id, 104, "mono"),
+                            Gui.column("Time UTC", Transaction::timestamp, 136, "mono", "muted"),
+                            Gui.column("From", Transaction::senderAccountId, 96, "mono"),
+                            Gui.column("To", Transaction::receiverAccountId, 96, "mono"),
+                            Gui.column("CAD", Transaction::amountCad, 110, "mono", "num"),
+                            Gui.column("Channel", Transaction::channel, 90, "mono")));
+                    table.setPlaceholder(new javafx.scene.control.Label("No transactions in this date range."));
                     table.getItems().setAll(rows);
                     var stage = new Stage();
                     stage.initOwner(gui.stage);
                     stage.setTitle(toAccount == null ? "Transactions of " + accountId
                             : "Transfers from " + accountId + " to " + toAccount);
-                    stage.setScene(new javafx.scene.Scene(new BorderPane(table), 700, 400));
+                    var scene = new javafx.scene.Scene(new BorderPane(table), 700, 400);
+                    scene.getStylesheets().setAll(gui.stage.getScene().getStylesheets()); // a new window does not inherit them
+                    stage.setScene(scene);
                     stage.show();
                 });
     }
