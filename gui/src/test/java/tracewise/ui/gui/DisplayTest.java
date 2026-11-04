@@ -62,4 +62,19 @@ class DisplayTest {
         assertEquals(CaseStatus.PENDING_APPROVAL, Display.parse(CaseStatus.class, "Pending approval"));
         assertNull(Display.parse(AlertStatus.class, "All"), "a label that is no status means no filter");
     }
+
+    @Test
+    void aFindingReadsAsItsVerdictAndItsCheck() {
+        var f = new tracewise.agent.AgentFinding(tracewise.agent.Verdict.ESCALATE, 0.7, java.util.List.of(), java.util.List.of(),
+                java.util.List.of(), "n", false, null);
+        assertEquals("verdict-ESCALATE", Display.verdictStyle(f));
+        assertNull(Display.verdictStyle(null));
+        var ok = new tracewise.verification.VerificationReport(tracewise.verification.VerificationStatus.VERIFIED, java.util.List.of());
+        var partial = new tracewise.verification.VerificationReport(tracewise.verification.VerificationStatus.PARTIALLY_VERIFIED,
+                java.util.List.of());
+        assertEquals("VER", Display.checkCode(ok));
+        assertEquals("ok", Display.checkStyle(ok));
+        assertEquals("UNVER", Display.checkCode(partial));
+        assertEquals("bad", Display.checkStyle(partial));
+    }
 }

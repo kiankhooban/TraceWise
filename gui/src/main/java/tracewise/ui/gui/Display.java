@@ -63,4 +63,18 @@ final class Display {
         }
         return null;
     }
+
+    /** The style class of a finding's verdict ("verdict-ESCALATE"), or null when there is no finding. */
+    static String verdictStyle(tracewise.agent.AgentFinding f) {
+        return f == null ? null : "verdict-" + f.verdict();
+    }
+
+    /** VER when every cited claim matched the data, otherwise UNVER (F05). */
+    static String checkCode(tracewise.verification.VerificationReport r) {
+        return r.status() == tracewise.verification.VerificationStatus.VERIFIED ? "VER" : "UNVER";
+    }
+
+    static String checkStyle(tracewise.verification.VerificationReport r) {
+        return r.status() == tracewise.verification.VerificationStatus.VERIFIED ? "ok" : "bad";
+    }
 }

@@ -14,7 +14,6 @@ import javafx.scene.control.SplitPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TableView;
-import javafx.scene.control.TextArea;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -44,8 +43,8 @@ final class CaseView implements AgentEventListener {
     private final Label title = new Label("Select a case");
     private final Label subtitle = new Label();
     private final javafx.scene.layout.GridPane facts = new javafx.scene.layout.GridPane();
-    private final Button investigate = new Button("Investigate");
-    private final Button cancel = new Button("Cancel");
+    private final Button investigate = Gui.button("Investigate  F2", this::investigateShown);
+    private final Button cancel = Gui.button("Cancel", this::cancelRunning);
     private final VBox finding = new VBox(8);
     private final TableView<TraceStep> steps = new TableView<>();
     private final TableView<RetrievedPassage> indicators = new TableView<>();
@@ -54,13 +53,15 @@ final class CaseView implements AgentEventListener {
     private final ListView<String> notes = new ListView<>();
     private final javafx.scene.control.TextField noteText = new javafx.scene.control.TextField();
     private final TableView<tracewise.audit.AuditEntry> history = new TableView<>();
-    private final Button close = new Button("Close...");
-    private final Button reopen = new Button("Reopen...");
+    private final Button close = Gui.button("Close...", this::closeShown);
+    private final Button reopen = Gui.button("Reopen...", this::reopenShown);
     private final TabPane detail = new TabPane();
     private final ReportTab report;
     private final NetworkView network;
     private String networkDrawn;
     private Case shown;
+    /** The case last asked for (list click, command bar, another screen): a refresh shows it, not an older one. */
+    private String wanted;
     private String running;
 
     CaseView(Gui gui) {
@@ -82,11 +83,11 @@ final class CaseView implements AgentEventListener {
         cases.getColumns().setAll(List.of(Gui.column("Case", Case::id, 86, "mono"),
                 Gui.column("State", c -> Display.label(c.status()), 128),
                 Gui.styled("Finding", c -> c.latestFinding() == null ? "" : c.latestFinding().verdict(), // confidence: in the fact header
-                        c -> c.latestFinding() == null ? null : "verdict-" + c.latestFinding().verdict(), 112, "mono")));
+                        c -> Display.verdictStyle(c.latestFinding()), 112, "mono")));
         cases.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         cases.setPlaceholder(new Label("No cases yet. Investigate an alert."));
         cases.getSelectionModel().selectedItemProperty().addListener((o, old, c) -> {
-            if (c != null && (shown == null || !shown.id().equals(c.id()))) {
+            if (c != null && !c.id().equals(wanted)) {
                 showCase(c.id());
             }
         });
@@ -98,35 +99,12 @@ final class CaseView implements AgentEventListener {
         subtitle.getStyleClass().add("muted");
         investigate.getStyleClass().add("primary");
         investigate.setDisable(true);
-        investigate.setOnAction(e -> investigate(shown.alertIds().get(0)));
         cancel.setDisable(true);
-        cancel.setOnAction(e -> gui.facade.cancelInvestigation(running)); // only sets a flag: safe on the UI thread
         var spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         close.setDisable(true);
-        // the id is captured at click time: the worker may run later, when another case is on screen
-        close.setOnAction(e -> {
-            String id = shown.id();
-            withReason("Close " + id + " as a false alarm", "Why is it a false alarm?", reason -> gui.run("Closing " + id, () -> {
-                gui.facade.closeCase(id, reason);
-                return id;
-            }, this::changed));
-        });
         reopen.setDisable(true);
-        reopen.setOnAction(e -> {
-            String id = shown.id();
-            withReason("Reopen " + id, "Why is it reopened (for example new evidence)?", reason -> gui.run("Reopening " + id, () -> {
-                gui.facade.reopenCase(id, reason);
-                return id;
-            }, this::changed));
-        });
-        investigate.setText("Investigate  F2");
-        investigate.setMinWidth(Region.USE_PREF_SIZE);
-        for (var b : List.of(cancel, close, reopen)) {
-            b.setMinWidth(Region.USE_PREF_SIZE);
-        }
         var buttons = new HBox(8, investigate, cancel, spacer, close, reopen);
-        facts.getStyleClass().add("facts");
         var header = new VBox(8, new HBox(12, title, subtitle), facts, buttons);
         header.setPadding(new Insets(12, 14, 10, 14));
         header.setStyle("-fx-border-color: transparent transparent -tw-line transparent;");
@@ -198,15 +176,44 @@ final class CaseView implements AgentEventListener {
     }
 
     String currentCaseId() {
-        return shown == null ? null : shown.id();
+        // while another alert is being investigated the header is about that alert, not the case still in `shown`
+        if (shown == null || (running != null && !shown.alertIds().contains(running))) {
+            return null;
+        }
+        return shown.id();
+    }
+
+    // the id is captured at click time: the worker may run later, when another case is on screen
+    private void investigateShown() {
+        investigate(shown.alertIds().get(0));
+    }
+
+    private void cancelRunning() {
+        gui.facade.cancelInvestigation(running); // only sets a flag: safe on the UI thread
+    }
+
+    private void closeShown() {
+        String id = shown.id();
+        withReason("Close " + id + " as a false alarm", "Why is it a false alarm?", reason -> gui.run("Closing " + id, () -> {
+            gui.facade.closeCase(id, reason);
+            return id;
+        }, this::changed));
+    }
+
+    private void reopenShown() {
+        String id = shown.id();
+        withReason("Reopen " + id, "Why is it reopened (for example new evidence)?", reason -> gui.run("Reopening " + id, () -> {
+            gui.facade.reopenCase(id, reason);
+            return id;
+        }, this::changed));
     }
 
     void refresh() {
         String status = statusFilter.getValue();
         gui.run("Loading cases", gui.facade::listCases, all -> {
             cases.getItems().setAll(all.stream().filter(c -> ALL.equals(status) || c.status() == Display.parse(CaseStatus.class, status)).toList());
-            if (shown != null) {
-                showCase(shown.id());
+            if (wanted != null) {
+                showCase(wanted);
             } else if (!cases.getItems().isEmpty()) {
                 cases.getSelectionModel().selectFirst();
             }
@@ -214,7 +221,13 @@ final class CaseView implements AgentEventListener {
     }
 
     void showCase(String caseId) {
-        gui.run("Loading " + caseId, () -> gui.facade.getCase(caseId), this::show);
+        wanted = caseId;
+        // a reply for a case asked for earlier is dropped: the latest request wins
+        gui.run("Loading " + caseId, () -> gui.facade.getCase(caseId), c -> {
+            if (caseId.equals(wanted)) {
+                show(c);
+            }
+        });
     }
 
     /** Runs the agent on the alert; its steps appear live, then the case is shown with the finding. */
@@ -328,11 +341,10 @@ final class CaseView implements AgentEventListener {
         var byScore = java.util.Comparator.comparingDouble(RetrievedPassage::score).reversed();
         indicators.getItems().setAll(gui.facade.retrievedIndicators(f).stream().sorted(byScore).toList());
         similar.getItems().setAll(gui.facade.retrievedSimilarCases(f).stream().sorted(byScore).toList());
-        var verdict = Gui.label(f.verdict().toString(), "verdict-" + f.verdict());
+        var verdict = Gui.label(f.verdict().toString(), Display.verdictStyle(f));
         var report = f.verification();
-        boolean verified = report.status() == tracewise.verification.VerificationStatus.VERIFIED;
         var verdictLine = new HBox(12, verdict, Gui.label("confidence " + f.confidence(), "mono", "soft"),
-                Gui.label((verified ? "VER " : "UNVER ") + report.summary(), "mono", verified ? "ok" : "bad"));
+                Gui.label(Display.checkCode(report) + " " + report.summary(), "mono", Display.checkStyle(report)));
         if (f.incomplete()) {
             verdictLine.getChildren().add(Gui.label("INCOMPLETE", "mono", "wait"));
         }
@@ -369,7 +381,7 @@ final class CaseView implements AgentEventListener {
             String[][] cells = {{"Trigger", f.trigger(), null}, {"Subject", f.subject(), null},
                     {"Window", f.window(), null}, {"Flagged CAD", f.net(), null}, {"Risk", f.risk(), f.riskStyle()},
                     {"Finding", finding == null ? "none yet" : finding.verdict() + " " + finding.confidence(),
-                            finding == null ? null : "verdict-" + finding.verdict()}};
+                            Display.verdictStyle(finding)}};
             for (int i = 0; i < cells.length; i++) {
                 var value = Gui.label(cells[i][1], "mono");
                 value.setMinWidth(Region.USE_PREF_SIZE);
@@ -386,9 +398,7 @@ final class CaseView implements AgentEventListener {
     }
 
     private static Label section(String text) {
-        var l = new Label(text);
-        l.getStyleClass().add("section-title");
-        return l;
+        return Gui.label(text, "section-title");
     }
 
     /** Only an open case or one under investigation can be investigated (the case states allow nothing else). */

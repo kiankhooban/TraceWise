@@ -4,7 +4,6 @@ import java.util.function.Supplier;
 import java.util.List;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
@@ -61,7 +60,7 @@ final class AssistantView {
         var asked = context.get();
         messages.getChildren().addAll(Gui.label("> " + text, "chat-q"), Gui.label(SearchResults.contextLabel(asked), "chat-meta"));
         gui.worker.submit("Asking the assistant", () -> gui.facade.ask(text, asked),
-                this::answered, e -> add(e.getMessage(), "chat-error", List.of()));
+                this::answered, e -> add(e.getMessage() == null ? e.toString() : e.getMessage(), "chat-error", List.of()));
     }
 
     private void answered(AssistantAnswer a) {
@@ -71,8 +70,7 @@ final class AssistantView {
         }
         var report = a.verification();
         if (a.kind() == AssistantAnswer.Kind.ANSWER && report != null) {
-            boolean ok = report.status() == tracewise.verification.VerificationStatus.VERIFIED;
-            meta.add(Gui.label("Checked  " + (ok ? "VER " : "UNVER ") + report.summary(), "chat-meta", ok ? "ok" : "bad"));
+            meta.add(Gui.label("Checked  " + Display.checkCode(report) + " " + report.summary(), "chat-meta", Display.checkStyle(report)));
             for (var check : report.checks()) { // a badge per cited claim (Stage 1 F10)
                 var line = Gui.label((check.confirmed() ? "VER  " : "REJ  ") + check.claim()
                         + (check.confirmed() ? "" : "  (" + check.reason() + ")"), "chat-meta", check.confirmed() ? "ok" : "bad");

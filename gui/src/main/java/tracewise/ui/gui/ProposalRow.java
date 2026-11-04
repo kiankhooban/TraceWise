@@ -8,7 +8,6 @@ import tracewise.actions.PendingAction;
 import tracewise.agent.AgentFinding;
 import tracewise.domain.Case;
 import tracewise.verification.VerificationReport;
-import tracewise.verification.VerificationStatus;
 
 /**
  * One row of the approval queue (F06): the proposal, the case it would change (null if it could not be loaded),
@@ -30,8 +29,7 @@ record ProposalRow(PendingAction proposal, Case target, String account, Instant 
     }
 
     String findingStyle() {
-        var f = latest();
-        return f == null ? null : "verdict-" + f.verdict();
+        return Display.verdictStyle(latest());
     }
 
     private VerificationReport report() {
@@ -46,12 +44,12 @@ record ProposalRow(PendingAction proposal, Case target, String account, Instant 
             return "";
         }
         int total = r.checks().size();
-        return (r.status() == VerificationStatus.VERIFIED ? "VER " : "UNVER ") + (total - r.rejected().size()) + "/" + total;
+        return Display.checkCode(r) + " " + (total - r.rejected().size()) + "/" + total;
     }
 
     String checkedStyle() {
         var r = report();
-        return r == null ? null : r.status() == VerificationStatus.VERIFIED ? "ok" : "bad";
+        return r == null ? null : Display.checkStyle(r);
     }
 
     String proposedBy() {

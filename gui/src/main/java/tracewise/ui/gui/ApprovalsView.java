@@ -43,6 +43,8 @@ final class ApprovalsView {
     private final TextField rejectReason = new TextField();
     private final Label last = Gui.label("", "mono", "muted");
     private Map<String, Alert> alerts = Map.of();
+    /** A proposal id typed in the command bar, selected once the queue has loaded. */
+    private String pendingSelect;
 
     ApprovalsView(Gui gui) {
         this.gui = gui;
@@ -128,7 +130,14 @@ final class ApprovalsView {
             alerts = loaded.alerts();
             pending.getItems().setAll(loaded.rows());
             count.setText(loaded.rows().size() + " waiting");
-            if (loaded.rows().isEmpty()) {
+            var want = loaded.rows().stream().filter(r -> r.proposal().id().equals(pendingSelect)).findFirst();
+            if (pendingSelect != null && want.isEmpty()) {
+                gui.info(pendingSelect + " is not waiting", "Only proposals waiting for a decision are listed.");
+            }
+            pendingSelect = null;
+            if (want.isPresent()) {
+                pending.getSelectionModel().select(want.get());
+            } else if (loaded.rows().isEmpty()) {
                 describe(null);
             } else {
                 pending.getSelectionModel().selectFirst();
@@ -139,13 +148,19 @@ final class ApprovalsView {
     private record Loaded(Map<String, Alert> alerts, List<ProposalRow> rows) {
     }
 
-    /** A proposal whose case cannot be read still shows, without its finding. */
+    /** A proposal whose case no longer exists still shows, without its finding; any other read error is shown. */
     private Case caseOrNull(String id) {
         try {
             return gui.facade.getCase(id);
-        } catch (RuntimeException e) {
+        } catch (IllegalArgumentException e) { // getCase's "No case <id>"
             return null;
         }
+    }
+
+    /** Command bar: select a proposal by id. */
+    void select(String proposalId) {
+        pendingSelect = proposalId;
+        refresh();
     }
 
     /** The case of the selected proposal, or null: the assistant's context on this screen. */

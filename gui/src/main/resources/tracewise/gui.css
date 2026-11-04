@@ -51,7 +51,6 @@
 .mono, .table-cell.mono, .text-field.mono { -fx-font-family: "JetBrains Mono"; -fx-font-size: 12px; }
 .num { -fx-alignment: center-right; }
 .table-cell.num { -fx-alignment: center-right; }
-.strong { -fx-font-family: "Source Sans 3 Semibold"; }
 .muted, .label.muted { -fx-text-fill: -tw-muted; }
 .soft { -fx-text-fill: -tw-soft; }
 .prose { -fx-font-size: 13.5px; -fx-text-fill: -tw-soft; -fx-line-spacing: 4px; }
@@ -62,7 +61,6 @@
 .risk-med, .verdict-INCONCLUSIVE, .wait { -fx-text-fill: -tw-amber; }
 .risk-low { -fx-text-fill: -tw-muted; }
 .verdict-DISMISS, .ok { -fx-text-fill: -tw-green; }
-.accent { -fx-text-fill: -tw-accent; }
 .verdict-ESCALATE, .verdict-DISMISS, .verdict-INCONCLUSIVE { -fx-font-family: "JetBrains Mono SemiBold"; -fx-font-size: 12px; }
 
 /* Shell: top bar, panel title strips, key legend */

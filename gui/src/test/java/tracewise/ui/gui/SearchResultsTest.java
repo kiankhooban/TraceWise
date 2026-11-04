@@ -51,6 +51,14 @@ class SearchResultsTest {
     }
 
     @Test
+    void aCappedSearchSaysHowManyItShows() {
+        var r = SearchResults.from(List.of(step("query_alerts", """
+                {"count":120,"alerts":[{"alert_id":"ALR-00001"}],"message":"Only the first 50 are listed; narrow the filter."}""",
+                false))).orElseThrow();
+        assertEquals("1 of 120 alerts. Only the first 50 are listed; narrow the filter.", r.title());
+    }
+
+    @Test
     void theContextSentWithAQuestionIsShownInWords() {
         assertEquals("context CAS-00001", SearchResults.contextLabel(new AssistantContext("CAS-00001", null)));
         assertEquals("context account C1059", SearchResults.contextLabel(new AssistantContext(null, "C1059")));

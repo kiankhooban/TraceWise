@@ -54,7 +54,10 @@ record SearchResults(String title, List<String> columns, List<List<String>> rows
         }
         int count = root.path("count").asInt(rows.size());
         String noun = count == 1 ? key.substring(0, key.length() - 1) : key; // "1 case", "2 cases"
-        return Optional.of(new SearchResults(count + " " + noun, columns, rows));
+        // the tools list at most 50 rows: say so rather than a count the table does not show
+        String title = rows.size() < count ? rows.size() + " of " + count + " " + key : count + " " + noun;
+        String message = root.path("message").asText("");
+        return Optional.of(new SearchResults(message.isEmpty() ? title : title + ". " + message, columns, rows));
     }
 
     private static String text(JsonNode value) {

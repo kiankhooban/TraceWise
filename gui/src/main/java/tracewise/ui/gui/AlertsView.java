@@ -5,7 +5,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
-import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
@@ -52,6 +51,9 @@ final class AlertsView {
     private final Button stop = new Button("Stop");
     private final javafx.scene.control.TextArea activity = new javafx.scene.control.TextArea();
 
+    /** An alert id typed in the command bar, selected once the list has loaded. */
+    private String pendingSelect;
+
     AlertsView(Gui gui) {
         this.gui = gui;
     }
@@ -96,7 +98,7 @@ final class AlertsView {
         });
 
         alerts.getColumns().setAll(List.of(
-                Gui.column("Age", a -> Display.age(java.time.Duration.between(a.createdAt(), java.time.Instant.now())), 64, "mono", "muted"),
+                age(),
                 Gui.column("Alert", Alert::id, 96, "mono"),
                 Gui.column("Rule", a -> a.ruleId() + "  " + Display.ruleName(a.ruleId()), 170),
                 Gui.column("Account", Alert::accountId, 80, "mono"),
@@ -153,6 +155,14 @@ final class AlertsView {
             alerts.getItems().setAll(a);
             reports.getItems().setAll(t);
             count.setText(a.size() + " alerts, highest risk first");
+            if (pendingSelect != null) {
+                String id = pendingSelect;
+                pendingSelect = null;
+                a.stream().filter(x -> x.id().equals(id)).findFirst().ifPresentOrElse(x -> {
+                    alerts.getSelectionModel().select(x);
+                    alerts.scrollTo(x);
+                }, () -> gui.info(id + " is not listed", "Check the id, or clear the filters (Rule, Status, min total)."));
+            }
         });
     }
 
@@ -198,6 +208,10 @@ final class AlertsView {
     }
 
     void startTriage() {
+        if (!stop.isDisable()) { // Stop is enabled exactly while a triage runs: a held F3 must not queue paid runs
+            gui.info("Triage is running", "Wait for it to finish, or press Stop, first.");
+            return;
+        }
         TriageLimits limits;
         try {
             limits = new TriageLimits(Integer.parseInt(maxAlerts.getText().strip()), new BigDecimal(maxCost.getText().strip()),
@@ -211,15 +225,14 @@ final class AlertsView {
         var listener = new AgentEventListener() {
             @Override
             public void onStep(TraceStep s) {
-                String line = String.format("%s  %-10s %-20s %s%n", LOG_TIME.format(java.time.Instant.now()), s.subject(),
-                        s.toolName(), s.error() ? "ERROR" : "ok");
+                String line = logLine(s.subject(), s.toolName(), s.error() ? "ERROR" : "ok");
                 Platform.runLater(() -> activity.appendText(line));
             }
 
             @Override
             public void onFinished(AgentOutcome o) {
-                Platform.runLater(() -> activity.appendText(String.format("%s  %-10s %-20s %s%n",
-                        LOG_TIME.format(java.time.Instant.now()), o.subject(), "finished", o.status())));
+                String line = logLine(o.subject(), "finished", String.valueOf(o.status()));
+                Platform.runLater(() -> activity.appendText(line));
             }
         };
         gui.worker.submit("Triaging the alert queue", () -> gui.facade.triage(limits, listener), report -> {
@@ -268,5 +281,23 @@ final class AlertsView {
     String selectedAccount() {
         Alert a = alerts.getSelectionModel().getSelectedItem();
         return a == null ? null : a.accountId();
+    }
+
+    /** Time since the alert was raised; not sortable as text ("12m" vs "2h 05m"): Created UTC sorts the same order. */
+    private static javafx.scene.control.TableColumn<Alert, String> age() {
+        var c = Gui.column("Age", (Alert a) -> Display.age(java.time.Duration.between(a.createdAt(), java.time.Instant.now())),
+                64, "mono", "muted");
+        c.setSortable(false);
+        return c;
+    }
+
+    /** Command bar: select an alert by id (after a reload, so a new alert is there too). */
+    void select(String alertId) {
+        pendingSelect = alertId;
+        refresh();
+    }
+
+    private static String logLine(String subject, String what, String result) {
+        return String.format("%s  %-10s %-20s %s%n", LOG_TIME.format(java.time.Instant.now()), subject, what, result);
     }
 }
