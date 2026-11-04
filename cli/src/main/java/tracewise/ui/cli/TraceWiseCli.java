@@ -45,6 +45,8 @@ public class TraceWiseCli implements java.util.concurrent.Callable<Integer> {
     Path replays;
 
     private TraceWiseFacade facade;
+    /** The database the facade was opened with; in the shell, picocli resets database to its default on every line. */
+    Path openedDatabase;
     /** Plain until main() finds a terminal; tests and pipes stay plain. */
     Style style = new Style(false, 0);
     /** True while the interactive shell runs: commands then share one facade, so the assistant keeps the conversation. */
@@ -61,6 +63,7 @@ public class TraceWiseCli implements java.util.concurrent.Callable<Integer> {
                 spec.commandLine().getErr().println("Note: no prices are known for " + model
                         + ", so runs show no cost and cost limits do not apply.");
             }
+            openedDatabase = database;
             facade = TraceWiseBootstrap.create(new AppConfig(database, System.getProperty("user.name"), role,
                     config, replays, home.resolve(".env")));
         }

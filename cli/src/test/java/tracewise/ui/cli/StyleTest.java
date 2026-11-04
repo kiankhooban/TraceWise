@@ -96,6 +96,38 @@ class StyleTest {
         assertEquals(line, PLAIN.cut(line), "width 0: nothing is cut");
     }
 
+    /** Review 13: branches only the commands reached, and the risk bands at their edges. */
+    @Test
+    void fieldsWrapUnderTheirValueAndBandsHoldAtTheirEdges() {
+        String wrapped = COLOR.field("Why", "one two three four five six seven eight nine ten eleven twelve");
+        for (String line : wrapped.split("\n")) {
+            assertTrue(Style.visible(line).length() <= 40, "[" + line + "]");
+        }
+        assertTrue(wrapped.split("\n")[1].startsWith(" ".repeat(12)) && !wrapped.split("\n")[1].startsWith(" ".repeat(13)),
+                "continuation lines start under the value: " + wrapped);
+        assertEquals("  Verdict   ESCALATE", PLAIN.field("Verdict", "ESCALATE"));
+        assertEquals("HIGH 60", PLAIN.risk(60));
+        assertEquals("MED 59", PLAIN.risk(59));
+        assertEquals("MED 45", PLAIN.risk(45));
+        assertEquals("LOW 44", PLAIN.risk(44));
+        assertEquals("INCONCLUSIVE", PLAIN.verdict(Verdict.INCONCLUSIVE));
+        assertEquals("DISMISS", PLAIN.verdict(Verdict.DISMISS));
+        assertEquals("", PLAIN.verdict(null));
+        assertEquals("account history  C1037", PLAIN.auditStep("account_history { \"account_id\" : \"C1037\" }"));
+        assertEquals("note", PLAIN.auditStep("note"), "a detail that is not a tool call stays as it is");
+    }
+
+    /** Review 13: an exception in a step line fails the agent run, so odd arguments must still give a line. */
+    @Test
+    void oddArgumentsStillGiveOneLine() {
+        assertEquals("account history  ", PLAIN.stepText(step("account_history", null, "", false)));
+        assertEquals("similar cases  \"two lines of text\"",
+                PLAIN.stepText(step("similar_cases", "{\"description\":\"two lines\\n  of text\"}", "", false)));
+        assertEquals("...", new Style(true, 3).cut("long line"));
+        assertEquals("  0.831  F...", IndicatorsCli.sourceLine(new Style(false, 13), "0.831", "FINTRAC 7.5"));
+        assertDoesNotThrow(() -> IndicatorsCli.sourceLine(new Style(false, 5), "0.831", "FINTRAC 7.5"), "a very narrow window");
+    }
+
     static TraceStep step(String tool, String args, String result, boolean error) {
         return new TraceStep("ALR-00001", 2, tool, args, result, error, 1167);
     }

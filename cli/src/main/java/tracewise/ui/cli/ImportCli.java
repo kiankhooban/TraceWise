@@ -60,7 +60,7 @@ public class ImportCli extends CliCommandBase {
         if (s.rowsImported() > 0) {
             out().println(st.dim("  Next: monitor run"));
         } else if (duplicates > 0 && others == 0) {
-            out().println(st.dim("  This file is already in " + ((TraceWiseCli) spec.root().userObject()).database
+            out().println(st.dim("  This file is already in " + ((TraceWiseCli) spec.root().userObject()).openedDatabase
                     + ". To start over, delete that file and import again."));
         }
     }

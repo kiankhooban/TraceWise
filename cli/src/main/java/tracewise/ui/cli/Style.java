@@ -240,7 +240,7 @@ final class Style {
 
     /** What a step did in words, from the tool's name and arguments; never the raw JSON. */
     String stepText(TraceStep s) {
-        String text = stepWords(s.toolName(), s.arguments());
+        String text = stepWords(s.toolName(), s.arguments() == null ? "" : s.arguments());
         if (ACTIONS.contains(s.toolName())) {
             String result = s.result() == null ? "" : s.result();
             return text + (s.error() ? ", refused: " + result : result.startsWith("Proposed") ? ", waits for a person" : ", done");
@@ -287,6 +287,6 @@ final class Style {
         if (ACTIONS.contains(tool)) {
             words = (color ? "▸ " : "> ") + words;
         }
-        return words + "  " + detail;
+        return words + "  " + detail.replaceAll("\\s+", " ").strip(); // one line, whatever the arguments hold
     }
 }

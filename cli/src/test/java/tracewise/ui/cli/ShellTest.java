@@ -26,8 +26,9 @@ class ShellTest {
         assertArrayEquals(new String[] {"alerts", "list"}, TraceWiseShell.arguments(List.of("alerts", "list"), "alerts list", commands));
         assertArrayEquals(new String[] {"ask", "why is C1037 risky?"},
                 TraceWiseShell.arguments(List.of("why", "is", "C1037", "risky?"), "  why is C1037 risky? ", commands));
-        assertArrayEquals(new String[] {"--role", "supervisor", "rules", "list"},
-                TraceWiseShell.arguments(List.of("--role", "supervisor", "rules", "list"), "", commands));
+        assertTrue(TraceWiseShell.rootOptions(List.of("--role", "supervisor", "rules", "list")));
+        assertTrue(TraceWiseShell.rootOptions(List.of("--db", "other.db")));
+        assertFalse(TraceWiseShell.rootOptions(List.of("rules", "list")));
         assertNull(TraceWiseShell.arguments(List.of(), "  ", commands), "an empty line does nothing");
     }
 
@@ -71,6 +72,73 @@ class ShellTest {
 
         assertTrue(out.contains("investigate") && out.contains("approvals"), out);
         assertTrue(out.contains("The assistant could not answer"), "the question went to ask: " + out);
+    }
+
+    /** Review 13: --role on a shell line was silently ignored (the session's facade is open), and an options-only line opened a nested shell. */
+    @Test
+    void rootOptionsOnALineAreRefusedAndTheShellCarriesOn() throws Exception {
+        String out = session("--role supervisor", "--db other.db import DATA", "rules list", "exit");
+        assertEquals(2, out.split("apply to the whole shell", -1).length - 1, out);
+        assertTrue(out.contains("Large cash"), "the next line still runs: " + out);
+        assertFalse(Files.exists(dir.resolve("other.db")), "nothing ran against another database");
+    }
+
+    /** Review 13: "investigate --json ALR-1" cancelled "--json", and Ctrl+C on other commands did nothing visible. */
+    @Test
+    void ctrlCStopsTheAlertBeingInvestigatedOrSaysItCannotStop() {
+        assertEquals("ALR-00001", TraceWiseShell.alertToStop(new String[] {"investigate", "--json", "ALR-00001"}));
+        assertEquals("ALR-00002", TraceWiseShell.alertToStop(new String[] {"investigate", "ALR-00002"}));
+        assertNull(TraceWiseShell.alertToStop(new String[] {"triage", "--max-alerts", "5"}));
+        assertNull(TraceWiseShell.alertToStop(new String[] {"ask", "why"}));
+
+        var cl = TraceWiseCli.commandLine(new java.io.PrintWriter(new java.io.StringWriter()), new java.io.PrintWriter(new java.io.StringWriter()));
+        cl.parseArgs("--db", dir.resolve("t.db").toString());
+        var root = (TraceWiseCli) cl.getCommand();
+        var text = new java.io.StringWriter();
+        var out = new java.io.PrintWriter(text, true);
+        TraceWiseShell.stop(root, null, out);
+        assertEquals("", text.toString(), "at the prompt Ctrl+C only clears the line");
+        TraceWiseShell.stop(root, new String[] {"ask", "why"}, out);
+        assertTrue(text.toString().contains("cannot be stopped"), text.toString());
+        TraceWiseShell.stop(root, new String[] {"triage"}, out);
+        assertTrue(text.toString().contains("Stopping after this alert"), text.toString());
+        root.close();
+    }
+
+    /** Review 13: the pasted-lines path itself, not only the line splitting. */
+    @Test
+    void pastedLinesEchoEachLineAndStopAtExit() throws Exception {
+        Path data = Files.write(dir.resolve("s.csv"), ScenarioGenerator.generate(42));
+        var text = new java.io.StringWriter();
+        var out = new java.io.PrintWriter(text, true);
+        var cl = TraceWiseCli.commandLine(out, out);
+        cl.parseArgs("--db", dir.resolve("t.db").toString());
+        var root = (TraceWiseCli) cl.getCommand();
+        try (var terminal = new DumbTerminal("test", "dumb", new ByteArrayInputStream(new byte[0]), new ByteArrayOutputStream(),
+                StandardCharsets.UTF_8)) {
+            boolean more = TraceWiseShell.runAll(List.of("import " + data, "alerts list", "exit", "rules list"),
+                    new org.jline.reader.impl.DefaultParser(), cl, root, terminal, false, new String[1][], out);
+            assertFalse(more, "exit ends the shell");
+        }
+        root.close();
+        assertTrue(text.toString().contains("> import ") && text.toString().contains("> alerts list"), text.toString());
+        assertFalse(text.toString().contains("Large cash"), "rules list came after exit: " + text);
+    }
+
+    /** Review 13: the help line said "investigate --help", which subcommands reject. */
+    @Test
+    void helpNamesACommandToShowItsOptions() throws Exception {
+        String out = session("help", "help investigate", "help nope");
+        assertTrue(out.contains("help <command> shows its options"), out);
+        assertTrue(out.contains("Usage: tracewise investigate"), out);
+        assertTrue(out.contains("No command nope"), out);
+    }
+
+    /** Review 13: inside the shell the hint named the default database, not the one the shell opened. */
+    @Test
+    void theImportHintNamesTheDatabaseTheShellOpened() throws Exception {
+        String out = session("import DATA", "import DATA", "exit");
+        assertTrue(out.contains("already in " + dir.resolve("t.db")), out);
     }
 
     @Test

@@ -33,15 +33,20 @@ public class IndicatorsCli {
         }
     }
 
+    /** "  0.831  FINTRAC 7.5, ..." on one line, the source cut to fit the width. */
+    static String sourceLine(Style st, String score, String source) {
+        String line = st.cut("  " + score + "  " + source);
+        int start = score.length() + 4;
+        return "  " + st.dim(score) + "  " + st.label(line.length() > start ? line.substring(start) : "");
+    }
+
     /** One block per result: score and source, then the text under it. */
     static void printPassages(PrintWriter out, Style st, List<RetrievedPassage> results) {
         if (results.isEmpty()) {
             out.println("  Nothing relevant found");
         }
         for (var r : results) {
-            String score = String.format("%.3f", r.score());
-            String source = st.cut("  " + score + "  " + r.source()).substring(score.length() + 4); // one line, cut to fit
-            out.println("  " + st.dim(score) + "  " + st.label(source));
+            out.println(sourceLine(st, String.format("%.3f", r.score()), r.source()));
             out.println(st.wrap(r.text(), 9));
         }
         if (!results.isEmpty()) {

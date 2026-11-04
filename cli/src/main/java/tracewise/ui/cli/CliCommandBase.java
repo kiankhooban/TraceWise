@@ -36,7 +36,7 @@ public abstract class CliCommandBase implements Callable<Integer> {
             if (json) {
                 printJson(Map.of("error", String.valueOf(e.getMessage())));
             } else {
-                err().println(style().bad("Error:") + " " + e.getMessage());
+                err().println(errStyle().bad("Error:") + " " + e.getMessage());
             }
             return 1;
         } finally {
@@ -62,6 +62,15 @@ public abstract class CliCommandBase implements Callable<Integer> {
     /** How text output looks: colour on a terminal only, wrapped to its width (see Style). */
     protected Style style() {
         return ((TraceWiseCli) spec.root().userObject()).style;
+    }
+
+    /**
+     * The style for stderr: plain, since stderr may be a file while stdout is a terminal (colour is decided from
+     * stdout); in the shell both go to the terminal, so errors are coloured there.
+     */
+    protected Style errStyle() {
+        var root = (TraceWiseCli) spec.root().userObject();
+        return root.shell ? root.style : new Style(false, 0);
     }
 
     protected PrintWriter out() {

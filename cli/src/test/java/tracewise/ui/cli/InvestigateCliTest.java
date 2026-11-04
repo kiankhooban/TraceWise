@@ -105,4 +105,15 @@ class InvestigateCliTest {
         assertEquals(1, run(dir.resolve("t.db"), "investigate", "ALR-99999"));
         assertTrue(err.toString().contains("No alert ALR-99999"), err.toString());
     }
+
+    /** Review 13: stderr may be a file while stdout is a terminal, so error lines carry no colour codes. */
+    @Test
+    void errorsStayPlainEvenWhenTheOutputIsColoured() {
+        var out = new StringWriter();
+        var err = new StringWriter();
+        var cl = TraceWiseCli.commandLine(new PrintWriter(out, true), new PrintWriter(err, true));
+        ((TraceWiseCli) cl.getCommand()).style = new Style(true, 80);
+        assertEquals(1, cl.execute("--db", dir.resolve("t.db").toString(), "investigate", "ALR-99999"));
+        assertTrue(err.toString().startsWith("Error: No alert ALR-99999"), err.toString());
+    }
 }

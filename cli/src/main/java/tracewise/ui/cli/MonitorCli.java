@@ -24,7 +24,7 @@ public class MonitorCli {
             String byRule = new java.util.TreeMap<>(s.alertsByRule()).entrySet().stream().map(e -> Style.rule(e.getKey()) + " " + e.getValue())
                     .collect(java.util.stream.Collectors.joining(", "));
             out().println(st.field("Alerts", st.bold(String.valueOf(s.newAlerts())) + " new" + (byRule.isEmpty() ? "" : ": " + byRule)));
-            s.failedRules().forEach(f -> err().println(st.bad("Rule failed:") + " " + f));
+            s.failedRules().forEach(f -> err().println(errStyle().bad("Rule failed:") + " " + f));
             out().println(st.dim(s.newAlerts() > 0 ? "  Next: alerts list" : "  No new alerts"));
         }
     }
