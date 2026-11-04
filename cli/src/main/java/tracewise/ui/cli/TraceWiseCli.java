@@ -45,6 +45,8 @@ public class TraceWiseCli {
     Path replays;
 
     private TraceWiseFacade facade;
+    /** Plain until main() finds a terminal; tests and pipes stay plain. */
+    Style style = new Style(false, 0);
 
     @picocli.CommandLine.Spec
     picocli.CommandLine.Model.CommandSpec spec;
@@ -78,6 +80,20 @@ public class TraceWiseCli {
     }
 
     public static void main(String[] args) {
-        System.exit(new CommandLine(new TraceWiseCli()).setCaseInsensitiveEnumValuesAllowed(true).execute(args));
+        var root = new TraceWiseCli();
+        if (CommandLine.Help.Ansi.AUTO.enabled()) {
+            root.style = new Style(true, terminalWidth());
+        }
+        System.exit(new CommandLine(root).setCaseInsensitiveEnumValuesAllowed(true).execute(args));
+    }
+
+    /** The terminal's width, at most Style.MAX_WIDTH; Style.MAX_WIDTH when it cannot be read. */
+    static int terminalWidth() {
+        try (var t = org.jline.terminal.TerminalBuilder.builder().system(true).dumb(true).build()) {
+            int w = t.getWidth();
+            return w <= 0 ? Style.MAX_WIDTH : Math.min(w, Style.MAX_WIDTH);
+        } catch (java.io.IOException | RuntimeException e) {
+            return Style.MAX_WIDTH;
+        }
     }
 }

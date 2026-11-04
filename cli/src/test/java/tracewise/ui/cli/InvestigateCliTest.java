@@ -94,9 +94,10 @@ class InvestigateCliTest {
 
         assertEquals(0, run(db, "investigate", alertId), err.toString());
         String text = out.toString();
-        assertTrue(text.contains("account_history"), text);
-        assertTrue(text.contains("Verdict: ESCALATE"), text);
-        assertTrue(text.contains("1 of 1 claims confirmed"), text);
+        assertTrue(text.contains("account history"), "the step in words, not the tool's JSON: " + text);
+        assertFalse(text.contains("{"), text);
+        assertTrue(text.matches("(?s).*Verdict +ESCALATE  confidence .*"), text);
+        assertTrue(text.matches("(?s).*Checked +VER 1/1 .*"), text);
     }
 
     @Test

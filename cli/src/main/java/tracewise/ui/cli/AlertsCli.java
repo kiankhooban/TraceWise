@@ -40,13 +40,17 @@ public class AlertsCli {
                 out().println("No alerts");
                 return;
             }
-            out().printf("%-10s %-4s %-10s %4s %8s %-8s %12s %s%n", "ID", "RULE", "ACCOUNT", "RISK", "PRIORITY",
-                    "STATUS", "TOTAL (CAD)", "TRANSACTIONS");
-            for (Alert a : alerts) {
-                out().printf("%-10s %-4s %-10s %4d %8d %-8s %12s %d%n", a.id(), a.ruleId(), a.accountId(),
-                        a.riskScore(), a.priority(), a.status(), a.totalCad().toPlainString(),
-                        a.transactionIds().size());
-            }
+            Style st = style();
+            var now = java.time.Instant.now();
+            var rows = alerts.stream().map(a -> List.of(st.bold(a.id()), Style.rule(a.ruleId()), a.accountId(),
+                    st.risk(a.riskScore()), String.valueOf(a.priority()), a.status().name().replace('_', ' '),
+                    Style.money(a.totalCad()), String.valueOf(a.transactionIds().size()),
+                    Style.age(java.time.Duration.between(a.createdAt(), now)))).toList();
+            out().println(st.table(List.of("ID", "RULE", "ACCOUNT", "RISK", "PRI", "STATUS", "TOTAL CAD", "TX", "AGE"),
+                    "llllrlrrr", rows));
+            String next = alerts.stream().filter(a -> a.status() == AlertStatus.NEW).findFirst()
+                    .map(a -> ". Next: investigate " + a.id() + ", or triage for all of them").orElse("");
+            out().println(st.dim("  " + alerts.size() + (alerts.size() == 1 ? " alert" : " alerts") + ", highest risk first" + next));
         }
     }
 }

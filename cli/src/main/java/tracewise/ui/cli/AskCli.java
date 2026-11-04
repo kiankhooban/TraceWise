@@ -1,6 +1,5 @@
 package tracewise.ui.cli;
 
-import java.math.RoundingMode;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,15 +35,21 @@ public class AskCli extends CliCommandBase {
             super.print(toJson(a));
             return;
         }
-        out().println(a.text());
-        if (!a.claims().isEmpty()) {
-            out().println("Cited: " + String.join(", ", a.claims().stream().map(c -> c.transactionId()).toList()));
+        Style st = style();
+        out().println();
+        out().println(st.wrap(a.text(), 2));
+        out().println();
+        if (a.kind() == AssistantAnswer.Kind.CLARIFY) {
+            out().println(st.field("Reply", st.waiting("needs more detail") + ": ask again with it"));
+        } else if (a.kind() == AssistantAnswer.Kind.DECLINE) {
+            out().println(st.field("Reply", st.waiting("declined") + ": the assistant only reads; decisions go through approvals"));
         }
-        out().println("Verification: " + a.verification().status() + ", " + a.verification().summary());
-        a.verification().rejected().forEach(c -> out().println("  REJECTED " + c.claim() + ": " + c.reason()));
-        AgentTrace t = a.trace();
-        out().printf("Model %s: %d input + %d output tokens, CAD %s%n", t.pricing().modelName(), t.usage().inputTokens(),
-                t.usage().outputTokens(), t.costCad().setScale(4, RoundingMode.HALF_UP).toPlainString());
+        if (!a.claims().isEmpty()) {
+            out().println(st.field("Cited", String.join("  ", a.claims().stream().map(c -> c.transactionId()).distinct().toList())));
+        }
+        out().println(st.field("Checked", st.check(a.verification()) + "  " + a.verification().summary()));
+        a.verification().rejected().forEach(c -> out().println(st.wrap(st.bad("REJ") + " " + c.claim() + ": " + c.reason(), 12)));
+        out().println(st.dim("  " + InvestigateCli.cost(a.trace())));
     }
 
     private static Map<String, Object> toJson(AssistantAnswer a) {

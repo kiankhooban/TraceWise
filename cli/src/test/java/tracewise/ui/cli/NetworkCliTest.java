@@ -42,8 +42,8 @@ class NetworkCliTest {
         assertEquals(0, run("network", account));
 
         String text = out.toString();
-        assertTrue(text.contains(account + "  hop 0  [alerted]"), text);
-        assertTrue(text.contains("CASH -> " + account), text);
+        assertTrue(text.matches("(?s).*\n +" + account + " +0  alerted\n.*"), text);
+        assertTrue(text.matches("(?s).*\n +CASH +" + account + " +[0-9,]+\\.\\d\\d +\\d+\n.*"), text);
     }
 
     @Test

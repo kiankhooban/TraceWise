@@ -28,17 +28,25 @@ public class ImportCli extends CliCommandBase {
             return;
         }
         var s = (ImportSummary) result;
-        out().println("Format: " + formatName);
-        out().printf("Imported %d of %d rows; %d accounts%n", s.rowsImported(), s.rowsRead(), s.accounts());
+        Style st = style();
+        String under = " ".repeat(12); // the column the field values start in
+        out().println(st.field("Imported", st.bold(s.rowsImported() + " of " + s.rowsRead() + " rows") + ", " + formatName));
+        out().println(st.field("Accounts", String.valueOf(s.accounts())));
         if (s.earliest() != null) {
-            out().println("Date range: " + s.earliest() + " to " + s.latest());
+            out().println(st.field("Dates", Style.time(s.earliest()) + " to " + Style.time(s.latest())));
         }
-        s.rejected().stream().limit(SHOWN).forEach(r -> out().println("  rejected row " + r.rowNumber() + ": " + r.reason()));
+        if (s.rejectedCount() > 0) {
+            out().println(st.field("Rejected", st.bad(s.rejectedCount() + (s.rejectedCount() == 1 ? " row" : " rows"))));
+            s.rejected().stream().limit(SHOWN).forEach(r -> out().println(under + "row " + r.rowNumber() + ": " + r.reason()));
+        }
         if (s.rejectedCount() > SHOWN) {
             // a large file can reject hundreds of thousands of rows; they are counted by kind
-            out().println("  ... " + (s.rejectedCount() - SHOWN) + " more; all " + s.rejectedCount()
+            out().println(under + "... " + (s.rejectedCount() - SHOWN) + " more; all " + s.rejectedCount()
                     + " rejected rows by reason:");
-            s.rejectedByReason().forEach((reason, n) -> out().println("    " + reason + ": " + n));
+            s.rejectedByReason().forEach((reason, n) -> out().println(under + "  " + reason + ": " + n));
+        }
+        if (s.rowsImported() > 0) {
+            out().println(st.dim("  Next: monitor run"));
         }
     }
 }

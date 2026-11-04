@@ -26,15 +26,26 @@ public class TriageCli extends CliCommandBase {
     @Override
     protected Object execute() {
         var limits = new TriageLimits(maxAlerts, maxCost, new AlertFilter(rule, null, null));
+        Style st = style();
+        var steps = new java.util.HashMap<String, Integer>();
         AgentEventListener progress = json ? null : new AgentEventListener() {
             @Override
             public void onStep(TraceStep s) {
-                out().printf("  [%s] %s%s%n", s.subject(), s.toolName(), s.error() ? " (error)" : "");
+                int n = steps.merge(s.subject(), 1, Integer::sum);
+                if (st.color) { // a terminal: one line per alert, rewritten in place as the agent works
+                    String line = "  " + s.subject() + "  investigating, step " + n + ": " + st.stepText(s);
+                    out().print("\r\033[K" + st.cut(line)); // cut, so the line never wraps and \r rewrites all of it
+                    out().flush();
+                }
             }
 
             @Override
             public void onFinished(AgentOutcome outcome) {
-                out().println(outcome.subject() + ": " + outcome.status());
+                int n = steps.getOrDefault(outcome.subject(), 0);
+                String status = outcome.status() == tracewise.agent.OutcomeStatus.COMPLETED ? st.ok("done")
+                        : st.bad(outcome.status().name());
+                out().println((st.color ? "\r\033[K" : "") + "  " + st.bold(outcome.subject()) + "  " + status + ", "
+                        + n + (n == 1 ? " step" : " steps"));
             }
         };
         return facade().triage(limits, progress);
@@ -59,11 +70,29 @@ public class TriageCli extends CliCommandBase {
             super.print(map);
             return;
         }
+        Style st = style();
         out().println();
-        for (TriageReport.Item i : r.items()) {
-            out().printf("%-10s %-10s %-10s %-12s %s%n", i.alertId(), i.caseId() == null ? "-" : i.caseId(), i.status(),
-                    i.verdict() == null ? "-" : i.verdict(), i.verification() == null ? i.message() : i.verification());
+        if (!r.items().isEmpty()) {
+            var alerts = new java.util.HashMap<String, tracewise.domain.Alert>();
+            facade().listAlerts(AlertFilter.ALL).forEach(a -> alerts.put(a.id(), a));
+            var rows = new java.util.ArrayList<java.util.List<String>>();
+            for (TriageReport.Item i : r.items()) {
+                var a = alerts.get(i.alertId());
+                var finding = i.caseId() == null || i.verdict() == null ? null : facade().getCase(i.caseId()).latestFinding();
+                rows.add(java.util.List.of(st.bold(i.alertId()), a == null ? "" : a.accountId(), a == null ? "" : st.risk(a.riskScore()),
+                        i.status() == tracewise.agent.OutcomeStatus.COMPLETED ? "done" : st.bad(i.status().name()),
+                        st.verdict(i.verdict()), finding == null ? "" : st.check(finding.verification()),
+                        i.caseId() == null ? "" : i.caseId()));
+            }
+            out().println(st.table(java.util.List.of("ALERT", "ACCOUNT", "RISK", "RUN", "VERDICT", "CHECKED", "CASE"),
+                    "lllllll", rows));
+            r.items().stream().filter(i -> i.status() != tracewise.agent.OutcomeStatus.COMPLETED && i.message() != null)
+                    .forEach(i -> out().println(st.wrap(st.bad(i.alertId()) + " " + i.message(), 2)));
+            out().println();
         }
-        out().println(r.summary());
+        out().println(st.field("Summary", r.summary()));
+        if (r.escalationsProposed() + r.closesProposed() > 0) {
+            out().println(st.dim("  Next: approvals list"));
+        }
     }
 }

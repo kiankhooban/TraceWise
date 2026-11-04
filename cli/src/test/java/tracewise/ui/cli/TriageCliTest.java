@@ -26,6 +26,8 @@ class TriageCliTest {
     @TempDir Path dir;
     StringWriter out;
     StringWriter err;
+    /** As main() sets it on a terminal; null keeps the plain style of a pipe. */
+    Style style;
 
     int run(Path db, String... args) {
         out = new StringWriter();
@@ -33,8 +35,11 @@ class TriageCliTest {
         var all = new ArrayList<>(List.of("--db", db.toString(), "--llm", "replay", "--model", "claude-haiku-5-5",
                 "--replays", dir.resolve("replays").toString()));
         all.addAll(List.of(args));
-        return TraceWiseCli.commandLine(new PrintWriter(out, true), new PrintWriter(err, true))
-                .execute(all.toArray(String[]::new));
+        var cl = TraceWiseCli.commandLine(new PrintWriter(out, true), new PrintWriter(err, true));
+        if (style != null) {
+            ((TraceWiseCli) cl.getCommand()).style = style;
+        }
+        return cl.execute(all.toArray(String[]::new));
     }
 
     static String answer(String verdict) {
@@ -63,7 +68,10 @@ class TriageCliTest {
             facade.triage(new TriageLimits(2, new java.math.BigDecimal("5.00"), tracewise.monitoring.AlertFilter.ALL), null);
         }
 
+        // found by hand in the shell: a terminal of unknown width (0) made the live progress line throw, failing every run
+        style = new Style(true, 0);
         assertEquals(0, run(db, "triage", "--max-alerts", "2"), err.toString());
+        style = null;
         String text = out.toString();
         assertTrue(text.contains("ALR-00002") && text.contains("ALR-00001"), text);
         assertTrue(text.contains("Processed 2 alerts (0 failed)"), text);

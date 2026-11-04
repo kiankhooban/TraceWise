@@ -41,10 +41,22 @@ public class ApprovalsCli {
                 out().println("No proposals waiting");
                 return;
             }
-            for (var r : rows) {
-                out().printf("%s  %s%n  proposed by %s at %s%n  why: %s%n  finding: %s%n", r.get("id"), r.get("action"),
-                        r.get("proposedBy"), r.get("proposedAt"), r.get("justification"), r.get("finding"));
+            Style st = style();
+            var now = java.time.Instant.now();
+            for (PendingAction p : facade().pendingApprovals()) {
+                String by = p.proposedBy().isHuman() ? "HUMAN" : p.proposedBy().type().name();
+                out().println();
+                out().println("  " + st.bold(p.id()) + "  " + p.command().describe() + "  " + st.dim("proposed by " + by
+                        + " · waiting " + Style.age(java.time.Duration.between(p.proposedAt(), now))));
+                String caseId = p.command().targetCaseId().orElse(null);
+                AgentFinding f = caseId == null ? null : facade().getCase(caseId).latestFinding();
+                out().println(st.field("Finding", f == null ? "no finding yet"
+                        : st.verdict(f.verdict()) + " " + f.confidence() + "  " + st.check(f.verification())));
+                out().println(st.field("If yes", ifApproved(p)));
+                out().println(st.field("Why", p.justification()));
             }
+            out().println();
+            out().println(st.dim("  Decide: approvals approve <id>, or approvals reject <id> --reason \"...\""));
         }
     }
 
@@ -85,6 +97,17 @@ public class ApprovalsCli {
         r.put("proposedAt", p.proposedAt());
         r.put("finding", finding);
         return r;
+    }
+
+    /** What approving does, in the GUI's words (ProposalRow). */
+    static String ifApproved(PendingAction p) {
+        if (p.command() instanceof tracewise.actions.EscalateCaseCommand e) {
+            return e.caseId() + " becomes Escalated";
+        }
+        if (p.command() instanceof tracewise.actions.CloseCaseCommand c) {
+            return c.caseId() + " becomes Closed and its alerts close";
+        }
+        return p.command().describe();
     }
 
     /** The outcome of a decision; JSON fields in --json mode, one line otherwise. */

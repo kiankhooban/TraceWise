@@ -28,18 +28,24 @@ public class IndicatorsCli {
             if (json) {
                 super.print(result);
             } else {
-                printPassages(out(), (List<RetrievedPassage>) result);
+                printPassages(out(), style(), (List<RetrievedPassage>) result);
             }
         }
     }
 
-    /** One block per result: score and source, then the text. */
-    static void printPassages(PrintWriter out, List<RetrievedPassage> results) {
+    /** One block per result: score and source, then the text under it. */
+    static void printPassages(PrintWriter out, Style st, List<RetrievedPassage> results) {
         if (results.isEmpty()) {
-            out.println("Nothing relevant found");
+            out.println("  Nothing relevant found");
         }
         for (var r : results) {
-            out.printf("%.3f  %s%n       %s%n", r.score(), r.source(), r.text());
+            String score = String.format("%.3f", r.score());
+            String source = st.cut("  " + score + "  " + r.source()).substring(score.length() + 4); // one line, cut to fit
+            out.println("  " + st.dim(score) + "  " + st.label(source));
+            out.println(st.wrap(r.text(), 9));
+        }
+        if (!results.isEmpty()) {
+            out.println(st.dim("  Score: how close each match is to the words searched, 1 is the closest"));
         }
     }
 }

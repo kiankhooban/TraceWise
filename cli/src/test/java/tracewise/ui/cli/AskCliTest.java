@@ -76,7 +76,7 @@ class AskCliTest {
         assertEquals(0, run("--llm", "replay", "--model", "claude-haiku-5-5", "ask", "Which", "cases", "are", "open?"));
 
         assertTrue(out.toString().contains("No case is under investigation."), out.toString());
-        assertTrue(out.toString().contains("Verification:"), out.toString());
+        assertTrue(out.toString().matches("(?s).*Checked +UNVER 0/0.*"), out.toString());
     }
 
     @Test

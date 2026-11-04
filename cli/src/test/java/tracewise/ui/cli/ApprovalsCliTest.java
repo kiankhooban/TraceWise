@@ -75,7 +75,9 @@ class ApprovalsCliTest {
         String list = out.toString();
         assertTrue(list.contains("APR-00001") && list.contains("Escalate case CAS-00001"), list);
         assertTrue(list.contains("APR-00002") && list.contains("Because"), list);
-        assertTrue(list.contains("UNSUPPORTED"), "the finding behind it cited nothing: " + list);
+        assertTrue(list.matches("(?s).*Finding +\\S+ [0-9.]+  UNVER 0/0.*"), "the finding behind it cited nothing: " + list);
+        assertTrue(list.matches("(?s).*proposed by AGENT.*"), list);
+        assertTrue(list.matches("(?s).*If yes +CAS-00001 becomes Escalated.*"), list);
 
         assertEquals(0, run("approvals", "list", "--json"));
         assertEquals(2, new ObjectMapper().readTree(out.toString()).size());

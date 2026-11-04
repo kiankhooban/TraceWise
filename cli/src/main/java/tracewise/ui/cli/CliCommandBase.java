@@ -36,7 +36,7 @@ public abstract class CliCommandBase implements Callable<Integer> {
             if (json) {
                 printJson(Map.of("error", String.valueOf(e.getMessage())));
             } else {
-                err().println("Error: " + e.getMessage());
+                err().println(style().bad("Error:") + " " + e.getMessage());
             }
             return 1;
         } finally {
@@ -57,6 +57,11 @@ public abstract class CliCommandBase implements Callable<Integer> {
 
     protected TraceWiseFacade facade() {
         return ((TraceWiseCli) spec.root().userObject()).facade();
+    }
+
+    /** How text output looks: colour on a terminal only, wrapped to its width (see Style). */
+    protected Style style() {
+        return ((TraceWiseCli) spec.root().userObject()).style;
     }
 
     protected PrintWriter out() {

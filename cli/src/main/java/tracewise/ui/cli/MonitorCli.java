@@ -14,11 +14,18 @@ public class MonitorCli {
 
         @Override
         protected void print(Object result) {
-            super.print(result);
-            if (!json) {
-                ((tracewise.monitoring.MonitoringSummary) result).failedRules()
-                        .forEach(f -> err().println("Rule failed: " + f));
+            if (json) {
+                super.print(result);
+                return;
             }
+            var s = (tracewise.monitoring.MonitoringSummary) result;
+            Style st = style();
+            out().println(st.field("Reports", st.bold(String.valueOf(s.thresholdReports())) + " threshold reports"));
+            String byRule = new java.util.TreeMap<>(s.alertsByRule()).entrySet().stream().map(e -> Style.rule(e.getKey()) + " " + e.getValue())
+                    .collect(java.util.stream.Collectors.joining(", "));
+            out().println(st.field("Alerts", st.bold(String.valueOf(s.newAlerts())) + " new" + (byRule.isEmpty() ? "" : ": " + byRule)));
+            s.failedRules().forEach(f -> err().println(st.bad("Rule failed:") + " " + f));
+            out().println(st.dim(s.newAlerts() > 0 ? "  Next: alerts list" : "  No new alerts"));
         }
     }
 }

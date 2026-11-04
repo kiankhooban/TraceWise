@@ -44,18 +44,33 @@ public class CaseCli {
                 return;
             }
             var r = (Map<String, Object>) result;
-            out().println(r.get("caseId") + "  " + r.get("status") + "  alerts " + String.join(", ", (List<String>) r.get("alerts")));
-            var f = (Map<String, Object>) r.get("finding");
-            out().println(f == null ? "No finding yet." : "Finding: " + f.get("verdict") + ", confidence " + f.get("confidence")
-                    + "; verification " + f.get("verification") + "\n  " + f.get("narrative"));
-            ((List<?>) r.get("tasks")).forEach(t -> out().println("Task: " + t));
-            ((List<tracewise.domain.CaseNote>) r.get("notes")).forEach(n -> out().println("Note (" + n.author() + ", "
-                    + n.createdAt() + "): " + n.text()));
-            out().println("History:");
-            for (AuditEntry e : (List<AuditEntry>) r.get("history")) {
-                out().println("  " + e.timestamp() + "  " + e.actor().name() + "  " + e.eventType() + "  " + e.target()
-                        + "  " + (e.details() == null ? "" : e.details().replaceAll("\\s+", " ")));
+            Style st = style();
+            String status = r.get("status").toString().replace('_', ' ');
+            out().println("  " + st.bold(String.valueOf(r.get("caseId"))) + "  " + st.waiting(status) + "  alerts "
+                    + String.join(", ", (List<String>) r.get("alerts")));
+            AgentFinding f = facade().getCase(caseId).latestFinding();
+            if (f == null) {
+                out().println(st.field("Finding", "none yet: investigate one of its alerts"));
+            } else {
+                out().println(st.field("Finding", st.verdict(f.verdict()) + " " + f.confidence() + "  " + st.check(f.verification())
+                        + "  " + f.verification().summary()));
+                out().println();
+                out().println(st.wrap(f.narrative(), 2));
+                out().println();
             }
+            ((List<?>) r.get("tasks")).forEach(t -> out().println(st.field("Task", String.valueOf(t))));
+            ((List<tracewise.domain.CaseNote>) r.get("notes")).forEach(n -> out().println(st.field("Note",
+                    Style.time(n.createdAt()) + "  " + n.author() + ": " + n.text())));
+            out().println(st.label("  History") + st.dim("  (UTC)"));
+            var rows = new java.util.ArrayList<List<String>>();
+            for (AuditEntry e : (List<AuditEntry>) r.get("history")) {
+                String details = e.details() == null ? "" : e.details().replaceAll("\\s+", " ").replace("**", "");
+                rows.add(List.of(Style.time(e.timestamp()), e.actor().isHuman() ? e.actor().name() : e.actor().type().name(),
+                        e.eventType().toLowerCase(java.util.Locale.ROOT).replace('_', ' '), e.target() == null ? "" : e.target(),
+                        e.eventType().equals("AGENT_STEP") ? st.auditStep(details) : details));
+            }
+            st.table(List.of("TIME", "BY", "EVENT", "TARGET", "DETAIL"), "lllll", rows).lines()
+                    .forEach(line -> out().println(st.cut(line)));
         }
     }
 

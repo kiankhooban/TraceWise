@@ -49,10 +49,13 @@ class MonitoringCliTest {
     @Test
     void monitorRunThenListAlertsAndThresholdReports() throws IOException {
         assertEquals(0, run("monitor", "run"));
-        assertTrue(out.toString().contains("4 threshold reports; 4 new alerts: R3 1, R4 1, R5 1, R6 1"), out.toString());
+        assertTrue(out.toString().matches("(?s).*Reports +4 threshold reports\n.*"), out.toString());
+        assertTrue(out.toString().matches("(?s).*Alerts +4 new: R3 Structuring 1, R4 Rapid pass-through 1, R5 Fan-in 1, "
+                + "R6 Fan-out 1\n.*"), out.toString());
 
         assertEquals(0, run("alerts", "list", "--rule", "R3"));
         assertTrue(out.toString().contains("ALR-") && out.toString().contains(ScenarioGenerator.accounts(42).get("S-C1")), out.toString());
+        assertTrue(out.toString().matches("(?s).*R3 Structuring +\\S+ +(HIGH|MED|LOW) \\d+ .*"), "rule name and risk level: " + out);
 
         assertEquals(0, run("alerts", "list", "--json"));
         assertEquals(4, new ObjectMapper().readTree(out.toString()).size());
@@ -60,6 +63,7 @@ class MonitoringCliTest {
         assertEquals(0, run("threshold-reports", "list"));
         var ids = ScenarioGenerator.accounts(42);
         assertTrue(out.toString().contains(ids.get("L-C1")) && out.toString().contains(ids.get("I-C2")), out.toString());
+        assertTrue(out.toString().matches("(?s).*\\d{4}-\\d\\d-\\d\\d \\d\\d:\\d\\d to .*"), "times as in the GUI: " + out);
     }
 
     @Test
@@ -87,6 +91,6 @@ class MonitoringCliTest {
         assertEquals(0, run("--role", "supervisor", "rules", "set", "R6", "--disable"));
         assertEquals(0, run("rules", "list"));
         assertTrue(out.toString().contains("min_senders=7"), out.toString());
-        assertTrue(out.toString().matches("(?s).*R6\\s+disabled.*"), out.toString());
+        assertTrue(out.toString().matches("(?s).*R6 +Fan-out +disabled.*"), out.toString());
     }
 }

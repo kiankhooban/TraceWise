@@ -60,7 +60,7 @@ class MetricsCliTest {
         String text = out.toString();
         assertTrue(text.contains("1 investigation run"), text);
         assertTrue(text.contains("claude-haiku-5-5"), text);
-        assertTrue(text.matches("(?s).*\\nprecision +1\\.000 \\(n=1, too few\\) +1\\.000 \\(n=1, too few\\).*"), text);
+        assertTrue(text.matches("(?s).*\\n +precision +1\\.000 \\(n=1, too few\\) +1\\.000 \\(n=1, too few\\).*"), text);
 
         assertEquals(0, run("metrics", "--model", "claude-sonnet-5-5"));
         assertTrue(out.toString().contains("0 investigation runs"), out.toString());

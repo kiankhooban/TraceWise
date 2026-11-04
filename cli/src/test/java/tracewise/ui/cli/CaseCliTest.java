@@ -63,6 +63,8 @@ class CaseCliTest {
                 "Explained by the holder")) {
             assertTrue(shown.contains(expected), expected + " missing from:\n" + shown);
         }
+        assertTrue(shown.matches("(?s).*\n +\\d{4}-\\d\\d-\\d\\d \\d\\d:\\d\\d  .*action executed.*"),
+                "history times as in the GUI, events in words: " + shown);
     }
 
     @Test

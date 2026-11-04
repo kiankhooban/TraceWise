@@ -37,16 +37,30 @@ public class ReportCli {
                 return;
             }
             var r = (Map<String, Object>) result;
-            out().println("Report for " + r.get("case_id") + "  " + r.get("status")
+            Style st = style();
+            String status = String.valueOf(r.get("status"));
+            out().println("  " + st.bold("Report for " + r.get("case_id")) + "  " + (status.equals("FINAL") ? st.ok(status) : st.waiting(status))
                     + (r.get("finalised_at") == null ? "" : "  finalised " + r.get("finalised_at")));
-            out().println("Subject account: " + r.get("subject_account"));
-            out().println("Transactions:");
+            out().println(st.field("Subject", String.valueOf(r.get("subject_account"))));
+            var rows = new java.util.ArrayList<List<String>>();
             for (Map<String, Object> t : (List<Map<String, Object>>) r.get("transactions")) {
-                out().println("  " + t.get("id") + "  " + t.get("timestamp") + "  " + t.get("from_account") + " -> "
-                        + t.get("to_account") + "  " + t.get("amount_cad") + " CAD  " + t.get("channel"));
+                rows.add(List.of(String.valueOf(t.get("id")), Style.time(java.time.Instant.parse(String.valueOf(t.get("timestamp")))),
+                        t.get("from_account") + " -> " + t.get("to_account"), Style.money((java.math.BigDecimal) t.get("amount_cad")),
+                        String.valueOf(t.get("channel"))));
             }
-            out().println("Grounds for suspicion:\n  " + String.valueOf(r.get("grounds_for_suspicion")).replace("\n", "\n  "));
-            out().println("Actions taken:\n  " + String.valueOf(r.get("actions_taken")).replace("\n", "\n  "));
+            out().println();
+            out().println(st.table(List.of("TRANSACTION", "TIME", "FROM -> TO", "AMOUNT CAD", "CHANNEL"), "lllrl", rows));
+            out().println();
+            out().println(st.label("  Grounds for suspicion"));
+            out().println(st.wrap(String.valueOf(r.get("grounds_for_suspicion")), 2));
+            out().println();
+            out().println(st.label("  Actions taken"));
+            out().println(st.wrap(String.valueOf(r.get("actions_taken")), 2));
+            if (status.equals("DRAFT")) {
+                out().println();
+                out().println(st.dim("  Next: report edit " + r.get("case_id") + " --grounds-file <file>, or report finalise "
+                        + r.get("case_id")));
+            }
         }
     }
 

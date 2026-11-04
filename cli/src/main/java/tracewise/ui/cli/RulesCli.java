@@ -42,12 +42,16 @@ public class RulesCli {
                 super.print(result);
                 return;
             }
+            Style st = style();
+            var rows = new java.util.ArrayList<List<String>>();
             for (Map<String, Object> r : (List<Map<String, Object>>) result) {
                 String params = ((Map<String, BigDecimal>) r.get("parameters")).entrySet().stream()
                         .map(e -> e.getKey() + "=" + e.getValue().toPlainString()).collect(Collectors.joining(", "));
-                out().printf("%-3s %-9s %-10s %s%n", r.get("id"), (boolean) r.get("enabled") ? "enabled" : "disabled",
-                        r.get("kind"), params);
+                String id = (String) r.get("id");
+                rows.add(List.of(st.bold(id), Style.rule(id).substring(id.length()).strip(),
+                        (boolean) r.get("enabled") ? st.ok("enabled") : st.dim("disabled"), String.valueOf(r.get("kind")), params));
             }
+            out().println(st.table(List.of("RULE", "NAME", "STATE", "KIND", "PARAMETERS"), "lllll", rows));
         }
     }
 

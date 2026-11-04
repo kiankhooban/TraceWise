@@ -59,27 +59,20 @@ public class MetricsCli extends CliCommandBase {
         }
         var metrics = (List<PerformanceMetrics>) result;
         int runs = metrics.get(0).sampleSize();
-        out().println("Agent performance: " + runs + (runs == 1 ? " investigation run" : " investigation runs"));
+        out().println("  " + style().bold("Agent performance") + ": " + runs + (runs == 1 ? " investigation run" : " investigation runs"));
         out().println();
+        Style st = style();
         List<List<String>> table = PerformanceMetrics.table(metrics);
-        int[] widths = new int[table.get(0).size()];
-        table.forEach(line -> {
-            for (int c = 0; c < line.size(); c++) {
-                widths[c] = Math.max(widths[c], line.get(c).length());
-            }
-        });
-        for (List<String> line : table) {
-            var text = new StringBuilder();
-            for (int c = 0; c < line.size(); c++) {
-                text.append(c == line.size() - 1 ? line.get(c) : String.format("%-" + (widths[c] + 2) + "s", line.get(c)));
-            }
-            out().println(text);
-        }
+        // a figure on too few runs is shown, like the GUI's amber n=, but marked
+        var rows = table.subList(1, table.size()).stream().map(line -> line.stream().map(cell ->
+                cell.startsWith("not available") ? st.dim(cell) : cell.contains("too few") ? st.waiting(cell) : cell).toList()).toList();
+        out().println(st.table(table.get(0),
+                "l".repeat(table.get(0).size()), rows));
         out().println();
-        out().println("n is what a figure is based on; under " + Measure.MIN_SAMPLE
-                + " it is marked too few and is not meaningful.");
+        out().println(st.dim("  n is what a figure is based on; under " + Measure.MIN_SAMPLE
+                + " it is marked too few and is not meaningful."));
         if (csv != null) {
-            out().println("Metrics written to " + csv);
+            out().println("  Metrics written to " + csv);
         }
     }
 }

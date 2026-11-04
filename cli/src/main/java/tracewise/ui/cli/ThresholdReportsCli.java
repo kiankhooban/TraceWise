@@ -28,12 +28,12 @@ public class ThresholdReportsCli {
                 out().println("No threshold reports");
                 return;
             }
-            out().printf("%-4s %-10s %12s %-20s %-20s %s%n", "RULE", "ACCOUNT", "TOTAL (CAD)", "WINDOW START",
-                    "WINDOW END", "TRANSACTIONS");
-            for (ThresholdReport r : reports) {
-                out().printf("%-4s %-10s %12s %-20s %-20s %d%n", r.ruleId(), r.accountId(),
-                        r.totalCad().toPlainString(), r.windowStart(), r.windowEnd(), r.transactionIds().size());
-            }
+            Style st = style();
+            var rows = reports.stream().map(r -> List.of(Style.rule(r.ruleId()), r.accountId(), Style.money(r.totalCad()),
+                    Style.time(r.windowStart()) + " to " + Style.time(r.windowEnd()),
+                    String.valueOf(r.transactionIds().size()))).toList();
+            out().println(st.table(List.of("RULE", "ACCOUNT", "TOTAL CAD", "WINDOW (UTC)", "TX"), "llrlr", rows));
+            out().println(st.dim("  " + reports.size() + " threshold reports, filed separately from the alert queue"));
         }
     }
 }

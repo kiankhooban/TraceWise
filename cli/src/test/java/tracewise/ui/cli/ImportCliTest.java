@@ -38,9 +38,9 @@ class ImportCliTest {
                 "T2,2026-09-01T11:00:00,001,C1,001,C2,-1,CAD,WIRE,CA,");
         assertEquals(0, run("import", file.toString()));
         String text = out.toString();
-        assertTrue(text.contains("Format: TraceWise scenario CSV"), text);
-        assertTrue(text.contains("Imported 1 of 2 rows"), text);
-        assertTrue(text.contains("row 3: amount must be positive"), text);
+        assertTrue(text.matches("(?s).*Imported +1 of 2 rows, TraceWise scenario CSV\n.*"), text);
+        assertTrue(text.matches("(?s).*Dates +2026-09-01 10:00 to 2026-09-01 10:00\n.*"), "the GUI's time format: " + text);
+        assertTrue(text.matches("(?s).*Rejected +1 row\n +row 3: amount must be positive.*"), text);
     }
 
     @Test
@@ -73,7 +73,7 @@ class ImportCliTest {
         assertEquals(0, run("import", Files.write(dir.resolve("r.csv"), lines).toString()));
 
         String text = out.toString();
-        assertEquals(20, text.split("rejected row ", -1).length - 1, text);
+        assertEquals(20, java.util.regex.Pattern.compile("(?m)^ +row \\d+: ").matcher(text).results().count(), text);
         assertTrue(text.contains("10 more; all 30 rejected rows by reason:"), text);
         assertTrue(text.contains("currency not in rate table: XXX: 15") && text.contains("currency not in rate table: YYY: 15"),
                 text);
@@ -91,7 +91,7 @@ class ImportCliTest {
 
         assertEquals(0, run("import", file.toString()));
 
-        assertTrue(out.toString().contains("    duplicate transaction id: 30"), out.toString());
+        assertTrue(out.toString().matches("(?s).*\n +duplicate transaction id: 30.*"), out.toString());
     }
 }
 

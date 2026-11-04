@@ -39,22 +39,26 @@ public class NetworkCli extends CliCommandBase {
             return;
         }
         var g = (MoneyFlowGraph) result;
-        out().println("Accounts:");
+        Style st = style();
+        var nodes = new java.util.ArrayList<java.util.List<String>>();
         for (AccountNode n : g.nodes()) {
-            out().println("  " + n.accountId() + "  hop " + n.hop() + (n.alerted() ? "  [alerted]" : "")
-                    + (n.examined() ? "  [examined by the agent]" : ""));
+            String marks = String.join(", ", java.util.stream.Stream.of(n.alerted() ? st.bad("alerted") : "",
+                    n.examined() ? st.label("examined by the agent") : "").filter(m -> !m.isEmpty()).toList());
+            nodes.add(java.util.List.of(n.hop() == 0 ? st.bold(n.accountId()) : n.accountId(), String.valueOf(n.hop()), marks));
         }
+        out().println(st.table(java.util.List.of("ACCOUNT", "HOP", "MARK"), "lrl", nodes));
+        out().println();
         if (g.edges().isEmpty()) {
-            out().println("No transfers in this period.");
+            out().println("  No transfers in this period.");
             return;
         }
-        out().println("Transfers:");
+        var edges = new java.util.ArrayList<java.util.List<String>>();
         for (FlowEdge e : g.edges()) {
-            out().println("  " + e.from() + " -> " + e.to() + "  " + String.format("%,.2f", e.totalCad()) + " CAD  ("
-                    + e.transferCount() + (e.transferCount() == 1 ? " transfer)" : " transfers)"));
+            edges.add(java.util.List.of(e.from(), e.to(), Style.money(e.totalCad()), String.valueOf(e.transferCount())));
         }
+        out().println(st.table(java.util.List.of("FROM", "TO", "TOTAL CAD", "TRANSFERS"), "llrr", edges));
         if (g.omittedCount() > 0) {
-            out().println(g.omittedCount() + " smaller counterparties omitted.");
+            out().println(st.dim("  " + g.omittedCount() + " smaller counterparties omitted."));
         }
     }
 }

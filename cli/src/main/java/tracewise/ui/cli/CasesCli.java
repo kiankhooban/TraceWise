@@ -25,7 +25,7 @@ public class CasesCli {
             if (json) {
                 super.print(result);
             } else {
-                IndicatorsCli.printPassages(out(), (List<RetrievedPassage>) result);
+                IndicatorsCli.printPassages(out(), style(), (List<RetrievedPassage>) result);
             }
         }
     }
