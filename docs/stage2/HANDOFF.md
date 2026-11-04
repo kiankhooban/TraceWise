@@ -76,7 +76,10 @@ TODO, one commit each (period 3), checking each with the snapshot mode (dark and
 4. DONE `10f4db8` (polish: readable filters, case list fits, tasks table, evidence columns, themed Network window;
    dialogs already inherit the theme, checked) and `2ad9201` (Network graph follows dark and day).
 5. F10 GUI details DONE `279946e` (badge per claim, search results table, selection as context; row 49 updated).
-   NEXT: design change 50 (keys, command bar, age column, themes), then deep-code-review of the period 3 UI work.
+   DONE 2026-11-04: deep-code-review of all UI work (d829fe5..279946e; 9 Claude reviewers, 15 validators): fixes in
+   `02f1701`, design change 50 logged in `1b97ea5`. Left as known (pre-existing or below the bar): Risk/Tx/Total columns
+   sort as text; the reject reason box clears on refresh; GUI reads core types (ActionCommand, tool NAME constants).
+   NEXT: UML (class diagram + SD7/SD9), fresh-clone check and secret scan, report TODOs and PDF, demo scripts.
    Demo caveat: replays are keyed on the exact request, and the context line is part of it. A replayed assistant
    question only matches if asked with the same selection as when recorded (the C1037 recording: no selection).
 
