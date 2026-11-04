@@ -1,21 +1,56 @@
 # Stage 2 handoff (read this first in a new session or after /compact)
 
-Last updated 2026-11-02 21:55 (UI work under way), HEAD `c35b6c1`. Read this file, then `CLAUDE.md` (repo root),
-`docs/stage2/ui-design.md` (the agreed UI design), `docs/stage2/PLAN.md` and `docs/stage2/Stage2-Report.md`. Sessions often run from `~/Brain`, where the TraceWise
-`CLAUDE.md` is NOT loaded automatically: read it explicitly.
+Last updated 2026-11-04 (evening), HEAD `9009d89`, 435 tests pass (1 skipped). Read this file, then `CLAUDE.md`
+(repo root), `docs/stage2/ui-design.md`, `docs/stage2/Stage2-Report.md`. Sessions often run from `~/Brain`, where the
+TraceWise `CLAUDE.md` is NOT loaded automatically: read it explicitly. The Stage 2 instructions are
+`~/Desktop/Project-Stage2-Instruction.pdf` (read it again before any report decision).
+
+## 0. NEXT SESSION STARTS HERE
+
+1. **CLI work, Kian to describe.** On 2026-11-04 Kian tried the CLI for the first time and said "we have some stuff
+   to do for the CLI tool". He has not said what yet: ask him, do not guess. Keep it inside the Stage 1 design (the
+   CLI is picocli commands over `TraceWiseFacade`, Template Method `CliCommandBase`; `cli/src/main/java/tracewise/ui/cli/`).
+   Any new command or flag: test first (`cli/src/test`), update the README command list, and log a design change only
+   if it alters what Stage 1 described. Period 3 already has its 6 code commits; real CLI work adds more.
+2. **Videos:** Kian records two (CLI and GUI) from `~/Desktop/TraceWise-Demo-Script.md` (his file, deliberately not in
+   the repo). If CLI work changes a command, update that script too.
+3. **After the videos:** put each feature's link with timestamp into sections 2 and 7 of `Stage2-Report.md`, refresh the
+   period 3 rows (commit table in section 6, token row in section 5 and `docs/ai-usage/ai-tools.md`, using the token
+   script below), rebuild the PDF, final secret scan, push. Due 2026-11-10.
+
+Facts learned on 2026-11-04 that matter for the CLI and the demo:
+- **Pasting commands into Kian's zsh:** `#` comments break pasted lines (interactive comments are off): an apostrophe
+  in a comment opens a quote (`quote>`), "(about a minute)" gives "number expected". Give Kian commands WITHOUT inline
+  comments.
+- **Replay order:** replays answer only recorded requests. Investigate and triage first, then the recorded assistant
+  questions (`CommittedReplaysTest.QUESTIONS`: an answer, a search with results, a clarifying question, two declines),
+  then approvals. Each recorded question is a first question with no context: in the GUI ask from Admin, one question
+  per window (the conversation is remembered). A fresh database each time: `TRACEWISE_DB=<new file>`.
+- **Error cases that work for the demo:** a CSV with an unknown header; `rules set` as analyst (refused) or with a
+  negative value; `investigate ALR-99999`; approving twice; `network NOPE`; reopening a case that is not closed;
+  `report export` before finalisation.
+- **Token script** (development cost per period, from the session logs; period 1 reproduced the earlier figures
+  exactly): `python3 -I <scratchpad>/tok/tokens.py ~/.claude/projects/-Users-kiankhooban-Brain/529e6224-32b5-4afd-9767-3f9d109d47e5`.
+  If the scratchpad is gone, it sums `message.usage` of `type=assistant` lines (deduplicated by `message.id`) in that
+  session file and `subagents/**/*.jsonl`, by Toronto day, priced Opus 4/20, Sonnet 2/10 USD per M, cache write 1.25x,
+  cache read 0.1x input.
+- **PDF:** `cd docs/stage2 && <venv>/bin/python build_pdf.py` (needs `markdown` and `Pillow`; no system Python has
+  them, so `python3 -m venv <scratchpad>/pdfvenv && <scratchpad>/pdfvenv/bin/pip install markdown Pillow`). A wide
+  diagram gets a landscape page only when its image directly follows its `###` heading (caption after the image).
+- **Diagrams:** `docs/stage2/umlet` (`./render.sh`, then `python3 check_diagrams.py`); Stage 1's folder stays as submitted.
+- **How changes are presented** (Kian, 2026-11-04): report section 4 shows only the five real changes in full; the
+  other rows of `design-changes.md` are grouped as details inside the design. Never frame the change count as large.
 
 ## 1. Where we are
 
-- Stage 1 graded 100/100 (tag `stage1-submitted`). Stage 2 due **2026-11-10**; feature freeze Nov 7; Kian records
-  the demo videos Nov 8 to 10 (we write a script per feature first).
+- Stage 1 graded 100/100 (tag `stage1-submitted`). Stage 2 due **2026-11-10**.
 - **Functionality is complete.** All 12 features work in the GUI and the CLI; all 9 Stage 1 patterns are in code; the
-  three Maven modules of the Stage 1 architecture are in place. 418 tests pass (1 skipped: the opt-in live API test),
-  on macOS and on x86 Linux (Docker). Everything is committed and pushed to `main` (no PRs).
-- Commits: period 1 (Oct 20 to 26) 44 code commits; period 2 (Oct 27 to Nov 2) 48 code commits so far. Period 3
-  (Nov 3 to 9) still needs 5+ meaningful code commits: the UI polish and F10 GUI details provide them naturally
-  (never split commits artificially: the handout excludes them).
-- Design changes 1 to 49 logged. Collaboration log entries 1 to 16. Reviews 1 to 11 done.
-- Stage 2 report draft written (`docs/stage2/Stage2-Report.md`, all 7 handout sections; TODOs for period 3).
+  three Maven modules are in place. 435 tests pass (1 skipped: the opt-in live API test). Committed and pushed to
+  `main` (no PRs).
+- Code commits (Java): period 1 40, period 2 52, period 3 6 so far (10f4db8, 2ad9201, 279946e, 02f1701, 5707ae0, b5908f2).
+- Design changes 1 to 50 logged. Collaboration log entries 1 to 17. Reviews 1 to 12 done (12: all UI work).
+- Report sections 1 to 6 complete; `docs/stage2/stage2-report.pdf` built; only the video links are TODO.
+- Fresh-clone check and history secret scan passed (2026-11-04).
 
 | Feature | Main code (core = `core/src/main/java/tracewise/`) | CLI (`cli/.../ui/cli/`) | GUI (`gui/.../ui/gui/`) |
 |---|---|---|---|
@@ -28,7 +63,7 @@ Last updated 2026-11-02 21:55 (UI work under way), HEAD `c35b6c1`. Read this fil
 | F07 Triage | `app/TriageService`, `app/TriageLimits` | `TriageCli` | Alerts screen (limits, Stop) |
 | F08 Cases, audit | `domain/Case`, `cases/state/*`, `app/CaseService`, `audit/*` | `CaseCli`, `AuditCli` | Notes, History, Admin Audit |
 | F09 Network | `network/*`, `app/NetworkService` | `NetworkCli` | Network tab (SmartGraph) |
-| F10 Assistant | `agent/AssistantTask`, `agent/tools/{QueryCases,QueryAlerts,GetCase}Tool`, `app/AssistantService` | `AskCli` (`--json`) | Assistant panel (3 details missing, see 2) |
+| F10 Assistant | `agent/AssistantTask`, `agent/tools/{QueryCases,QueryAlerts,GetCase}Tool`, `app/AssistantService` | `AskCli` (`--json`) | Assistant panel (badges, results table, selection as context) |
 | F11 STR reports | `reporting/*`, `actions/{SaveReportDraft,FinaliseReport}Command`, `app/ReportService` | `ReportCli` | Report tab |
 | F12 Performance | `metrics/*`, `app/PerformanceService`, `tools/SchemeSampler`, `scripts/evaluate.py` | `MetricsCli` | Admin Performance tab |
 
