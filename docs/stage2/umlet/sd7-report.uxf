@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1"><zoom_level>10</zoom_level><element><id>UMLSequenceAllInOne</id><coordinates><x>10</x><y>10</y><w>2275</w><h>3716</h></coordinates><panel_attributes>title=SD7: Draft, Edit, Finalise and Export a Suspicious Transaction Report (UC14, UC15; F11)
+obj=AML Analyst~a ACTOR
+obj=:ReportTab~v
+obj=:TraceWiseFacade~f
+obj=:ReportService~rs
+obj=:CaseRepository~cr
+obj=:LLMClient~llm
+obj=:CommandDispatcher~d
+obj=cmd:SaveReportDraftCommand~sc CREATED_LATER
+obj=fin:FinaliseReportCommand~fc CREATED_LATER
+obj=:PermissionPolicy~pp
+obj=:ApprovalQueue~q
+obj=:ReportExporter~ex
+obj=:AuditLog~l
+a-&gt;&gt;&gt;v : onDraftReport()
+v-&gt;&gt;&gt;f : draftReport(caseId, true)
+f-&gt;&gt;&gt;rs : draft(caseId, replace)
+rs-&gt;&gt;&gt;cr : findById(caseId)
+cr.&gt;rs : case
+combinedFragment=break~b1 a rs
+a:[case CLOSED, report FINAL, or no verified finding]
+tick=
+rs.&gt;f : IllegalStateException
+f.&gt;v : error
+v.&gt;a : show the reason
+--=b1
+rs-&gt;&gt;&gt;llm : chat(request: grounds for suspicion from the confirmed transactions, totals and indicators only)
+llm.&gt;rs : narrative
+rs-&gt;&gt;&gt;sc : create
+rs-&gt;&gt;&gt;d : submit(cmd, AGENT, justification with the token cost)
+d-&gt;&gt;&gt;sc : validate(ctx)
+d-&gt;&gt;&gt;pp : tierFor(cmd, AGENT)
+pp.&gt;d : AUTONOMOUS (the agent may save a draft alone)
+d-&gt;&gt;&gt;sc : execute(ctx)
+sc-&gt;&gt;&gt;cr : save(c) (the case with its DRAFT report)
+d-&gt;&gt;&gt;l : append(entry: ACTION_EXECUTED)
+d.&gt;rs : dispatchResult EXECUTED
+rs-&gt;&gt;&gt;q : expireWaiting(caseId, finalisations of other text, reason)
+rs.&gt;f : report draft
+f.&gt;v : report draft
+v.&gt;a : show subject, transactions, grounds and actions taken
+combinedFragment=opt~o1 a l
+a:[Analyst edits the text (or requests finalisation with unsaved edits)]
+tick=
+a-&gt;&gt;&gt;v : onSaveReport()
+v-&gt;&gt;&gt;f : saveReport(caseId, groundsForSuspicion, actionsTaken)
+f-&gt;&gt;&gt;rs : save(caseId, groundsForSuspicion, actionsTaken)
+rs-&gt;&gt;&gt;cr : findById(caseId)
+rs-&gt;&gt;&gt;d : submit(SaveReportDraftCommand(edited), analystActor, "edited by the analyst")
+ref=d l :validated, AUTONOMOUS for a person, executed and audited as above
+rs-&gt;&gt;&gt;q : expireWaiting(caseId, finalisations of other text, reason)
+rs.&gt;f : edited draft
+f.&gt;v : edited draft
+--=o1
+a-&gt;&gt;&gt;v : onRequestFinalisation()
+v-&gt;&gt;&gt;f : requestFinalisation(caseId)
+f-&gt;&gt;&gt;rs : requestFinalisation(caseId)
+rs-&gt;&gt;&gt;cr : findById(caseId)
+rs-&gt;&gt;&gt;fc : create (caseId, groundsForSuspicion, actionsTaken)
+rs-&gt;&gt;&gt;q : forCase(caseId)
+q.&gt;rs : proposals (refused if this finalisation already waits)
+rs-&gt;&gt;&gt;d : submit(fin, analystActor, justification)
+d-&gt;&gt;&gt;fc : validate(ctx)
+combinedFragment=alt~a1 a l
+a:[case not ESCALATED, a newer finding than the draft, or finalisationProblems() not empty]
+tick=
+fc.&gt;d : IllegalStateException
+d-&gt;&gt;&gt;l : append(entry: ACTION_REJECTED)
+d.&gt;rs : dispatchResult REJECTED
+rs.&gt;f : IllegalStateException (reasons)
+f.&gt;v : error
+v.&gt;a : show what must be fixed
+..=a1
+a:[report complete and the case escalated]
+tick=
+d-&gt;&gt;&gt;pp : tierFor(fin, analystActor)
+pp.&gt;d : REQUIRES_APPROVAL (always, whoever asks)
+d-&gt;&gt;&gt;q : enqueue(fin, analystActor, justification)
+q.&gt;d : pendingAction (an escalated case stays ESCALATED)
+d-&gt;&gt;&gt;l : append(entry: ACTION_PROPOSED)
+d.&gt;rs : dispatchResult PROPOSED
+rs-&gt;&gt;&gt;q : find(pendingId)
+q.&gt;rs : pendingAction
+rs.&gt;f : pendingAction
+f.&gt;v : pendingAction
+v.&gt;a : waiting for approval on the Approvals screen
+--=a1
+ref=d q :see SD5, an Analyst or Supervisor approves, ApprovalQueue re-validates fin and runs execute(ctx), which locks the report as FINAL
+combinedFragment=opt~o2 a l
+a:[report FINAL (extension point of UC14)]
+tick=
+a-&gt;&gt;&gt;v : onExport()
+v-&gt;&gt;&gt;f : exportReport(caseId, formats, dir)
+f-&gt;&gt;&gt;rs : export(caseId, formats, dir)
+rs-&gt;&gt;&gt;cr : findById(caseId)
+combinedFragment=loop~l1 rs ex
+rs:[for each chosen format, HTML or JSON]
+tick=
+rs-&gt;&gt;&gt;ex : export(report, dir)
+ex.&gt;rs : file
+--=l1
+rs-&gt;&gt;&gt;l : append(entry: REPORT_EXPORTED, OK, or FAILED on a write error)
+rs.&gt;f : paths of the files
+f.&gt;v : paths
+v.&gt;a : show file paths
+--=o2</panel_attributes><additional_attributes/></element></diagram>

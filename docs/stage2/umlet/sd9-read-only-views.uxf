@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1"><zoom_level>10</zoom_level><element><id>UMLSequenceAllInOne</id><coordinates><x>10</x><y>10</y><w>2450</w><h>2842</h></coordinates><panel_attributes>title=SD9: Read-Only Views (UC11, UC12, UC16 including UC05, UC17; F08, F09, F04, F12)
+obj=AML Analyst~u ACTOR
+obj=:AdminView~ad
+obj=Compliance Supervisor~s ACTOR
+obj=:NetworkView~nv
+obj=:TraceWiseFacade~f
+obj=:AuditLog~l
+obj=:NetworkService~ns
+obj=:Retriever~ret
+obj=:CaseMemory~cm
+obj=:PerformanceService~ps
+obj=:Ledger~g
+obj=:AlertRepository~ar
+obj=:CaseRepository~cr
+obj=:ApprovalRepository~apr
+u-&gt;&gt;&gt;ad : searchAudit()
+ad-&gt;&gt;&gt;f : queryAudit(filter)
+f-&gt;&gt;&gt;l : query(filter)
+l.&gt;f : entries
+f.&gt;ad : entries
+ad.&gt;u : show audit entries
+u-&gt;&gt;&gt;nv : onChangeScope(hops, range)
+nv-&gt;&gt;&gt;f : buildNetwork(accountId, hops, range, caseId)
+f-&gt;&gt;&gt;ns : build(accountId, hops, range, caseId)
+ns-&gt;&gt;&gt;g : findAccount(accountId)
+g.&gt;ns : account (refused if unknown, outside the bank, or hops not 1 to 3)
+combinedFragment=loop~l1 ns g
+ns:[for each hop (1 to hops)]
+tick=
+ns-&gt;&gt;&gt;g : transactionsFor(account, range) for each account reached at the previous hop
+g.&gt;ns : transactions
+--=l1
+ns-&gt;&gt;&gt;g : transactionsFor(account, range) for each account of the last hop
+g.&gt;ns : transfers among the accounts drawn
+ns-&gt;&gt;&gt;ar : accountsWithAlerts(accountIds)
+ar.&gt;ns : alerted accounts
+combinedFragment=opt~o1 ns cr
+ns:[caseId given]
+tick=
+ns-&gt;&gt;&gt;cr : findById(caseId)
+cr.&gt;ns : case (its latest trace gives the accounts the agent examined)
+--=o1
+ns.&gt;f : moneyFlowGraph (at most 50 counterparties over all hops, largest totals first)
+f.&gt;nv : moneyFlowGraph
+tick=
+nv-&gt;nv + : render(graph)
+tick=
+u-&gt;&gt;&gt;ad : search()
+ad-&gt;&gt;&gt;f : searchKnowledge(query)
+f-&gt;&gt;&gt;ret : search(query, 5)
+ret.&gt;f : FINTRAC indicator passages
+f-&gt;&gt;&gt;cm : similar(query, 5)
+combinedFragment=opt~o2 cm cr
+cm:[first search since a case was closed, escalated or reopened]
+tick=
+cm-&gt;&gt;&gt;cr : findAll()
+cr.&gt;cm : cases (closed and escalated ones are indexed)
+--=o2
+cm.&gt;f : past-case passages
+f.&gt;ad : passages, both kinds, best score first
+ad.&gt;u : show passages
+s-&gt;&gt;&gt;ad : onShowMetrics(filter)
+combinedFragment=alt~a1 ad ps
+ad:[filter.model() is null (All models)]
+tick=
+ad-&gt;&gt;&gt;f : metricsByModel(filter)
+f-&gt;&gt;&gt;ps : computeByModel(filter)
+..=a1
+ad:[one model chosen]
+tick=
+ad-&gt;&gt;&gt;f : computeMetrics(filter)
+f-&gt;&gt;&gt;ps : compute(filter)
+--=a1
+ps-&gt;&gt;&gt;ar : launderingLabels()
+ar.&gt;ps : one AlertLabel per alert (one grouped query)
+ps-&gt;&gt;&gt;l : query(filter: INVESTIGATION_FINISHED in the date range)
+l.&gt;ps : runs (for the failure rate)
+ps-&gt;&gt;&gt;cr : findAll()
+cr.&gt;ps : cases
+ps-&gt;&gt;&gt;apr : findAll()
+apr.&gt;ps : proposals (for the override rate)
+ps.&gt;f : performanceMetrics (all models first, then one per model)
+f.&gt;ad : performanceMetrics
+ad.&gt;s : show metrics table, each figure with its sample size</panel_attributes><additional_attributes/></element></diagram>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1"><zoom_level>10</zoom_level><element><id>UMLSequenceAllInOne</id><coordinates><x>10</x><y>10</y><w>2100</w><h>2614</h></coordinates><panel_attributes>title=SD5: Agent Action and Approval (UC04 step 5, UC08; F06)
+obj=AML Analyst~a ACTOR
+obj=:ApprovalsView~av
+obj=:TraceWiseFacade~f
+obj=:ToolRegistry~tr
+obj=:ProposeCloseTool~pt
+obj=cmd:CloseCaseCommand~cmd CREATED_LATER
+obj=:CommandDispatcher~d
+obj=:PermissionPolicy~pp
+obj=:ApprovalQueue~q
+obj=p:PendingAction~p CREATED_LATER
+obj=c:Case~c
+obj=:AuditLog~l
+tr-&gt;&gt;&gt;pt : execute(args)
+tick=
+pt-&gt;pt + : createCommand(args)
+tick=
+pt-&gt;&gt;&gt;cmd : create
+pt-&gt;&gt;&gt;d : submit(cmd, agentActor, justification)
+d-&gt;&gt;&gt;cmd : validate(ctx)
+d-&gt;&gt;&gt;pp : tierFor(cmd, agentActor)
+pp.&gt;d : REQUIRES_APPROVAL
+combinedFragment=alt~a1 cmd l
+cmd:[tier is AUTONOMOUS]
+tick=
+d-&gt;&gt;&gt;cmd : execute(ctx)
+d-&gt;&gt;&gt;l : append(entry: executed by agent)
+..=a1
+cmd:[tier is REQUIRES_APPROVAL]
+tick=
+d-&gt;&gt;&gt;q : enqueue(cmd, agentActor, justification)
+q-&gt;&gt;&gt;cmd : targetCaseId()
+q-&gt;&gt;&gt;c : submitForApproval() (unless the case is Escalated)
+q-&gt;&gt;&gt;p : create
+d-&gt;&gt;&gt;l : append(entry: proposed by agent)
+--=a1
+d.&gt;pt : dispatchResult
+pt.&gt;tr : toolResult (proposal queued)
+combinedFragment=alt~a3 a l
+a:[Analyst approves]
+tick=
+a-&gt;&gt;&gt;av : approveSelected() (F9)
+av-&gt;&gt;&gt;f : approve(pendingId)
+f-&gt;&gt;&gt;q : approve(pendingId, analystActor)
+q-&gt;&gt;&gt;cmd : validate(ctx)
+combinedFragment=alt~a2 cmd l
+cmd:[case state still allows the action]
+tick=
+q-&gt;&gt;&gt;cmd : execute(ctx)
+cmd-&gt;&gt;&gt;c : close()
+q-&gt;&gt;&gt;p : markApproved(analystActor)
+q-&gt;&gt;&gt;l : append(entry: approved and executed)
+..=a2
+cmd:[case has changed since the proposal]
+tick=
+q-&gt;&gt;&gt;p : markExpired(reason)
+q-&gt;&gt;&gt;c : returnToInvestigation() (if the case is Pending Approval)
+q-&gt;&gt;&gt;l : append(entry: proposal expired)
+--=a2
+q.&gt;f
+f.&gt;av
+..=a3
+a:[Analyst rejects]
+tick=
+a-&gt;&gt;&gt;av : rejectSelected() (F10, reason from the box)
+av-&gt;&gt;&gt;f : reject(pendingId, reason)
+f-&gt;&gt;&gt;q : reject(pendingId, analystActor, reason)
+q-&gt;&gt;&gt;p : markRejected(analystActor, reason)
+q-&gt;&gt;&gt;c : returnToInvestigation() (if the case is Pending Approval)
+q-&gt;&gt;&gt;l : append(entry: rejected with reason)
+q.&gt;f
+f.&gt;av
+--=a3
+tick=
+av-&gt;av + : refresh()
+tick=</panel_attributes><additional_attributes/></element></diagram>

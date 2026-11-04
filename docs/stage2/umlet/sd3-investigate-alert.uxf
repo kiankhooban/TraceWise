@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1"><zoom_level>10</zoom_level><element><id>UMLSequenceAllInOne</id><coordinates><x>10</x><y>10</y><w>2275</w><h>2804</h></coordinates><panel_attributes>title=SD3: Investigate Alert (UC04, includes UC05 and UC06; F03, F04, F05)
+obj=AML Analyst~a ACTOR
+obj=:CaseView~v
+obj=:TraceWiseFacade~f
+obj=:InvestigationService~i
+obj=c:Case~c
+obj=trace:AgentTrace~t CREATED_LATER
+obj=:AgentRunner~r
+obj=:LLMClient~llm
+obj=:ToolRegistry~tr
+obj=tool:SearchIndicatorsTool~tool
+obj=:Retriever~ret
+obj=:ClaimVerifier~cv
+obj=:AuditLog~l
+a-&gt;&gt;&gt;v : investigate(alertId) (F2 or Investigate)
+v-&gt;&gt;&gt;f : investigate(alertId, listener)
+f-&gt;&gt;&gt;i : investigate(alertId, listener)
+i-&gt;&gt;&gt;c : startInvestigation()
+i-&gt;&gt;&gt;t : create
+i-&gt;&gt;&gt;t : addListener(listener)
+i-&gt;&gt;&gt;t : addListener(auditLog)
+i-&gt;&gt;&gt;r : run(task, trace)
+combinedFragment=loop~l1 v l
+v:[until final answer, turn limit (12) or cost limit]
+tick=
+r-&gt;&gt;&gt;llm : chat(request)
+llm.&gt;r : response
+combinedFragment=break~b1 t llm
+t:[LLM still failing after 2 retries]
+tick=
+r-&gt;&gt;&gt;t : finish(outcome: FAILED)
+--=b1
+combinedFragment=loop~l2 v l
+v:[for each tool call in the response]
+tick=
+r-&gt;&gt;&gt;tr : execute(call)
+combinedFragment=alt~a1 r ret
+r:[arguments valid, tool is search_indicators (UC05)]
+tick=
+tr-&gt;&gt;&gt;tool : execute(args)
+tool-&gt;&gt;&gt;ret : search(query, maxResults)
+ret.&gt;tool : passages
+tool.&gt;tr : toolResult
+tr.&gt;r : toolResult
+..=a1
+r:[arguments valid, tool is an ActionTool]
+tick=
+ref=tr ret :see SD5 Agent Action and Approval
+tr.&gt;r : toolResult (action executed or queued)
+..=a1
+r:[arguments invalid]
+tick=
+tr.&gt;r : validation error, tool is not run
+--=a1
+r-&gt;&gt;&gt;t : record(step)
+t-&gt;&gt;&gt;v : onStep(step)
+t-&gt;&gt;&gt;l : onStep(step)
+--=l2
+--=l1
+r-&gt;&gt;&gt;t : finish(outcome)
+t-&gt;&gt;&gt;v : onFinished(outcome)
+t-&gt;&gt;&gt;l : onFinished(outcome)
+r.&gt;i : outcome
+combinedFragment=opt~o2 i cv
+i:[outcome COMPLETED or INCOMPLETE]
+tick=
+tick=
+i-&gt;i + : the task parses the final answer into a finding
+tick=
+i-&gt;&gt;&gt;cv : verify(claims, totals, indicators, retrievedIndicators)
+cv.&gt;i : verificationReport (each claim checked against the Ledger)
+i-&gt;&gt;&gt;c : addFinding(finding)
+--=o2
+i.&gt;f : investigationResult (no finding if FAILED or CANCELLED)
+f.&gt;v : investigationResult
+tick=
+v-&gt;v + : showCase(caseId)
+tick=
+a-&gt;&gt;&gt;v : cancelRunning()
+v-&gt;&gt;&gt;f : cancelInvestigation(alertId)
+f-&gt;&gt;&gt;i : cancel(alertId)
+i-&gt;&gt;&gt;r : cancel()</panel_attributes><additional_attributes/></element></diagram>
