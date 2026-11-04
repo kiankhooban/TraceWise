@@ -7,11 +7,26 @@ TraceWise `CLAUDE.md` is NOT loaded automatically: read it explicitly. The Stage
 
 ## 0. NEXT SESSION STARTS HERE
 
-1. **CLI work, Kian to describe.** On 2026-11-04 Kian tried the CLI for the first time and said "we have some stuff
-   to do for the CLI tool". He has not said what yet: ask him, do not guess. Keep it inside the Stage 1 design (the
-   CLI is picocli commands over `TraceWiseFacade`, Template Method `CliCommandBase`; `cli/src/main/java/tracewise/ui/cli/`).
-   Any new command or flag: test first (`cli/src/test`), update the README command list, and log a design change only
-   if it alters what Stage 1 described. Period 3 already has its 6 code commits; real CLI work adds more.
+1. **Make the CLI's text output readable for a person** (Kian, 2026-11-04: "that CLI is plain as hell, in a human
+   eyes it is really hard to read the output"). What he saw (`import`, `monitor run`, `alerts list`, `investigate`,
+   `ask` on the sample data in replay mode):
+   - agent steps print raw JSON arguments, and an action's whole justification sits on one line
+     (`[turn 3] propose_escalation { "case_id" : ..., "justification" : "<300 words>" } -> ok (3 ms)`);
+   - the narrative and the assistant's answer are one unwrapped line each;
+   - no structure: no headings, spacing or emphasis; the verdict, verification and cost read like any other line;
+   - amounts unformatted (`48000.00`, the GUI shows `48,000.00`), times as raw ISO (`2026-09-01T09:00:00Z`);
+   - tables (`alerts list`) are aligned but bare: no rule names, no risk level words.
+   **How to do it (lessons from the GUI round):** research first (well-regarded CLIs such as `gh`, `cargo`,
+   `kubectl`, `brew`, plus terminal colour and accessibility guidance), then show Kian previews of the real output for
+   real commands BEFORE building; one coherent style that matches `docs/stage2/ui-design.md` (state colour always
+   paired with a word or code: HIGH 65, VER 6/6, ESCALATE; numbers right-aligned with thousands separators; prose
+   wrapped to the terminal width). Constraints: `--json` output must not change at all (the Stage 3 KUMA harness and
+   `cli/src/test` read it); colour only on a terminal, off when piped and with `NO_COLOR` (picocli's built-in
+   `CommandLine.Help.Ansi` / `@|bold ...|@` markup needs no new dependency; check with context7 first); keep the
+   Template Method (`CliCommandBase.print()` is where text layout lives; each command overrides it). Test first: the
+   formatting logic (wrapping, number and time formatting, step summaries) in plain unit tests; existing CLI tests
+   that match text may need updating. Afterwards update the README examples and the demo script on Kian's Desktop if
+   output changes, and log no design change unless a Stage 1 element changes (presentation only, like design change 50).
 2. **Videos:** Kian records two (CLI and GUI) from `~/Desktop/TraceWise-Demo-Script.md` (his file, deliberately not in
    the repo). If CLI work changes a command, update that script too.
 3. **After the videos:** put each feature's link with timestamp into sections 2 and 7 of `Stage2-Report.md`, refresh the
