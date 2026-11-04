@@ -12,6 +12,7 @@ public class ImportCli extends CliCommandBase {
     Path file;
 
     private static final int SHOWN = 20;
+    private static final String DUPLICATE = "duplicate transaction id";
 
     private String formatName;
 
@@ -35,18 +36,32 @@ public class ImportCli extends CliCommandBase {
         if (s.earliest() != null) {
             out().println(st.field("Dates", Style.time(s.earliest()) + " to " + Style.time(s.latest())));
         }
+        // rows already in the database (ImportService's reason text) are counted, not listed: their row numbers help nobody
+        int duplicates = s.rejectedByReason().entrySet().stream().filter(e -> e.getKey().startsWith(DUPLICATE))
+                .mapToInt(java.util.Map.Entry::getValue).sum();
+        int others = s.rejectedCount() - duplicates;
         if (s.rejectedCount() > 0) {
             out().println(st.field("Rejected", st.bad(s.rejectedCount() + (s.rejectedCount() == 1 ? " row" : " rows"))));
-            s.rejected().stream().limit(SHOWN).forEach(r -> out().println(under + "row " + r.rowNumber() + ": " + r.reason()));
         }
-        if (s.rejectedCount() > SHOWN) {
+        if (duplicates > 0) {
+            out().println(under + duplicates + " already imported (same transaction id)");
+        }
+        var shown = s.rejected().stream().filter(r -> !r.reason().startsWith(DUPLICATE)).limit(SHOWN).toList();
+        shown.forEach(r -> out().println(under + "row " + r.rowNumber() + ": " + r.reason()));
+        if (others > shown.size()) {
             // a large file can reject hundreds of thousands of rows; they are counted by kind
-            out().println(under + "... " + (s.rejectedCount() - SHOWN) + " more; all " + s.rejectedCount()
-                    + " rejected rows by reason:");
-            s.rejectedByReason().forEach((reason, n) -> out().println(under + "  " + reason + ": " + n));
+            out().println(under + "... " + (others - shown.size()) + " more; all " + others + " rejected rows by reason:");
+            s.rejectedByReason().forEach((reason, n) -> {
+                if (!reason.startsWith(DUPLICATE)) {
+                    out().println(under + "  " + reason + ": " + n);
+                }
+            });
         }
         if (s.rowsImported() > 0) {
             out().println(st.dim("  Next: monitor run"));
+        } else if (duplicates > 0 && others == 0) {
+            out().println(st.dim("  This file is already in " + ((TraceWiseCli) spec.root().userObject()).database
+                    + ". To start over, delete that file and import again."));
         }
     }
 }

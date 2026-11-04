@@ -91,7 +91,10 @@ class ImportCliTest {
 
         assertEquals(0, run("import", file.toString()));
 
-        assertTrue(out.toString().matches("(?s).*\n +duplicate transaction id: 30.*"), out.toString());
+        String text = out.toString();
+        assertTrue(text.matches("(?s).*Rejected +30 rows\n +30 already imported \\(same transaction id\\).*"), text);
+        assertFalse(text.contains("row 2:"), "a duplicate's row number helps nobody: " + text);
+        assertTrue(text.contains("already in " + dir.resolve("t.db")), "and how to start over: " + text);
     }
 }
 
