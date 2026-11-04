@@ -73,8 +73,12 @@ TODO, one commit each (period 3), checking each with the snapshot mode (dark and
    reason, F9/F10, Enter opens the case). Also fixed: state colours now survive row selection; verdict cells coloured.
 3. DONE `096d38d`: Admin (ADMN strip, rule names, ON/OFF, audit actor AGENT/HUMAN/SYSTEM, grouped Performance with
    "value  n=N", amber under the minimum sample, explained once).
-4. Dialogs, status filters with readable labels, empty states; day theme check on every screen.
-5. Design change 50 (keys, command bar, age column, themes); F10 GUI details (design change 49) next.
+4. DONE `10f4db8` (polish: readable filters, case list fits, tasks table, evidence columns, themed Network window;
+   dialogs already inherit the theme, checked) and `2ad9201` (Network graph follows dark and day).
+5. F10 GUI details DONE `279946e` (badge per claim, search results table, selection as context; row 49 updated).
+   NEXT: design change 50 (keys, command bar, age column, themes), then deep-code-review of the period 3 UI work.
+   Demo caveat: replays are keyed on the exact request, and the context line is part of it. A replayed assistant
+   question only matches if asked with the same selection as when recorded (the C1037 recording: no selection).
 
 How to check the UI (sample data with real replayed findings; costs nothing):
 ```bash
@@ -100,7 +104,7 @@ to 9) still needs 5+ meaningful code commits: the remaining UI units provide the
 
 Kian: "we do the polishing next week". In order:
 1. DONE (2026-11-02): UI look discussed and agreed (section 2a); the build is in progress there.
-2. **F10 assistant GUI details** Stage 1 promised (design change 49): a verification badge per claim, a results table
+2. DONE 2026-11-04 (`279946e`): **F10 assistant GUI details** Stage 1 promised (design change 49): a verification badge per claim, a results table
    for search requests, the selected account as context (today the GUI sends only the open case).
 3. **UML**: updated UMLet class diagram (4 figures as in Stage 1; add `AsOfLedger`, `InvestigationCutoff`,
    `SamlDCsvFormat`, `SchemeSampler`, `metrics`, `FinaliseReportCommand`, the three modules) and redrawn SD7 and SD9.
