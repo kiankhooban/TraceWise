@@ -45,6 +45,8 @@ final class ApprovalsView {
     private Map<String, Alert> alerts = Map.of();
     /** A proposal id typed in the command bar, selected once the queue has loaded. */
     private String pendingSelect;
+    /** The proposal the decision panel shows. */
+    private String described;
 
     ApprovalsView(Gui gui) {
         this.gui = gui;
@@ -118,6 +120,7 @@ final class ApprovalsView {
 
     void refresh() {
         Instant now = Instant.now();
+        String previous = selected().map(r -> r.proposal().id()).orElse(null);
         gui.run("Loading proposals", () -> {
             var byId = gui.facade.listAlerts(AlertFilter.ALL).stream().collect(Collectors.toMap(Alert::id, Function.identity()));
             var rows = new ArrayList<ProposalRow>();
@@ -131,18 +134,12 @@ final class ApprovalsView {
             alerts = loaded.alerts();
             pending.getItems().setAll(loaded.rows());
             count.setText(loaded.rows().size() + " waiting");
-            var want = loaded.rows().stream().filter(r -> r.proposal().id().equals(pendingSelect)).findFirst();
-            if (pendingSelect != null && want.isEmpty()) {
+            if (pendingSelect != null && loaded.rows().stream().noneMatch(r -> r.proposal().id().equals(pendingSelect))) {
                 gui.info(pendingSelect + " is not waiting", "Only proposals waiting for a decision are listed.");
             }
+            var pick = ProposalRow.pick(loaded.rows(), pendingSelect, previous);
             pendingSelect = null;
-            if (want.isPresent()) {
-                pending.getSelectionModel().select(want.get());
-            } else if (loaded.rows().isEmpty()) {
-                describe(null);
-            } else {
-                pending.getSelectionModel().selectFirst();
-            }
+            pick.ifPresentOrElse(r -> pending.getSelectionModel().select(r), () -> describe(null));
         });
     }
 
@@ -177,7 +174,11 @@ final class ApprovalsView {
         decision.getChildren().clear();
         flows.getItems().clear();
         net.setText("");
-        rejectReason.clear();
+        String id = r == null ? null : r.proposal().id();
+        if (!java.util.Objects.equals(id, described)) { // a reload of the same proposal keeps the typed reason
+            rejectReason.clear();
+        }
+        described = id;
         if (r == null) {
             title.setText("No proposal selected");
             reason.setText("");

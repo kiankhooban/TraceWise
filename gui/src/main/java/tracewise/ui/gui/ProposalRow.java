@@ -70,4 +70,15 @@ record ProposalRow(PendingAction proposal, Case target, String account, Instant 
         }
         return proposal.command().describe();
     }
+
+    /** After a reload: the id typed in the command bar, else the proposal the analyst was on, else the first. */
+    static java.util.Optional<ProposalRow> pick(java.util.List<ProposalRow> rows, String typed, String previous) {
+        for (String id : new String[] {typed, previous}) {
+            var match = rows.stream().filter(r -> r.proposal().id().equals(id)).findFirst();
+            if (match.isPresent()) {
+                return match;
+            }
+        }
+        return rows.stream().findFirst();
+    }
 }

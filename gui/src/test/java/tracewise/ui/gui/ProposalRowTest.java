@@ -72,4 +72,15 @@ class ProposalRowTest {
         assertEquals("", row.checked());
         assertNull(row.checkedStyle());
     }
+
+    @Test
+    void aReloadKeepsTheProposalTheAnalystWasOn() {
+        var a = new ProposalRow(new PendingAction("APR-00001", new EscalateCaseCommand("CAS-1"), "", Actor.AGENT, PROPOSED), null, "", PROPOSED);
+        var b = new ProposalRow(new PendingAction("APR-00002", new EscalateCaseCommand("CAS-2"), "", Actor.AGENT, PROPOSED), null, "", PROPOSED);
+        var rows = List.of(a, b);
+        assertEquals(b, ProposalRow.pick(rows, null, "APR-00002").orElseThrow(), "the one the analyst was on");
+        assertEquals(a, ProposalRow.pick(rows, "APR-00001", "APR-00002").orElseThrow(), "an id typed in the command bar wins");
+        assertEquals(a, ProposalRow.pick(rows, null, "APR-00009").orElseThrow(), "decided meanwhile: the first one");
+        assertTrue(ProposalRow.pick(List.of(), null, null).isEmpty());
+    }
 }
