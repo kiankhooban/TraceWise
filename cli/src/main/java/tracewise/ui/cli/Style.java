@@ -203,8 +203,23 @@ final class Style {
 
     /** The line cut to the width, so a table of long details stays one row per line. */
     String cut(String line) {
-        return width == 0 || visible(line).length() <= width || !visible(line).equals(line) ? line
-                : line.substring(0, width - 3) + "...";
+        String plain = visible(line);
+        if (width == 0 || plain.length() <= width) {
+            return line;
+        }
+        var kept = new StringBuilder();
+        int seen = 0;
+        for (int i = 0; i < line.length() && seen < width - 3; i++) {
+            int end = line.charAt(i) == '\033' ? line.indexOf('m', i) : -1;
+            if (end > 0) { // a colour code takes no room: keep it whole
+                kept.append(line, i, end + 1);
+                i = end;
+            } else {
+                kept.append(line.charAt(i));
+                seen++;
+            }
+        }
+        return kept + "..." + (plain.equals(line) ? "" : RESET);
     }
 
     // ---- agent steps

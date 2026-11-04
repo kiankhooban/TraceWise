@@ -85,6 +85,17 @@ class StyleTest {
                 List.of(List.of("1", "a"), List.of("10", "bb"))), "no trailing spaces");
     }
 
+    /** Found by Kian: help's long descriptions ran past the window because coloured lines were never cut. */
+    @Test
+    void aColouredLineIsCutOnWhatIsVisible() {
+        String line = "  " + COLOR.bold("ask") + "  " + "x".repeat(60);
+        String cut = COLOR.cut(line);
+        assertEquals(40, Style.visible(cut).length(), Style.visible(cut));
+        assertTrue(Style.visible(cut).startsWith("  ask  ") && Style.visible(cut).endsWith("..."), Style.visible(cut));
+        assertTrue(cut.endsWith("\033[0m"), "the colour is closed: " + cut);
+        assertEquals(line, PLAIN.cut(line), "width 0: nothing is cut");
+    }
+
     static TraceStep step(String tool, String args, String result, boolean error) {
         return new TraceStep("ALR-00001", 2, tool, args, result, error, 1167);
     }

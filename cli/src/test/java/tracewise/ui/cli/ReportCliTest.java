@@ -89,5 +89,7 @@ class ReportCliTest {
         assertEquals(0, run("approvals", "approve", out.toString().replaceAll("(?s).*?(APR-\\d+).*", "$1")));
         assertEquals(0, run("report", "export", "CAS-00001", "--format", "both", "--out", dir.resolve("b").toString()));
         assertTrue(Files.exists(dir.resolve("b/CAS-00001-STR.html")) && Files.exists(dir.resolve("b/CAS-00001-STR.json")));
+        assertTrue(out.toString().matches("(?s).*Written +.*CAS-00001-STR.html\n +.*CAS-00001-STR.json\n.*"),
+                "one written file per line, not a Java list: " + out);
     }
 }

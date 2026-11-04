@@ -157,5 +157,19 @@ public class ReportCli {
             }
             return facade().exportReport(caseId, chosen, out).stream().map(Path::toString).toList();
         }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        protected void print(Object result) {
+            if (json) {
+                super.print(result);
+                return;
+            }
+            var files = (List<String>) result;
+            for (int i = 0; i < files.size(); i++) {
+                out().println(i == 0 ? style().field("Written", files.get(i)) : " ".repeat(12) + files.get(i));
+            }
+            out().println(style().dim("  Open the HTML in a browser. Nothing is sent to FINTRAC."));
+        }
     }
 }
