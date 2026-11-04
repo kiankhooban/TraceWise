@@ -425,3 +425,30 @@ Maven modules, `FaultInjectingTool`, `OpenAiCompatibleLLMClient` and Opus were m
 (design changes 46 to 49). Review 11 then found the cutoff came from the case's opening alert, not the investigated
 one, and four smaller problems; all fixed test-first. 407 tests pass (earlier counts in this log from Entry 11 on
 included up to 9 stale results from renamed test classes).
+
+## Entry 17: The GUI design, its review, and the diagrams (2026-11-02 to 2026-11-04)
+
+**Task:** Give the GUI a design fit for analysts, complete the three F10 GUI details from Stage 1, review all UI
+work, check the README on a fresh clone, and bring the UML up to date for the Stage 2 report.
+
+**Input/Instruction:** Kian rejected the first three mockups as "AI slop" and asked for research on bank tools and
+the Bloomberg Terminal before any new preview; he chose the design, then rejected the font and asked for research on
+fonts. Later he questioned why the design-change log had 50 rows when he had asked from the start to follow Stage 1.
+
+**AI Contribution:** Researched Bloomberg's UX writing, AML case tools (Hummingbird, Oracle, Unit21, Lucinity) and
+dense-data UIs, and showed one coherent design traced to sources, on real sample data; measured fonts (tabular
+digits, width) and bundled Source Sans 3 and JetBrains Mono. Built it screen by screen (`docs/stage2/ui-design.md`),
+with tested display logic (`Display`, `CaseFacts`, `ProposalRow`, `PerformanceRows`, `SearchResults`) and each
+screen checked in dark and day screenshots. Ran a `deep-code-review` of all UI work (9 Claude reviewers, 15
+validators): F3 could queue several paid triage runs, command-bar ids were ignored, an opened case could fall back
+to the previous one; all fixed test-first. Followed the README on a fresh clone with no key. Audited the class and
+sequence diagrams against the code (three Claude subagents) and regenerated them in UMLet with a checker that every
+call is a method on the class diagram.
+
+**Human Contribution:** Set the bar for the design (research first, nothing generic), chose the design, fonts and
+extras, kept approving on the Approvals screen only, and decided how changes are presented: the five that alter
+what Stage 1 described in full, the rest grouped as details inside the design.
+
+**Outcome:** All 12 features in the new GUI, the F10 details done (design change 49), design change 50 logged,
+section 4 of the report rewritten around the five real changes, and the updated class diagram and sequence
+diagrams in `docs/stage2/umlet`. 435 tests pass.

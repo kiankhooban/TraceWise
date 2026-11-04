@@ -24,7 +24,8 @@ tokens (Stage 1 price table), cache writes at 1.25 times and cache reads at 0.1 
 |---|---|---|---|---|---|---|
 | Stage 1, 2026-09-29 to 10-06 | 384 / 68 | 928 | 2.56M | 142.9M | 0.52M | about USD 78 |
 | Stage 2 period 1, 10-20 to 10-26 | 519 / 300 | 1,754 | 7.44M | 201.1M | 0.54M | about USD 116 |
-| Stage 2 period 2, 10-27 to 10-29 (to date) | 1,931 / 903 | 5,922 | 19.51M | 675.8M | 2.10M | about USD 368 |
+| Stage 2 period 2, 10-27 to 11-02 | 2,088 / 941 | 6,322 | 20.71M | 749.5M | 2.34M | about USD 407 |
+| Stage 2 period 3, 11-03 to 11-04 (to date) | 351 / 154 | 1,068 | 2.94M | 115.1M | 0.38M | about USD 62 |
 
 Codex and Gemini ran under their own subscriptions and are not in these counts.
 

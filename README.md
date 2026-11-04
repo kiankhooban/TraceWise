@@ -16,7 +16,7 @@ ledger before a human analyst approves or dismisses the case.
 | Stage | Content | Status |
 |---|---|---|
 | Stage 1: Design | [Design report](docs/stage1/Stage1-Design-Report.md) ([PDF](docs/stage1/Stage1-Design-Report.pdf)) (UMLet diagrams in [`docs/stage1/umlet`](docs/stage1/umlet)) | Complete (100/100) |
-| Stage 2: Implementation | [Implementation report](docs/stage2/Stage2-Report.md), [design changes](docs/stage2/design-changes.md), [plan](docs/stage2/PLAN.md) | All 12 features working from the CLI and the GUI |
+| Stage 2: Implementation | [Implementation report](docs/stage2/Stage2-Report.md) ([PDF](docs/stage2/stage2-report.pdf)), [design changes](docs/stage2/design-changes.md), [UML](docs/stage2/umlet) | All 12 features working from the CLI and the GUI |
 | Stage 3: Testing | JUnit tests, KUMA agent behaviour tests | Not started |
 
 ## Quick start
