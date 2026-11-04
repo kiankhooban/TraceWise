@@ -16,7 +16,7 @@ ledger before a human analyst approves or dismisses the case.
 | Stage | Content | Status |
 |---|---|---|
 | Stage 1: Design | [Design report](docs/stage1/Stage1-Design-Report.md) ([PDF](docs/stage1/Stage1-Design-Report.pdf)) (UMLet diagrams in [`docs/stage1/umlet`](docs/stage1/umlet)) | Complete (100/100) |
-| Stage 2: Implementation | [Plan and feature status](docs/stage2/PLAN.md), [design changes](docs/stage2/design-changes.md) | In progress: F01 to F11 working from the CLI and the GUI; F12 next |
+| Stage 2: Implementation | [Implementation report](docs/stage2/Stage2-Report.md), [design changes](docs/stage2/design-changes.md), [plan](docs/stage2/PLAN.md) | All 12 features working from the CLI and the GUI |
 | Stage 3: Testing | JUnit tests, KUMA agent behaviour tests | Not started |
 
 ## Quick start
@@ -41,9 +41,11 @@ Prerequisites: Java 21 (JDK). Maven is not needed: the repository includes the M
 ./tracewise case show CAS-00001                 # also: case note, case close --reason, case reopen --reason
 ./tracewise audit export --from 2026-10-01 --out audit.csv
 ./tracewise report draft CAS-00001              # the agent drafts the STR narrative (also: report show, report edit)
-./tracewise report finalise CAS-00001           # waits in the approval queue; approve it with approvals approve
+./tracewise report finalise CAS-00001           # waits in the approval queue as a proposal (APR-...)
+./tracewise approvals approve APR-00004         # the id printed by report finalise; then the report can be exported
 ./tracewise report export CAS-00001 --format both --out reports   # HTML and JSON; nothing is sent to FINTRAC
 ./tracewise network C1037 --hops 2              # who the account sends money to and receives it from
+./tracewise metrics                             # the agent's precision, recall, cost and failure rate (also --csv)
 ```
 
 Indicator search runs a local embedding model (bge-small-en-v1.5) inside the JVM: no key, no network,
@@ -65,10 +67,14 @@ TRACEWISE_LLM=replay TRACEWISE_MODEL=claude-haiku-5-5 ./tracewise-gui   # replay
 ```
 
 Screens: **Alerts** (import, monitoring, the queue, the Threshold Report Register, investigate, triage),
-**Cases** (finding with verified claims, the agent's steps live, evidence, tasks, notes, history, close and
-reopen), **Approvals** (decide the agent's proposals), **Admin** (rules, knowledge search, audit log with CSV
-export) and the **Assistant** panel beside every screen. `TRACEWISE_SNAPSHOT=shots ./tracewise-gui` saves a
-PNG of every screen and exits.
+**Cases** (finding with verified claims, the agent's steps live, evidence, tasks, notes, network, report,
+history, close and reopen), **Approvals** (decide the agent's proposals), **Admin** (rules, knowledge search,
+audit log with CSV export, performance) and the **Assistant** panel beside every screen.
+
+Keys: Ctrl+1 to 4 (Cmd on macOS) switch screens, Ctrl+K opens the command bar (a screen code such as `APRV`, or
+an id such as `CAS-00001`), F2 investigates the selected alert, F3 starts triage, F9 and F10 approve and reject
+on Approvals, F5 refreshes. The Day / Night label in the bottom bar switches the theme (`TRACEWISE_THEME=day`).
+`TRACEWISE_SNAPSHOT=shots ./tracewise-gui` saves a PNG of every screen and exits.
 
 ### Configuration and API key
 
@@ -123,7 +129,12 @@ java -cp cli/target/tracewise.jar tracewise.tools.ScenarioGenerator 42 data/samp
 
 TraceWise also reads IBM's synthetic AML data (Altman et al., NeurIPS 2023), which is not committed:
 download `HI-Small_Trans.csv` from the Kaggle dataset `ealtman2019/ibm-transactions-for-anti-money-laundering-aml`
-and run `./tracewise import HI-Small_Trans.csv`. The full file (5.08 million rows) takes about 12 minutes; rows in
+and run `./tracewise import HI-Small_Trans.csv`. The agent is measured on SAML-D (Oztas et al., IEEE ICEBE 2023;
+CC BY-NC-SA 4.0), also not committed (Kaggle dataset `berkanoztas/synthetic-transaction-monitoring-dataset-aml`):
+`tracewise.tools.SchemeSampler samld <SAML-D.csv> <out.csv> <schemes> <otherAccounts> <part> <seed>` samples whole
+laundering schemes with their accounts' full history, `./tracewise import` and `monitor run` load and monitor the
+sample, and `python3 -I scripts/evaluate.py <monitored.db> <alerts.txt> <out-dir> <model>` investigates a fixed alert
+list, each on a fresh copy of the database, and scores it with `tracewise metrics`. The full file (5.08 million rows) takes about 12 minutes; rows in
 Bitcoin, Ruble, Shekel and Riyal are rejected because the Bank of Canada publishes no rate for them.
 
 ## Stack

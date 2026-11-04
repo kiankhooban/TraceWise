@@ -34,3 +34,8 @@ logs/
 # Downloaded build tools
 tools/*.jar
 tools/umlet/
+
+# output of the README's example commands
+/audit.csv
+/reports/
+/shots/
