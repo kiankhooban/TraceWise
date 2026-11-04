@@ -1,7 +1,15 @@
 # Stage 2 design changes
 
-Every difference between the Stage 1 design (tag `stage1-submitted`) and the implementation,
-recorded when it is made.
+The working log behind section 4 of the Stage 2 report: every difference between the Stage 1 design (tag
+`stage1-submitted`) and the implementation, recorded when it was made, down to single method parameters.
+
+**Summary.** No feature or design pattern was removed, replaced or added. Five rows change what the design
+described: 33 (F11 finalisation as its own command), 45 (the agent sees data only up to its alert), 44 (how the
+agent decides), 43 (a third dataset, SAML-D) and 41 (the F12 false-alarm definition). The rest are details inside
+the design: interface details (extra parameters and fields on designed classes: rows 2, 4 to 6, 9 to 13, 15, 16,
+28, 31, 37, 38, 40), behaviour the design left open (7, 8, 14, 17 to 20, 22 to 27, 29, 32, 34 to 36, 42), and
+data format and presentation (1, 3, 21, 30, 39, 48 to 50). Rows 46 and 47 record parts that were missing and
+are now built as designed.
 
 | # | Date | Original design | Implemented change | Reason | Impact (features, use cases, classes, patterns) |
 |---|---|---|---|---|---|

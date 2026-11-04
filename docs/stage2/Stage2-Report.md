@@ -42,9 +42,8 @@ balanced 30/30 set is not a real-world figure: at SAML-D's base rate (about 3% o
 be about 0.05 with Haiku, against 0.03 for the rules alone. Details: design changes 41 to 45 and 49, and the
 collaboration log entries 15 and 16.
 
-**Not done or limited** (see section 4): the F10 assistant GUI lacks per-claim verification badges, a results
-table and the selected account as context (period 3); the sequence diagrams SD7 and SD9 and the class diagram
-are being redrawn (period 3); the stretch goals in `docs/ROADMAP.md` are not started.
+**Not done or limited:** the stretch goals in `docs/ROADMAP.md` are not started. TODO: remaining limitations
+from the final review (section 6).
 
 # 2. Feature-to-implementation mapping
 
@@ -62,7 +61,7 @@ Paths are under `core/src/main/java/tracewise/` unless they start with `cli/` or
 | F07 Autonomous Queue Triage | Done | `app/TriageService`, `app/TriageLimits`, `agent/TriageReport` | `cli/TriageCli` | Alerts screen, triage with limits and Stop | TODO |
 | F08 Case Management and Audit Trail | Done | `domain/Case`, `cases/state/`, `audit/AuditLog`, `app/CaseService` | `cli/{Case,Audit}Cli` | Notes and History tabs, Admin Audit tab | TODO |
 | F09 Money-Flow Network View | Done | `network/`, `app/NetworkService` | `cli/NetworkCli` | Network tab (SmartGraph) | TODO |
-| F10 Natural-Language Analyst Assistant | Done; three GUI details in period 3 | `agent/AssistantTask`, `agent/tools/{QueryCases,QueryAlerts,GetCase}Tool`, `app/AssistantService` | `cli/AskCli` (`--json`) | Assistant panel | TODO |
+| F10 Natural-Language Analyst Assistant | Done | `agent/AssistantTask`, `agent/tools/{QueryCases,QueryAlerts,GetCase}Tool`, `app/AssistantService` | `cli/AskCli` (`--json`) | Assistant panel | TODO |
 | F11 STR Drafting and Export | Done | `reporting/` (`StrReport`, `ReportExporter`, HTML and JSON exporters), `actions/{SaveReportDraft,FinaliseReport}Command`, `app/ReportService` | `cli/ReportCli` | Report tab | TODO |
 | F12 Agent Performance Dashboard | Done | `metrics/`, `app/PerformanceService`, `tools/SchemeSampler`, `scripts/evaluate.py` | `cli/MetricsCli` | Admin Performance tab | TODO |
 
@@ -88,18 +87,25 @@ the redrawn sequence diagrams SD7 and SD9 (design change 49).
 
 # 4. Changes and rationale
 
-Every difference from the Stage 1 design is recorded, with its reason and impact, in
-[`docs/stage2/design-changes.md`](design-changes.md) (49 rows). The most significant:
+No Stage 1 feature or design pattern was removed, replaced or added. The architecture (three modules over one
+facade), the 12 features and the 9 patterns are as designed. Five changes alter what the design described:
 
-| Change | Reason | Rows |
-|---|---|---|
-| Agent actions limited to the case under investigation (`ActionScope`), and report finalisation as its own approved command | The model's arguments are untrusted; a finalised STR is an outward act | 17, 33 |
-| Retrieval results left out of replay matching | The local embedding model scores slightly differently on ARM and x86, which broke replays on x86 | 26 |
-| Third data source, SAML-D, for measuring the agent | IBM's normal accounts behave suspiciously, so IBM cannot test whether the agent clears false alarms; added as a new class behind the existing format Strategy | 43 |
-| Investigation instructions compare flagged activity with the account's own history | The old instructions escalated every alert | 44 |
-| The agent sees the data only up to its alert (`AsOfLedger`, `InvestigationCutoff`) | Without it the agent judged with months of hindsight a bank would not have | 45 |
-| Three Maven modules, `FaultInjectingTool`, `OpenAiCompatibleLLMClient`, Opus selectable | Found missing by a design audit against the Stage 1 report and built as designed | 46, 47 |
-| Smaller differences (GUI handler names, CSV parsing, a CLI flag) and items moved to period 3 | Equivalent forms of the design; diagrams and three F10 GUI details scheduled | 48, 49 |
+| Original design | Implemented change | Reason | Impact |
+|---|---|---|---|
+| F11: finalising an STR is an approved escalation (`EscalateCaseCommand` routed to the approval queue, SD7) | Finalisation is its own command, `FinaliseReportCommand`, allowed only once the case is escalated and always sent to the approval queue; it carries the text it was requested for, so a later edit expires it | Escalating a case and filing its report are two decisions; tying the request to its text stops an edited report from being filed on an old approval | F11, UC12; `FinaliseReportCommand`, `PermissionPolicy`, `ReportService`; Command pattern unchanged (one more command); SD7 redrawn |
+| F03: the agent's read tools see every transaction in the data | The tools see the data as it stood at the alert's last flagged transaction (`AsOfLedger` decorating `Ledger`, the cutoff in `InvestigationCutoff`); the assistant still sees everything | Without it the agent judged accounts with months of hindsight a bank would not have (one account had 122 of 149 transactions after its alert) | F03, F07; read tools, `ActionScope`; a new participant in the existing Decorator pattern |
+| F03: the agent escalates on "reasonable grounds to suspect" and dismisses on "a clear legitimate explanation" | The agent first describes the account's usual activity, then asks whether the flagged activity is new for it and where the money came from and went | With the original wording the agent escalated 75 of 75 alerts, because the data never contains a customer's explanation | F03 instructions only (`InvestigationTask`); see the measured results in section 1 |
+| Data: IBM's synthetic data and the scenario generator | A third source, SAML-D (a UK bank's 9.5 million synthetic transactions with normal and suspicious typologies), read by a new `SamlDCsvFormat` and used to measure the agent | IBM's normal accounts behave suspiciously, so IBM cannot test whether the agent clears a false alarm | F01 (one format class behind the existing Strategy), F12 evaluation data |
+| F12: an alert is laundering if any of its transactions is labelled; escalating any other alert is a false positive | A false alarm is a clean alert on an account with no laundering anywhere in the data; a clean alert on an account that launders elsewhere is counted apart | 10 of the 12 "false positives" in the first measurement were on laundering accounts the agent was told to look into | F12 metrics (`AlertLabel`, `PerformanceService`, `PerformanceMetrics`) |
+
+The other differences are details inside the design, grouped below. Each is listed with its reason in
+[`docs/stage2/design-changes.md`](design-changes.md).
+
+| Group | What it covers |
+|---|---|
+| Interface details | Extra parameters and fields on the designed classes, and small helper types they need (for example `RiskScorer.score` also takes the rules triggered, `TraceStep` names its subject, `TotalClaim` for verified totals, `AssistantContext(caseId, accountId)`). Same classes, roles and patterns |
+| Behaviour the design left open | Values and rules Stage 1 did not specify: which LLM errors are retried, at most 10 tool calls per model response, triage defaults (50 alerts, CAD 5.00, stop after 3 failures in a row), the agent acting only on its own case, when waiting proposals expire, how replays match, when the indicator index is built, import batching |
+| Data format and presentation | How the data files mark cash and outside parties; the FINTRAC indicator list used; the GUI's look, keyboard shortcuts and command bar (docs/stage2/ui-design.md); SD7 and SD9 redrawn for the first change above |
 
 # 5. AI tools and collaboration
 
