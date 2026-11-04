@@ -31,6 +31,14 @@ class ShellTest {
         assertNull(TraceWiseShell.arguments(List.of(), "  ", commands), "an empty line does nothing");
     }
 
+    /** Found by Kian: five pasted lines arrive as one, and ran as one command with every word as its arguments. */
+    @Test
+    void pastedLinesRunOneAfterAnother() {
+        assertEquals(List.of("investigate ALR-00001", "triage", "Why is account C1037 risky?", "exit"),
+                TraceWiseShell.lines("investigate ALR-00001\ntriage\r\n\n  Why is account C1037 risky?\nexit\n"));
+        assertEquals(List.of("alerts list"), TraceWiseShell.lines("alerts list"));
+    }
+
     String session(String... lines) throws Exception {
         Path data = Files.write(dir.resolve("s.csv"), ScenarioGenerator.generate(42));
         var in = new ByteArrayInputStream((String.join("\n", lines).replace("DATA", data.toString()) + "\n")

@@ -37,6 +37,11 @@ final class TraceWiseShell {
                 : new String[] {"ask", line.strip()};
     }
 
+    /** The lines in what was read: a paste of several lines arrives at once and runs one line after another. */
+    static List<String> lines(String text) {
+        return text.lines().map(String::strip).filter(l -> !l.isEmpty()).toList();
+    }
+
     /** Runs lines until exit, quit or Ctrl+D; history is kept in the file, or not at all when it is null. */
     static int run(TraceWiseCli root, CommandLine cl, Terminal terminal, Path history) {
         PrintWriter out = terminal.writer();
@@ -50,6 +55,7 @@ final class TraceWiseShell {
             builder.variable(LineReader.HISTORY_FILE, history);
         }
         LineReader reader = builder.build();
+        var parser = new DefaultParser();
         root.shell = true;
         String[][] running = new String[1][];
         // Ctrl+C while the agent works stops it; the shell stays open (at the prompt it clears the line)
@@ -59,43 +65,57 @@ final class TraceWiseShell {
             header(root, out);
             String prompt = color ? "\033[1;38;5;214mtracewise›\033[0m " : "tracewise> ";
             while (true) {
-                String line;
+                String read;
                 try {
-                    line = reader.readLine(prompt);
+                    read = reader.readLine(prompt);
                 } catch (UserInterruptException e) {
                     continue;
                 } catch (EndOfFileException e) {
                     break;
                 }
-                var words = new ArrayList<String>(reader.getParsedLine().words());
-                words.removeIf(String::isEmpty);
-                if (words.size() == 1 && Set.of("exit", "quit").contains(words.get(0))) {
+                if (!runAll(lines(read), parser, cl, root, terminal, color, running, out)) {
                     break;
                 }
-                if (words.size() == 1 && words.get(0).equals("help")) {
-                    help(cl, root.style, out);
-                    continue;
-                }
-                if (words.size() == 1 && words.get(0).equals("clear")) {
-                    terminal.puts(InfoCmp.Capability.clear_screen);
-                    continue;
-                }
-                String[] args = arguments(words, line, cl.getSubcommands().keySet());
-                if (args == null) {
-                    continue;
-                }
-                root.style = new Style(color, width(terminal)); // the window may have been resized
-                running[0] = args;
-                cl.execute(args);
-                running[0] = null;
-                out.println();
-                out.flush();
             }
         } finally {
             root.shell = false;
             root.close();
         }
         return 0;
+    }
+
+    /** Runs each line in order; false once a line is exit or quit, so the lines after it do not run. */
+    private static boolean runAll(List<String> lines, DefaultParser parser, CommandLine cl, TraceWiseCli root,
+            Terminal terminal, boolean color, String[][] running, PrintWriter out) {
+        for (String line : lines) {
+            var words = new ArrayList<String>(parser.parse(line, line.length()).words());
+            words.removeIf(String::isEmpty);
+            if (words.size() == 1 && Set.of("exit", "quit").contains(words.get(0))) {
+                return false;
+            }
+            if (words.size() == 1 && words.get(0).equals("help")) {
+                help(cl, root.style, out);
+                continue;
+            }
+            if (words.size() == 1 && words.get(0).equals("clear")) {
+                terminal.puts(InfoCmp.Capability.clear_screen);
+                continue;
+            }
+            String[] args = arguments(words, line, cl.getSubcommands().keySet());
+            if (args == null) {
+                continue;
+            }
+            if (lines.size() > 1) {
+                out.println(root.style.label("› ") + line); // show which pasted line runs
+            }
+            root.style = new Style(color, width(terminal)); // the window may have been resized
+            running[0] = args;
+            cl.execute(args);
+            running[0] = null;
+            out.println();
+            out.flush();
+        }
+        return true;
     }
 
     private static int width(Terminal t) {
