@@ -356,7 +356,7 @@ counted from Claude Code's local session logs, as described in `ai-tools.md`).
 # 6. Development and verification summary
 
 **Method.** Test-driven development (each fix starts from a failing test), a `deep-code-review` per feature or
-batch (twelve, each finding checked by an independent validator before it was fixed), live checks against the
+batch (thirteen, each finding checked by an independent validator before it was fixed), live checks against the
 Anthropic API with recordings committed so the agent can be replayed without a key, and screenshot checks of every
 GUI screen in the dark and day themes.
 
@@ -397,6 +397,8 @@ All commits: [period 1](https://github.com/kiankhooban/TraceWise/commits/main?si
 | F12 judged a verdict by alerts linked to the case later | A live triage of 8 IBM alerts | Judged by the alert that opened the case ([`a08b93b`](https://github.com/kiankhooban/TraceWise/commit/a08b93b)) |
 | Three modules, `FaultInjectingTool` and `OpenAiCompatibleLLMClient` missing | Design audit against Stage 1 | Built as designed ([`d717f58`](https://github.com/kiankhooban/TraceWise/commit/d717f58), [`b65b1b7`](https://github.com/kiankhooban/TraceWise/commit/b65b1b7)) |
 | A held F3 queued several paid triage runs; an opened case could fall back to the previous one | GUI review | Fixed ([`02f1701`](https://github.com/kiankhooban/TraceWise/commit/02f1701)) |
+| The CLI's live triage line threw when the terminal width was unknown, failing every agent run | Running the built CLI under a pseudo-terminal | Lines cut only to a known width, with a regression test ([`fcfd619`](https://github.com/kiankhooban/TraceWise/commit/fcfd619)) |
+| In the CLI shell, `--role` on a line was ignored and an options-only line opened a second shell | Review 13 | Such lines are refused with how to restart ([`5833b69`](https://github.com/kiankhooban/TraceWise/commit/5833b69)) |
 
 **Remaining limitations.**
 

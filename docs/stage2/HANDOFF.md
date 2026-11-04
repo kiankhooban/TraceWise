@@ -1,6 +1,6 @@
 # Stage 2 handoff (read this first in a new session or after /compact)
 
-Last updated 2026-11-04 (night), HEAD `4f1bd5c`, 449 tests pass (1 skipped). Read this file, then `CLAUDE.md`
+Last updated 2026-11-04 (night), HEAD `5833b69`, 459 tests pass (1 skipped). Read this file, then `CLAUDE.md`
 (repo root), `docs/stage2/ui-design.md`, `docs/stage2/Stage2-Report.md`. Sessions often run from `~/Brain`, where the
 TraceWise `CLAUDE.md` is NOT loaded automatically: read it explicitly. The Stage 2 instructions are
 `~/Desktop/Project-Stage2-Instruction.pdf` (read it again before any report decision).
@@ -17,6 +17,9 @@ TraceWise `CLAUDE.md` is NOT loaded automatically: read it explicitly. The Stage
    identical (key order inside `Map.of` fields varies per run, as before). Checked by hand under `script` with
    `stty cols 100`. Rules learned: in the shell only the first question replays (the assistant keeps the
    conversation), and root options such as `--role` only apply when given to the command that opens the shell.
+   Later the same day: fixes from Kian's runs (`e0913ff`, `4ce338f`, `924b7e8`) and review 13 (`5833b69`: root options
+   on a shell line are refused, Ctrl+C targets the alert, plain stderr, `help <command>`). Rejected in review 13: the
+   JDK 22 `System.console()` change (Java 21 is pinned) and the approvals print re-query (design preference).
    Not done: no screen-reader or `--plain` mode beyond NO_COLOR; the metrics table can be wider than 100 columns
    with two or more models; listener exceptions in core still fail an agent run (the CLI no longer throws one).
 2. **Videos:** Kian records two (CLI and GUI) from `~/Desktop/TraceWise-Demo-Script.md` (his file, deliberately not in

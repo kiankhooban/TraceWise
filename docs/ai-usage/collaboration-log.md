@@ -476,5 +476,8 @@ data with the previous build for 17 commands.
 and that the GUI and the app's behaviour stay untouched, chose the amber palette for a dark terminal, and asked for
 the shell to be built too.
 
-**Outcome:** Commits `fcfd619`, `a3b98a5`, `4f1bd5c`; design change 51 (presentation only). 449 tests pass.
+**Outcome:** Commits `fcfd619`, `a3b98a5`, `4f1bd5c`, then fixes from Kian's own runs (`e0913ff` pasted lines, `4ce338f`
+duplicate rows, `924b7e8` export lines); design change 51 (presentation only). A thirteenth `deep-code-review` (nine
+Claude reviewers, one validator per finding) confirmed 8 of 10 findings, the worst a shell line with `--role` that was
+silently ignored or opened a second shell; all fixed test-first in `5833b69`. 459 tests pass.
 
