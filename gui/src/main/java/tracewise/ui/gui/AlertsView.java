@@ -103,7 +103,7 @@ final class AlertsView {
                 Gui.column("Rule", a -> a.ruleId() + "  " + Display.ruleName(a.ruleId()), 170),
                 Gui.column("Account", Alert::accountId, 80, "mono"),
                 Gui.column("Total CAD", Alert::totalCad, 110, "mono", "num"),
-                Gui.styled("Risk", a -> Display.riskLevel(a.riskScore()) + " " + a.riskScore(), a -> Display.riskStyle(a.riskScore()), 84, "mono"),
+                risk(),
                 Gui.column("Pri", Alert::priority, 44, "mono", "num"),
                 Gui.column("Status", a -> Display.label(a.status()), 90),
                 Gui.column("Tx", a -> a.transactionIds().size(), 44, "mono", "num"),
@@ -281,6 +281,14 @@ final class AlertsView {
     String selectedAccount() {
         Alert a = alerts.getSelectionModel().getSelectedItem();
         return a == null ? null : a.accountId();
+    }
+
+    /** "HIGH 65": the level for the eye, sorted by the score. */
+    private static javafx.scene.control.TableColumn<Alert, String> risk() {
+        var c = Gui.styled("Risk", (Alert a) -> Display.riskLevel(a.riskScore()) + " " + a.riskScore(),
+                a -> Display.riskStyle(a.riskScore()), 84, "mono");
+        c.setComparator(Display.BY_NUMBER);
+        return c;
     }
 
     /** Time since the alert was raised; not sortable as text ("12m" vs "2h 05m"): Created UTC sorts the same order. */

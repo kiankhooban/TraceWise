@@ -89,6 +89,9 @@ final class Gui {
             double width, String... classes) {
         var c = column(title, value, width);
         c.getStyleClass().addAll(classes);
+        if (java.util.List.of(classes).contains("num")) {
+            c.setComparator(Display.BY_NUMBER);
+        }
         c.setCellFactory(col -> new javafx.scene.control.TableCell<>() {
             private String applied;
 

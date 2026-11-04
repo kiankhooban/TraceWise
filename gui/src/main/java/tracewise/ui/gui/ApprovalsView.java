@@ -60,6 +60,7 @@ final class ApprovalsView {
                 Gui.column("Proposed by", ProposalRow::proposedBy, 92, "mono"),
                 Gui.column("Waiting", ProposalRow::waiting, 70, "mono", "num")));
         pending.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        pending.getColumns().get(pending.getColumns().size() - 1).setSortable(false); // Waiting is an age, not a number
         pending.setPlaceholder(new Label("No proposals waiting. The agent proposes closing or escalating a case "
                 + "when it finishes an investigation."));
         pending.getSelectionModel().selectedItemProperty().addListener((o, old, r) -> describe(r));

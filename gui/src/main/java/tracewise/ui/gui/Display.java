@@ -77,4 +77,21 @@ final class Display {
     static String checkStyle(tracewise.verification.VerificationReport r) {
         return r.status() == tracewise.verification.VerificationStatus.VERIFIED ? "ok" : "bad";
     }
+
+    /** The number a cell ends with ("HIGH 65" is 65, "48,000.00" is 48000.00), or null when it ends with none. */
+    static java.math.BigDecimal number(String cell) {
+        if (cell == null || cell.isBlank()) {
+            return null;
+        }
+        String last = cell.strip().substring(cell.strip().lastIndexOf(' ') + 1).replace(",", "");
+        try {
+            return new java.math.BigDecimal(last);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /** Sorts number cells by value (text order puts "100" before "9"); cells without a number come first. */
+    static final java.util.Comparator<String> BY_NUMBER = java.util.Comparator.comparing(Display::number,
+            java.util.Comparator.nullsFirst(java.util.Comparator.naturalOrder()));
 }

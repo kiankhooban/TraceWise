@@ -77,4 +77,13 @@ class DisplayTest {
         assertEquals("UNVER", Display.checkCode(partial));
         assertEquals("bad", Display.checkStyle(partial));
     }
+
+    @Test
+    void numberColumnsSortByValueNotByText() {
+        var sorted = new java.util.ArrayList<>(java.util.List.of("100", "9", "48,000.00", "HIGH 65", "", "LOW 43"));
+        sorted.sort(Display.BY_NUMBER);
+        assertEquals(java.util.List.of("", "9", "LOW 43", "HIGH 65", "100", "48,000.00"), sorted, "blank first, then by value");
+        assertEquals(new java.math.BigDecimal("48000.00"), Display.number("48,000.00"));
+        assertNull(Display.number("2h 05m"), "an age is not a number");
+    }
 }

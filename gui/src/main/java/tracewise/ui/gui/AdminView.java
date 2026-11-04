@@ -300,6 +300,7 @@ final class AdminView {
                                 l -> l.group() ? "" : l.cells().get(col),
                                 l -> l.group() ? null : PerformanceRows.style(l.rows().get(col)), 210, "mono", "num"));
                     }
+                    columns.forEach(c -> c.setSortable(false)); // sorting would scatter the group headings
                     metrics.getColumns().setAll(columns);
                     metrics.getItems().setAll(PerformanceRows.of(list.stream().map(PerformanceMetrics::rows).toList()));
                 });
