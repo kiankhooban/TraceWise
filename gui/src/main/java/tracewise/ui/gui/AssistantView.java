@@ -19,14 +19,14 @@ import tracewise.agent.AssistantContext;
 final class AssistantView {
 
     private final Gui gui;
-    private final Supplier<String> currentCase;
+    private final Supplier<AssistantContext> context;
     private final VBox messages = new VBox(10);
     private final TextField question = new TextField();
 
-    /** currentCase: the case open in the Cases screen, or null; sent as context with each question. */
-    AssistantView(Gui gui, Supplier<String> currentCase) {
+    /** context: what the current screen has selected (a case or an account), sent with each question (Stage 1 F10). */
+    AssistantView(Gui gui, Supplier<AssistantContext> context) {
         this.gui = gui;
-        this.currentCase = currentCase;
+        this.context = context;
     }
 
     Node build() {
@@ -58,9 +58,9 @@ final class AssistantView {
             return;
         }
         question.clear();
-        messages.getChildren().add(Gui.label("> " + text, "chat-q"));
-        String caseId = currentCase.get();
-        gui.worker.submit("Asking the assistant", () -> gui.facade.ask(text, new AssistantContext(caseId, null)),
+        var asked = context.get();
+        messages.getChildren().addAll(Gui.label("> " + text, "chat-q"), Gui.label(SearchResults.contextLabel(asked), "chat-meta"));
+        gui.worker.submit("Asking the assistant", () -> gui.facade.ask(text, asked),
                 this::answered, e -> add(e.getMessage(), "chat-error", List.of()));
     }
 
@@ -69,19 +69,47 @@ final class AssistantView {
         if (a.kind() != AssistantAnswer.Kind.ANSWER) {
             meta.add(Gui.label(a.kind().name(), "chat-meta", "wait"));
         }
-        if (!a.claims().isEmpty()) {
-            meta.add(Gui.label("Cited    " + String.join(" ", a.claims().stream().map(c -> c.transactionId()).toList()),
-                    "chat-meta"));
+        var report = a.verification();
+        if (a.kind() == AssistantAnswer.Kind.ANSWER && report != null) {
+            boolean ok = report.status() == tracewise.verification.VerificationStatus.VERIFIED;
+            meta.add(Gui.label("Checked  " + (ok ? "VER " : "UNVER ") + report.summary(), "chat-meta", ok ? "ok" : "bad"));
+            for (var check : report.checks()) { // a badge per cited claim (Stage 1 F10)
+                var line = Gui.label((check.confirmed() ? "VER  " : "REJ  ") + check.claim()
+                        + (check.confirmed() ? "" : "  (" + check.reason() + ")"), "chat-meta", check.confirmed() ? "ok" : "bad");
+                line.setWrapText(true);
+                meta.add(line);
+            }
         }
-        if (a.kind() == AssistantAnswer.Kind.ANSWER) {
-            boolean ok = a.verification().status() == tracewise.verification.VerificationStatus.VERIFIED;
-            meta.add(Gui.label("Checked  " + (ok ? "VER " : "UNVER ") + a.verification().summary(), "chat-meta",
-                    ok ? "ok" : "bad"));
+        var block = add(a.text(), "chat-a", meta);
+        if (a.trace() != null) {
+            SearchResults.from(a.trace().steps()).ifPresent(r -> block.getChildren().add(table(r)));
         }
-        add(a.text(), "chat-a", meta);
     }
 
-    private void add(String text, String style, List<Label> meta) {
+    /** Search results as a table (Stage 1 F10); double-click a row with a case to open it. */
+    private Node table(SearchResults r) {
+        var table = new javafx.scene.control.TableView<List<String>>();
+        for (int c = 0; c < r.columns().size(); c++) {
+            int col = c;
+            table.getColumns().add(Gui.column(r.columns().get(c), (List<String> row) -> row.get(col), 96, "mono"));
+        }
+        table.getItems().setAll(r.rows());
+        table.setPlaceholder(new Label("Nothing matched."));
+        table.setPrefHeight(Math.min(26 * 8, 30 + 26 * Math.max(1, r.rows().size())));
+        int caseColumn = r.columns().indexOf("case id");
+        table.setRowFactory(t -> {
+            var row = new javafx.scene.control.TableRow<List<String>>();
+            row.setOnMouseClicked(e -> {
+                if (e.getClickCount() == 2 && !row.isEmpty() && caseColumn >= 0 && !row.getItem().get(caseColumn).isEmpty()) {
+                    gui.openCase.accept(row.getItem().get(caseColumn));
+                }
+            });
+            return row;
+        });
+        return new VBox(4, Gui.label("Results  " + r.title(), "chat-meta"), table);
+    }
+
+    private VBox add(String text, String style, List<Label> meta) {
         var body = new Label(text);
         body.setWrapText(true);
         body.getStyleClass().add(style);
@@ -89,5 +117,6 @@ final class AssistantView {
         block.getChildren().addAll(meta);
         block.getStyleClass().add("chat");
         messages.getChildren().add(block);
+        return block;
     }
 }

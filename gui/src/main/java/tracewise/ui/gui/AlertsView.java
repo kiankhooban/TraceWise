@@ -263,4 +263,10 @@ final class AlertsView {
                 + (s.alertsByRule().isEmpty() ? "" : ": " + s.alertsByRule())
                 + (s.failedRules().isEmpty() ? "" : "\nRules that failed: " + String.join(", ", s.failedRules()));
     }
+
+    /** The account of the selected alert, or null: the assistant's context on this screen. */
+    String selectedAccount() {
+        Alert a = alerts.getSelectionModel().getSelectedItem();
+        return a == null ? null : a.accountId();
+    }
 }

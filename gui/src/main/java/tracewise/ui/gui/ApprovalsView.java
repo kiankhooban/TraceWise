@@ -148,6 +148,11 @@ final class ApprovalsView {
         }
     }
 
+    /** The case of the selected proposal, or null: the assistant's context on this screen. */
+    String selectedCaseId() {
+        return selected().map(ProposalRow::caseId).filter(id -> !id.isEmpty()).orElse(null);
+    }
+
     private Optional<ProposalRow> selected() {
         return Optional.ofNullable(pending.getSelectionModel().getSelectedItem());
     }

@@ -40,13 +40,24 @@ public class TraceWiseApp extends Application {
         caseView = new CaseView(gui);
         var approvals = new ApprovalsView(gui);
         var admin = new AdminView(gui);
-        var assistant = new AssistantView(gui, caseView::currentCaseId);
         var alertsTab = screen("1", "Alerts", alerts.build());
         var casesTab = screen("2", "Cases", caseView.build());
         var approvalsTab = screen("3", "Approvals", approvals.build());
         var adminTab = screen("4", "Admin", admin.build());
         var tabs = new TabPane(alertsTab, casesTab, approvalsTab, adminTab);
         tabs.getStyleClass().add("screens");
+        // the assistant's context is what the current screen has selected (Stage 1 F10: "the selected case or account")
+        var assistant = new AssistantView(gui, () -> {
+            var t = tabs.getSelectionModel().getSelectedItem();
+            if (t == alertsTab) {
+                return new tracewise.agent.AssistantContext(null, alerts.selectedAccount());
+            }
+            if (t == casesTab) {
+                return new tracewise.agent.AssistantContext(caseView.currentCaseId(), null);
+            }
+            return t == approvalsTab ? new tracewise.agent.AssistantContext(approvals.selectedCaseId(), null)
+                    : tracewise.agent.AssistantContext.NONE;
+        });
         tabs.getSelectionModel().selectedItemProperty().addListener((o, old, tab) -> {
             if (tab == alertsTab) {
                 alerts.refresh();
