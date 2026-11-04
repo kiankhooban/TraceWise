@@ -79,7 +79,12 @@ TODO, one commit each (period 3), checking each with the snapshot mode (dark and
    DONE 2026-11-04: deep-code-review of all UI work (d829fe5..279946e; 9 Claude reviewers, 15 validators): fixes in
    `02f1701`, design change 50 logged in `1b97ea5`. Left as known (pre-existing or below the bar): Risk/Tx/Total columns
    sort as text; the reject reason box clears on refresh; GUI reads core types (ActionCommand, tool NAME constants).
-   NEXT: UML (class diagram + SD7/SD9), fresh-clone check and secret scan, report TODOs and PDF, demo scripts.
+   DONE 2026-11-04 as well: fresh-clone check and secret scan (`5c61f1a`); Stage 2 UML in `docs/stage2/umlet`
+   (class diagram + all nine SDs updated, `check_diagrams.py`; `4adefa6`); report sections 1 to 6 and
+   `docs/stage2/stage2-report.pdf` (`504762c`, rebuild with `python build_pdf.py` in a venv with markdown and Pillow);
+   period 3 has 6 code commits. Demo script: on Kian's Desktop (TraceWise-Demo-Script.md), deliberately NOT in the repo.
+   LEFT FOR KIAN: record the two videos (Nov 8 to 10). LEFT FOR CLAUDE after that: put the video links with
+   timestamps into sections 2 and 7 of Stage2-Report.md, refresh the period 3 commit and token rows, rebuild the PDF.
    Demo caveat: replays are keyed on the exact request, and the context line is part of it. A replayed assistant
    question only matches if asked with the same selection as when recorded (the C1037 recording: no selection).
 
