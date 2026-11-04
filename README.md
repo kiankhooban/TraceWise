@@ -57,6 +57,15 @@ propose closing or escalating a case, which an analyst approves or rejects.
 Every command accepts `--json` for machine-readable output. The database is `tracewise.db` in the
 current directory unless `--db FILE` or `TRACEWISE_DB` says otherwise.
 
+`./tracewise` with no command opens an interactive shell. Each line runs one of the commands above
+(without `./tracewise`); a line that does not start with a command is a question for the assistant, which
+keeps the conversation. Tab completes commands and options, Up and Down recall earlier lines, `help` lists
+the commands, Ctrl+C stops a running investigation or triage, and `exit` or Ctrl+D quits. Root options go
+on the command that opens the shell, for example `./tracewise --role supervisor`.
+
+On a terminal the output is coloured (amber labels, red, yellow and green beside the word they repeat);
+piped output and `NO_COLOR=1` give plain text.
+
 ### GUI
 
 ```bash

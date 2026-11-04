@@ -17,7 +17,7 @@ import tracewise.llm.ModelConfig;
                 RulesCli.class, InvestigateCli.class, ApprovalsCli.class, TriageCli.class,
                 IndicatorsCli.class, CasesCli.class, AskCli.class,
                 CaseCli.class, AuditCli.class, ReportCli.class, NetworkCli.class, MetricsCli.class})
-public class TraceWiseCli {
+public class TraceWiseCli implements java.util.concurrent.Callable<Integer> {
 
     @Option(names = "--db", description = "SQLite database file (default: ${DEFAULT-VALUE}).",
             defaultValue = "${env:TRACEWISE_DB:-" + AppConfig.DEFAULT_DB + "}")
@@ -47,6 +47,8 @@ public class TraceWiseCli {
     private TraceWiseFacade facade;
     /** Plain until main() finds a terminal; tests and pipes stay plain. */
     Style style = new Style(false, 0);
+    /** True while the interactive shell runs: commands then share one facade, so the assistant keeps the conversation. */
+    boolean shell;
 
     @picocli.CommandLine.Spec
     picocli.CommandLine.Model.CommandSpec spec;
@@ -66,9 +68,22 @@ public class TraceWiseCli {
     }
 
     void close() {
-        if (facade != null) {
+        if (facade != null && !shell) {
             facade.close();
             facade = null;
+        }
+    }
+
+    /** No command: the interactive shell on a terminal; otherwise the usage, as before the shell existed. */
+    @Override
+    public Integer call() throws java.io.IOException {
+        if (System.console() == null) {
+            spec.commandLine().usage(spec.commandLine().getErr());
+            return 2;
+        }
+        try (var terminal = org.jline.terminal.TerminalBuilder.builder().system(true).build()) {
+            return TraceWiseShell.run(this, spec.commandLine(), terminal,
+                    Path.of(System.getProperty("user.home"), ".tracewise_history"));
         }
     }
 

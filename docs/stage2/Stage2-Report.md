@@ -332,7 +332,7 @@ The other differences are details inside the design, grouped below. Each is list
 |---|---|
 | Interface details | Extra parameters and fields on the designed classes, and small helper types they need (for example `RiskScorer.score` also takes the rules triggered, `TraceStep` names its subject, `TotalClaim` for verified totals, `AssistantContext(caseId, accountId)`). Same classes, roles and patterns |
 | Behaviour the design left open | Values and rules Stage 1 did not specify: which LLM errors are retried, at most 10 tool calls per model response, triage defaults (50 alerts, CAD 5.00, stop after 3 failures in a row), the agent acting only on its own case, when waiting proposals expire, how replays match, when the indicator index is built, import batching |
-| Data format and presentation | How the data files mark cash and outside parties; the FINTRAC indicator list used; the GUI's look, keyboard shortcuts and command bar (docs/stage2/ui-design.md); SD7 and SD9 redrawn for the first change above |
+| Data format and presentation | How the data files mark cash and outside parties; the FINTRAC indicator list used; the GUI's look, keyboard shortcuts and command bar (docs/stage2/ui-design.md); the CLI's text layout, colours and interactive shell; SD7 and SD9 redrawn for the first change above |
 
 # 5. AI tools and collaboration
 
