@@ -47,9 +47,16 @@ public class AskCli extends CliCommandBase {
         if (!a.claims().isEmpty()) {
             out().println(st.field("Cited", String.join("  ", a.claims().stream().map(c -> c.transactionId()).distinct().toList())));
         }
-        out().println(st.field("Checked", st.check(a.verification()) + "  " + a.verification().summary()));
+        if (showsCheck(a.kind(), a.verification())) {
+            out().println(st.field("Checked", st.check(a.verification()) + "  " + a.verification().summary()));
+        }
         a.verification().rejected().forEach(c -> out().println(st.wrap(st.bad("REJ") + " " + c.claim() + ": " + c.reason(), 12)));
         out().println(st.dim("  " + InvestigateCli.cost(a.trace())));
+    }
+
+    /** A clarifying question or a decline claims nothing, so it gets no badge unless something was checked. */
+    static boolean showsCheck(AssistantAnswer.Kind kind, tracewise.verification.VerificationReport v) {
+        return kind == AssistantAnswer.Kind.ANSWER || !v.checks().isEmpty();
     }
 
     private static Map<String, Object> toJson(AssistantAnswer a) {

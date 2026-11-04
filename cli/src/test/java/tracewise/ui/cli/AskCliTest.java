@@ -85,4 +85,16 @@ class AskCliTest {
 
         assertTrue(new ObjectMapper().readTree(out.toString()).has("error"), out.toString());
     }
+
+    /** Found in the demo dry run: a clarifying question showed a red UNVER 0/0, as if a check had failed. */
+    @Test
+    void theClaimBadgeIsShownForAnAnswerOrWhenSomethingWasChecked() {
+        var none = new tracewise.verification.VerificationReport(tracewise.verification.VerificationStatus.UNSUPPORTED, List.of());
+        var one = new tracewise.verification.VerificationReport(tracewise.verification.VerificationStatus.VERIFIED,
+                List.of(new tracewise.verification.ClaimCheck("c", true, "")));
+        assertTrue(AskCli.showsCheck(tracewise.agent.AssistantAnswer.Kind.ANSWER, none), "an answer that cites nothing");
+        assertTrue(AskCli.showsCheck(tracewise.agent.AssistantAnswer.Kind.CLARIFY, one));
+        org.junit.jupiter.api.Assertions.assertFalse(AskCli.showsCheck(tracewise.agent.AssistantAnswer.Kind.CLARIFY, none));
+        org.junit.jupiter.api.Assertions.assertFalse(AskCli.showsCheck(tracewise.agent.AssistantAnswer.Kind.DECLINE, none));
+    }
 }
