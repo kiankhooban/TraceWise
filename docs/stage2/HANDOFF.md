@@ -1,32 +1,24 @@
 # Stage 2 handoff (read this first in a new session or after /compact)
 
-Last updated 2026-11-04 (evening), HEAD `9009d89`, 435 tests pass (1 skipped). Read this file, then `CLAUDE.md`
+Last updated 2026-11-04 (night), HEAD `4f1bd5c`, 449 tests pass (1 skipped). Read this file, then `CLAUDE.md`
 (repo root), `docs/stage2/ui-design.md`, `docs/stage2/Stage2-Report.md`. Sessions often run from `~/Brain`, where the
 TraceWise `CLAUDE.md` is NOT loaded automatically: read it explicitly. The Stage 2 instructions are
 `~/Desktop/Project-Stage2-Instruction.pdf` (read it again before any report decision).
 
 ## 0. NEXT SESSION STARTS HERE
 
-1. **Make the CLI's text output readable for a person** (Kian, 2026-11-04: "that CLI is plain as hell, in a human
-   eyes it is really hard to read the output"). What he saw (`import`, `monitor run`, `alerts list`, `investigate`,
-   `ask` on the sample data in replay mode):
-   - agent steps print raw JSON arguments, and an action's whole justification sits on one line
-     (`[turn 3] propose_escalation { "case_id" : ..., "justification" : "<300 words>" } -> ok (3 ms)`);
-   - the narrative and the assistant's answer are one unwrapped line each;
-   - no structure: no headings, spacing or emphasis; the verdict, verification and cost read like any other line;
-   - amounts unformatted (`48000.00`, the GUI shows `48,000.00`), times as raw ISO (`2026-09-01T09:00:00Z`);
-   - tables (`alerts list`) are aligned but bare: no rule names, no risk level words.
-   **How to do it (lessons from the GUI round):** research first (well-regarded CLIs such as `gh`, `cargo`,
-   `kubectl`, `brew`, plus terminal colour and accessibility guidance), then show Kian previews of the real output for
-   real commands BEFORE building; one coherent style that matches `docs/stage2/ui-design.md` (state colour always
-   paired with a word or code: HIGH 65, VER 6/6, ESCALATE; numbers right-aligned with thousands separators; prose
-   wrapped to the terminal width). Constraints: `--json` output must not change at all (the Stage 3 KUMA harness and
-   `cli/src/test` read it); colour only on a terminal, off when piped and with `NO_COLOR` (picocli's built-in
-   `CommandLine.Help.Ansi` / `@|bold ...|@` markup needs no new dependency; check with context7 first); keep the
-   Template Method (`CliCommandBase.print()` is where text layout lives; each command overrides it). Test first: the
-   formatting logic (wrapping, number and time formatting, step summaries) in plain unit tests; existing CLI tests
-   that match text may need updating. Afterwards update the README examples and the demo script on Kian's Desktop if
-   output changes, and log no design change unless a Stage 1 element changes (presentation only, like design change 50).
+1. **DONE 2026-11-04: readable CLI and the shell** (Kian: "plain as hell"; he chose the Bloomberg palette, a dark
+   terminal and the shell from previews). Commits `fcfd619` (layout in each `print()`, shared helpers in the CLI-only
+   `Style`, colour via picocli `Ansi.AUTO` so pipes, tests and `NO_COLOR` stay plain, width from JLine), `a3b98a5`
+   (`TraceWiseShell`: `./tracewise` with no command; a line starting with a command runs it, anything else goes to
+   `ask`; one facade for the session; Ctrl+C stops investigate or triage), `4f1bd5c` (no claim badge on CLARIFY or
+   DECLINE; its message also claims the history markdown fix, which is really in `fcfd619`). Design change 51,
+   README section on the shell, demo script updated. `--json` compared as data with the old build for 17 commands:
+   identical (key order inside `Map.of` fields varies per run, as before). Checked by hand under `script` with
+   `stty cols 100`. Rules learned: in the shell only the first question replays (the assistant keeps the
+   conversation), and root options such as `--role` only apply when given to the command that opens the shell.
+   Not done: no screen-reader or `--plain` mode beyond NO_COLOR; the metrics table can be wider than 100 columns
+   with two or more models; listener exceptions in core still fail an agent run (the CLI no longer throws one).
 2. **Videos:** Kian records two (CLI and GUI) from `~/Desktop/TraceWise-Demo-Script.md` (his file, deliberately not in
    the repo). If CLI work changes a command, update that script too.
 3. **After the videos:** put each feature's link with timestamp into sections 2 and 7 of `Stage2-Report.md`, refresh the

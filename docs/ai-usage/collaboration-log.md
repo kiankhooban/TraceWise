@@ -452,3 +452,29 @@ what Stage 1 described in full, the rest grouped as details inside the design.
 **Outcome:** All 12 features in the new GUI, the F10 details done (design change 49), design change 50 logged,
 section 4 of the report rewritten around the five real changes, and the updated class diagram and sequence
 diagrams in `docs/stage2/umlet`. 435 tests pass.
+
+## Entry 18: A readable CLI and an interactive shell (2026-11-04)
+
+**Task:** Make the CLI's text output readable for a person without changing what any command does or what
+`--json` returns.
+
+**Input/Instruction:** Kian found the CLI "plain as hell, in a human eyes it is really hard to read the output",
+first asked whether a restyle was allowed under Stage 1 and Stage 2, and proposed a chatbot-style CLI like
+Claude Code with a Bloomberg Terminal theme. He asked to be told if the idea was wrong.
+
+**AI Contribution:** Checked both instructions (the CLI's look is not specified; only commands, arguments and the
+JSON mode are) and advised against a chat-only CLI: the assistant is read-only by design, and the Stage 3 harness
+needs the plain commands. Proposed a hybrid instead: every command kept, plus a shell where plain words go to the
+assistant. A research subagent covered Bloomberg's palette, gh, cargo, kubectl, clig.dev, NO_COLOR, JLine and
+terminal accessibility. Showed runnable previews of real sample output in two palettes, then built it test-first
+(`Style`, `TraceWiseShell`, 13 new tests). Running the real jar under a pseudo-terminal found a bug the tests
+missed (triage's live line threw when the terminal width was unknown, failing every run), fixed with a regression
+test; a dry run of the demo order found a misleading red badge on clarifying questions. `--json` was compared as
+data with the previous build for 17 commands.
+
+**Human Contribution:** Proposed the chat-style shell and the Bloomberg theme, asked first whether it was allowed
+and that the GUI and the app's behaviour stay untouched, chose the amber palette for a dark terminal, and asked for
+the shell to be built too.
+
+**Outcome:** Commits `fcfd619`, `a3b98a5`, `4f1bd5c`; design change 51 (presentation only). 449 tests pass.
+
