@@ -81,7 +81,7 @@ class NetworkView {
         to.setPrefWidth(130);
         var bar = new javafx.scene.layout.FlowPane(8, 6, account, new Label("hops"), hops, from, to, show, autoLayout);
         bar.getStyleClass().add("toolbar");
-        var legend = new Label("Dark: selected account. Red ring: has an alert. Light blue: examined by the agent. "
+        var legend = new Label("Filled: selected account. Red ring: has an alert. Tinted with a cyan ring: examined by the agent. "
                 + "Edges: total CAD (number of transfers). Double-click an account or an edge for its transactions.");
         legend.getStyleClass().add("muted");
         legend.setWrapText(true);

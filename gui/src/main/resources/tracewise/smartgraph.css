@@ -1,50 +1,52 @@
 /* F09 money-flow graph. The six base classes are required by JavaFXSmartGraph; the vertex-* classes mark
-   the selected account, accounts with alerts and accounts the agent examined. */
+   the selected account, accounts with alerts and accounts the agent examined. Colours are the app's named
+   colours from gui.css (day.css redefines them), so the graph follows the dark or day theme. */
 .graph {
-    -fx-background-color: #FAFBFC;
+    -fx-background-color: -tw-bg;
 }
 .vertex {
-    -fx-stroke-width: 2;
-    -fx-stroke: #8A97A8;
+    -fx-stroke-width: 1.5;
+    -fx-stroke: -tw-strong;
     -fx-stroke-type: inside;
-    -fx-fill: #E6EBF1;
+    -fx-fill: -tw-panel;
 }
 .vertex:hover {
     -fx-stroke-width: 3;
 }
-/* order matters: a later class wins, so the selected account stays dark and keeps its alert ring */
+/* order matters: a later class wins, so the selected account stays filled and keeps its alert ring */
 .vertex-examined {
-    -fx-fill: #BBDEFB;
+    -fx-fill: -tw-selected;
+    -fx-stroke: -tw-accent;
 }
 .vertex-alerted {
-    -fx-stroke: #B3261E;
-    -fx-stroke-width: 4;
+    -fx-stroke: -tw-red;
+    -fx-stroke-width: 3;
 }
 .vertex-root {
-    -fx-fill: #1F3A5F;
+    -fx-fill: -tw-accent;
 }
 .vertex-label {
-    -fx-font: bold 9pt "sans-serif";
+    -fx-font-family: "JetBrains Mono Medium";
+    -fx-font-size: 11px;
+    -fx-fill: -tw-text;
     -fx-padding: 4px;
 }
 .edge {
-    -fx-stroke-width: 1.5;
-    -fx-stroke: #5F6B7A;
+    -fx-stroke-width: 1.2;
+    -fx-stroke: -tw-muted;
     -fx-fill: transparent;
     -fx-stroke-line-cap: round;
-    -fx-opacity: 0.85;
 }
 .edge:hover {
-    -fx-stroke-width: 3;
+    -fx-stroke-width: 2.5;
+    -fx-stroke: -tw-accent;
 }
 .edge-label {
-    -fx-font: normal 8pt "sans-serif";
-    -fx-fill: #1B1F24;
-    -fx-background-color: rgba(255, 255, 255, 0.85);
-    -fx-padding: 1px 3px;
+    -fx-font-family: "JetBrains Mono";
+    -fx-font-size: 10px;
+    -fx-fill: -tw-soft;
 }
 .arrow {
-    -fx-stroke-width: 1.5;
-    -fx-stroke: #5F6B7A;
-    -fx-opacity: 0.85;
+    -fx-stroke-width: 1.2;
+    -fx-stroke: -tw-muted;
 }
