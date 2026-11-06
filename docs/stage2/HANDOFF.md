@@ -1,6 +1,6 @@
 # Stage 2 handoff (read this first in a new session or after /compact)
 
-Last updated 2026-11-04 (night), HEAD `5833b69`, 459 tests pass (1 skipped). Read this file, then `CLAUDE.md`
+Last updated 2026-11-05, HEAD after `5833b69`: report and PDF current except the video links; 459 tests pass (1 skipped). Read this file, then `CLAUDE.md`
 (repo root), `docs/stage2/ui-design.md`, `docs/stage2/Stage2-Report.md`. Sessions often run from `~/Brain`, where the
 TraceWise `CLAUDE.md` is NOT loaded automatically: read it explicitly. The Stage 2 instructions are
 `~/Desktop/Project-Stage2-Instruction.pdf` (read it again before any report decision).
