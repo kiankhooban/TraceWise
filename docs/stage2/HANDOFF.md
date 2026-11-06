@@ -1,6 +1,6 @@
 # Stage 2 handoff (read this first in a new session or after /compact)
 
-Last updated 2026-11-05, HEAD after `5833b69`: report and PDF current except the video links; 459 tests pass (1 skipped). Read this file, then `CLAUDE.md`
+Last updated 2026-11-05 (late): Stage 2 COMPLETE. Report and PDF final with both video links; 459 tests pass (1 skipped). Read this file, then `CLAUDE.md`
 (repo root), `docs/stage2/ui-design.md`, `docs/stage2/Stage2-Report.md`. Sessions often run from `~/Brain`, where the
 TraceWise `CLAUDE.md` is NOT loaded automatically: read it explicitly. The Stage 2 instructions are
 `~/Desktop/Project-Stage2-Instruction.pdf` (read it again before any report decision).
@@ -22,11 +22,13 @@ TraceWise `CLAUDE.md` is NOT loaded automatically: read it explicitly. The Stage
    JDK 22 `System.console()` change (Java 21 is pinned) and the approvals print re-query (design preference).
    Not done: no screen-reader or `--plain` mode beyond NO_COLOR; the metrics table can be wider than 100 columns
    with two or more models; listener exceptions in core still fail an agent run (the CLI no longer throws one).
-2. **Videos:** Kian records two (CLI and GUI) from `~/Desktop/TraceWise-Demo-Script.md` (his file, deliberately not in
-   the repo). If CLI work changes a command, update that script too.
-3. **After the videos:** put each feature's link with timestamp into sections 2 and 7 of `Stage2-Report.md`, refresh the
-   period 3 rows (commit table in section 6, token row in section 5 and `docs/ai-usage/ai-tools.md`, using the token
-   script below), rebuild the PDF, final secret scan, push. Due 2026-11-10.
+2. **DONE 2026-11-05: videos recorded and uploaded (unlisted).** GUI https://youtu.be/n7V_4Rqmrqw (6:26), CLI
+   https://youtu.be/miDa5toOh2Q (6:55), all 12 features each, captions only (Style B: caption strip under the app).
+   Recorded by Claude driving the app (CLI in Ghostty through a pty player, GUI through Quartz mouse and key events);
+   tooling lived in the session scratchpad, not the repo. Files, chapters and timestamps in `~/Desktop/TraceWise-videos/`.
+   The file dialog's sidebar (Kian's folder names) is covered by a dark box in the GUI video.
+3. **DONE 2026-11-05: report final.** Links with timestamps in sections 2 and 7, period 3 commit and token rows
+   refreshed, PDF rebuilt, secret scan clean, pushed. Submission (Nov 10) is Kian's: the PDF and the repo link.
 
 Facts learned on 2026-11-04 that matter for the CLI and the demo:
 - **Pasting commands into Kian's zsh:** `#` comments break pasted lines (interactive comments are off): an apostrophe
