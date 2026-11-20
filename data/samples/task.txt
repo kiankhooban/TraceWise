@@ -1,0 +1,6 @@
+# A TraceWise task: load the sample data, run the rules, let the agent investigate the riskiest alert, then ask about it.
+# Run it with: java -jar cli/target/tracewise.jar --db task.db --input data/samples/task.txt
+import data/samples/scenarios.csv
+monitor run
+investigate ALR-00001
+Why is account C1037 risky?

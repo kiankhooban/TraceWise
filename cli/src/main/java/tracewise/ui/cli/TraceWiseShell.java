@@ -83,7 +83,7 @@ final class TraceWiseShell {
                 } catch (EndOfFileException e) {
                     break;
                 }
-                if (!runAll(lines(read), parser, cl, root, terminal, color, running, out)) {
+                if (!runAll(lines(read), parser, cl, root, terminal, color, running, out, new int[1])) {
                     break;
                 }
             }
@@ -94,9 +94,31 @@ final class TraceWiseShell {
         return 0;
     }
 
-    /** Runs each line in order; false once a line is exit or quit, so the lines after it do not run. */
+    /**
+     * Runs a task (--input): each line as in the shell, on one facade, with the line shown before its output. A # line
+     * is a comment. 0 when every line succeeded, 1 when any failed; the lines after a failure still run.
+     */
+    static int runTask(TraceWiseCli root, CommandLine cl, String task) {
+        PrintWriter out = cl.getOut();
+        var lines = lines(task).stream().filter(l -> !l.startsWith("#")).toList();
+        int[] failed = new int[1];
+        root.shell = true;
+        try {
+            root.facade(); // opened now, with the task's options: each line's parse resets them to the defaults
+            runAll(lines, new DefaultParser(), cl, root, null, root.style.color, new String[1][], out, failed);
+        } finally {
+            root.shell = false;
+            root.close();
+        }
+        return failed[0] == 0 ? 0 : 1;
+    }
+
+    /**
+     * Runs each line in order; false once a line is exit or quit, so the lines after it do not run. The terminal is
+     * null for a task file; failed counts the lines whose command failed.
+     */
     static boolean runAll(List<String> lines, DefaultParser parser, CommandLine cl, TraceWiseCli root,
-            Terminal terminal, boolean color, String[][] running, PrintWriter out) {
+            Terminal terminal, boolean color, String[][] running, PrintWriter out, int[] failed) {
         for (String line : lines) {
             var words = new ArrayList<String>(parser.parse(line, line.length()).words());
             words.removeIf(String::isEmpty);
@@ -104,6 +126,7 @@ final class TraceWiseShell {
                 return false;
             }
             if (rootOptions(words)) {
+                failed[0]++;
                 out.println(root.style.waiting(root.style.wrap("Root options such as --role and --db apply to the whole "
                         + "shell: exit, then start it with them, for example ./tracewise --role supervisor", 2)));
                 continue;
@@ -120,19 +143,25 @@ final class TraceWiseShell {
                 continue;
             }
             if (words.size() == 1 && words.get(0).equals("clear")) {
-                terminal.puts(InfoCmp.Capability.clear_screen);
+                if (terminal != null) {
+                    terminal.puts(InfoCmp.Capability.clear_screen);
+                }
                 continue;
             }
             String[] args = arguments(words, line, cl.getSubcommands().keySet());
             if (args == null) {
                 continue;
             }
-            if (lines.size() > 1) {
-                out.println(root.style.label(color ? "› " : "> ") + line); // show which pasted line runs
+            if (lines.size() > 1 || terminal == null) {
+                out.println(root.style.label(color ? "› " : "> ") + line); // show which pasted or task line runs
             }
-            root.style = new Style(color, width(terminal)); // the window may have been resized
+            if (terminal != null) {
+                root.style = new Style(color, width(terminal)); // the window may have been resized
+            }
             running[0] = args;
-            cl.execute(args);
+            if (cl.execute(args) != 0) {
+                failed[0]++;
+            }
             running[0] = null;
             out.println();
             out.flush();

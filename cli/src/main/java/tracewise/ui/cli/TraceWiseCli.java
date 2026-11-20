@@ -44,6 +44,13 @@ public class TraceWiseCli implements java.util.concurrent.Callable<Integer> {
             defaultValue = "${env:TRACEWISE_HOME:-.}/data/replays")
     Path replays;
 
+    @Option(names = "--input", paramLabel = "<file>", description = "Run a task file and exit: each line is a command, "
+            + "or a question in plain words for the assistant; # starts a comment; - reads standard input.")
+    String input;
+
+    /** Where --input - reads from; a test sets it. */
+    java.io.InputStream stdin = System.in;
+
     private TraceWiseFacade facade;
     /** The database the facade was opened with; in the shell, picocli resets database to its default on every line. */
     Path openedDatabase;
@@ -77,9 +84,20 @@ public class TraceWiseCli implements java.util.concurrent.Callable<Integer> {
         }
     }
 
-    /** No command: the interactive shell on a terminal; otherwise the usage, as before the shell existed. */
+    /** No command: the task in --input, the interactive shell on a terminal, otherwise the usage. */
     @Override
     public Integer call() throws java.io.IOException {
+        if (input != null) {
+            String task;
+            try {
+                task = input.equals("-") ? new String(stdin.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8)
+                        : java.nio.file.Files.readString(Path.of(input));
+            } catch (java.nio.file.NoSuchFileException e) {
+                spec.commandLine().getErr().println("No task file " + input);
+                return 2;
+            }
+            return TraceWiseShell.runTask(this, spec.commandLine(), task);
+        }
         if (System.console() == null) {
             spec.commandLine().usage(spec.commandLine().getErr());
             return 2;

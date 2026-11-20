@@ -117,7 +117,7 @@ class ShellTest {
         try (var terminal = new DumbTerminal("test", "dumb", new ByteArrayInputStream(new byte[0]), new ByteArrayOutputStream(),
                 StandardCharsets.UTF_8)) {
             boolean more = TraceWiseShell.runAll(List.of("import " + data, "alerts list", "exit", "rules list"),
-                    new org.jline.reader.impl.DefaultParser(), cl, root, terminal, false, new String[1][], out);
+                    new org.jline.reader.impl.DefaultParser(), cl, root, terminal, false, new String[1][], out, new int[1]);
             assertFalse(more, "exit ends the shell");
         }
         root.close();

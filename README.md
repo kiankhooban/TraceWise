@@ -66,6 +66,38 @@ on the command that opens the shell, for example `./tracewise --role supervisor`
 On a terminal the output is coloured (amber labels, red, yellow and green beside the word they repeat);
 piped output and `NO_COLOR=1` give plain text.
 
+### Standalone CLI: run the agent on a task file
+
+`./mvnw package` builds one self-contained jar, `cli/target/tracewise.jar`; `./tracewise` is a shortcut for
+`java -jar cli/target/tracewise.jar`. Run it from the repository folder so it finds `.env` and `data/`.
+`--input FILE` runs a task and exits: each line is a command from the list above (without `./tracewise`), or a
+question in plain words for the assistant; `#` starts a comment and `-` reads the task from standard input.
+The exit code is 0 when every line succeeded and 1 otherwise.
+
+```bash
+java -jar cli/target/tracewise.jar --db task.db --input data/samples/task.txt
+echo "Which cases are waiting for approval?" | java -jar cli/target/tracewise.jar --db task.db --input -
+java -jar cli/target/tracewise.jar --db task.db --llm replay --model claude-haiku-5-5 --input data/samples/task.txt
+```
+
+[`data/samples/task.txt`](data/samples/task.txt) loads the sample data, runs the rules, has the agent investigate
+ALR-00001 and asks the assistant about the account. The third line runs the same task without a key, from the
+recorded runs (on a new database).
+
+Options (all can go before `--input` or any command):
+
+| Option | Environment variable | Default | Meaning |
+|---|---|---|---|
+| `--input FILE` | | | Run the task in FILE (`-`: standard input) and exit |
+| `--llm PROVIDER` | `TRACEWISE_LLM` | `anthropic` | `anthropic` (key `ANTHROPIC_API_KEY` in `.env`), `openai` for any OpenAI-compatible API (`OPENAI_BASE_URL` and `OPENAI_API_KEY` in `.env`), or `replay` (recorded runs, no key) |
+| `--model ID` | `TRACEWISE_MODEL` | `claude-sonnet-5-5` | The model, for example `claude-haiku-5-5` |
+| `--db FILE` | `TRACEWISE_DB` | `tracewise.db` | The SQLite database |
+| `--role ROLE` | `TRACEWISE_ROLE` | `analyst` | `analyst` or `supervisor` (only a supervisor changes rules) |
+| `--record` | `TRACEWISE_RECORD` | off | Save every model answer to `data/replays` so the run can be replayed |
+| `--replays DIR` | | `data/replays` | Folder of recorded runs |
+| `--json` | | | On any command: the result as JSON, for scripts and test harnesses |
+| `-h`, `--help`, `-V` | | | Help (also for each command: `tracewise investigate --help`) and version |
+
 ### GUI
 
 ```bash
