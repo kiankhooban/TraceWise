@@ -54,7 +54,7 @@ final class TraceWiseShell {
 
     /** Runs lines until exit, quit or Ctrl+D; history is kept in the file, or not at all when it is null. */
     static int run(TraceWiseCli root, CommandLine cl, Terminal terminal, Path history) {
-        PrintWriter out = terminal.writer();
+        PrintWriter out = new PrintWriter(terminal.writer(), true); // per line, so the agent's steps show as it takes them
         cl.setOut(out);
         cl.setErr(out);
         boolean color = root.style.color;

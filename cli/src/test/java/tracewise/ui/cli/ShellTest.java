@@ -53,6 +53,30 @@ class ShellTest {
         return bytes.toString(StandardCharsets.UTF_8);
     }
 
+    /**
+     * Found in the live demo (2026-11-20): the shell's writer did not flush per line, so an investigation's steps all
+     * appeared when it ended instead of as the agent took them.
+     */
+    @Test
+    void eachLineReachesTheTerminalAsItIsPrinted() throws Exception {
+        int[] flushes = new int[1];
+        var bytes = new ByteArrayOutputStream() {
+            @Override
+            public void flush() {
+                flushes[0]++;
+            }
+        };
+        var cl = TraceWiseCli.commandLine(new java.io.PrintWriter(bytes, true), new java.io.PrintWriter(bytes, true));
+        cl.parseArgs("--db", dir.resolve("t.db").toString());
+        try (var terminal = new DumbTerminal("test", "dumb", new ByteArrayInputStream("exit\n".getBytes(StandardCharsets.UTF_8)),
+                bytes, StandardCharsets.UTF_8)) {
+            TraceWiseShell.run((TraceWiseCli) cl.getCommand(), cl, terminal, null);
+            int before = flushes[0];
+            cl.getOut().println("  1  account history  C1037  9 ms");
+            assertTrue(flushes[0] > before, "a step line is flushed when it is printed");
+        }
+    }
+
     @Test
     void commandsRunOneAfterAnotherOnTheSameData() throws Exception {
         String out = session("import DATA", "monitor run", "alerts list --rule R3", "alerts list", "exit");
