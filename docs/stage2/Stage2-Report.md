@@ -74,6 +74,7 @@ text layout uses the CLI-only `cli/Style` (labels, tables, wrapped prose, colour
 
 ### F01 Transaction Data Import
 
+- **Original requirement (Stage 1):** Load transactions from a CSV file: validate every row, give each transaction a unique ID, convert amounts to CAD and build the account records; the GUI confirms the detected format in a preview of the first rows.
 - **Classes:** `app/ImportService` (reads the file, validates rows, saves), `ingest/TransactionFormat` with
   `ScenarioCsvFormat`, `IbmCsvFormat` and `SamlDCsvFormat` (one per file layout), `ingest/CurrencyConverter` (Bank
   of Canada rates to CAD), `persistence/TransactionRepository`; `gui/AlertsView`, `cli/ImportCli`.
@@ -82,9 +83,17 @@ text layout uses the CLI-only `cli/Style` (labels, tables, wrapped prose, colour
 - **From input to result:** the analyst picks a CSV (Import CSV, or `tracewise import <file>`); `ImportService`
   picks the format whose header matches, parses each row into a `Transaction` in CAD, lists rejected rows with their
   row numbers, saves valid rows in chunks of 10,000 inside one database transaction and audits the import.
+- **Difference from Stage 1:** Same behaviour. The GUI starts it from an Import CSV button on the Alerts screen rather than a File menu (design change 48), and a third file format, SAML-D, was added to measure the agent (section 4).
+
+![F01 GUI](screens/gui-f01.png)
+*F01 in the GUI, from the live recording.*
+
+![F01 CLI](screens/cli-f01.png)
+*F01 in the CLI, from the live recording.*
 
 ### F02 Rule-Based Monitoring, Threshold Reporting, Alert Queue
 
+- **Original requirement (Stage 1):** Threshold rules R1 and R2 fill a Threshold Report Register; suspicion rules R3 to R6 raise risk-scored alerts in a queue, highest risk first; only a Compliance Supervisor changes a rule's parameters.
 - **Classes:** `app/MonitoringService` (runs the rules, records results), `monitoring/DetectionRule` and the six
   rules on `WindowedRule`, `monitoring/RiskScorer`, `persistence/AlertRepository`; `gui/AlertsView` and the Admin
   Rules tab, `cli/MonitorCli`, `cli/AlertsCli`, `cli/ThresholdReportsCli`, `cli/RulesCli`.
@@ -93,9 +102,17 @@ text layout uses the CLI-only `cli/Style` (labels, tables, wrapped prose, colour
 - **From input to result:** Run monitoring (or `tracewise monitor run`) evaluates every enabled rule over the
   ledger; threshold rules R1 and R2 write the Threshold Report Register, suspicion rules R3 to R6 become alerts
   with a risk score, one per pattern; a supervisor changes a rule's parameters, which are validated and audited.
+- **Difference from Stage 1:** None.
+
+![F02 GUI](screens/gui-f02.png)
+*F02 in the GUI, from the live recording.*
+
+![F02 CLI](screens/cli-f02.png)
+*F02 in the CLI, from the live recording.*
 
 ### F03 Autonomous Alert Investigation
 
+- **Original requirement (Stage 1):** Given an alert, the agent investigates without further human input: it chooses read-only tools and retrieval, repeats until it has enough evidence or reaches its turn limit, and gives a verdict, a confidence, the matched indicators, the cited transactions and a narrative.
 - **Classes:** `app/InvestigationService` (opens the case and runs the agent), `agent/AgentRunner` (the
   tool-calling loop with turn and cost limits), `agent/InvestigationTask` (instructions and answer format),
   `agent/AgentTrace` (steps, tokens, cost; observed by the GUI and the audit log), `llm/LLMClient` with
@@ -107,9 +124,23 @@ text layout uses the CLI-only `cli/Style` (labels, tables, wrapped prose, colour
   the account's history, aggregates, counterparties and linked alerts as they stood at the alert, retrieves FINTRAC
   indicators and similar cases (F04), may act (F06), and ends with a verdict, confidence and narrative that F05
   verifies before it is shown. Each step appears live in the Agent steps tab.
+- **Difference from Stage 1:** Two changes (section 4): the tools see the data only as it stood at the alert, because otherwise the agent judged accounts with hindsight a bank would not have; and the decision instructions were rewritten, because the original wording escalated 75 of 75 alerts.
+
+![F03 GUI, the agent working: each step appears as it runs](screens/gui-f03-running.png)
+*F03: GUI, the agent working: each step appears as it runs.*
+
+![F03 GUI, the finding](screens/gui-f03.png)
+*F03: GUI, the finding.*
+
+![F03 CLI (shell), the steps and the finding](screens/cli-f03.png)
+*F03: CLI (shell), the steps and the finding.*
+
+![F03 CLI, the agent working](screens/cli-f03-running.png)
+*F03: CLI, `java -jar` with a task file: each step appears as the agent takes it.*
 
 ### F04 Indicator Retrieval and Case Memory
 
+- **Original requirement (Stage 1):** FINTRAC's indicators and the memory of decided cases are found by semantic similarity with the local bge-small-en-v1.5 model; the analyst sees what was retrieved and can search the indicators directly.
 - **Classes:** `retrieval/Retriever` and `EmbeddingRetriever` (a local bge-small embedding model over
   `IndicatorCorpus`, FINTRAC's 110 indicators), `retrieval/CaseMemory` (decided cases),
   `agent/tools/SearchIndicatorsTool` and `SimilarCasesTool`; the Evidence tab and Admin Knowledge tab,
@@ -118,9 +149,17 @@ text layout uses the CLI-only `cli/Style` (labels, tables, wrapped prose, colour
 - **From input to result:** during an investigation the agent calls the two tools; in Admin, a plain-language
   query returns the five best indicators and five past cases with their scores. The model writes the query; the
   ranking is deterministic.
+- **Difference from Stage 1:** None.
+
+![F04 GUI](screens/gui-f04.png)
+*F04 in the GUI, from the live recording.*
+
+![F04 CLI](screens/cli-f04.png)
+*F04 in the CLI, from the live recording.*
 
 ### F05 Claim Verification
 
+- **Original requirement (Stage 1):** Every factual claim in a finding is checked against the database before the analyst relies on it: cited transactions exist, amounts and dates match, totals add up, accounts are involved.
 - **Classes:** `verification/ClaimVerifier`, `VerificationReport`, `ClaimCheck`; shown in the Finding tab, the
   Approvals screen and the Assistant panel, and in `--json` output.
 - **Key methods:** `ClaimVerifier.verify(claims, totals, indicators, retrievedIndicators)`,
@@ -128,9 +167,17 @@ text layout uses the CLI-only `cli/Style` (labels, tables, wrapped prose, colour
 - **From input to result:** every transaction the agent cites is looked up in the ledger and compared by id, amount
   and date; every total is recomputed; every indicator must be one the agent retrieved. Each check is shown as VER or
   REJ, and a finding with a rejected claim is marked unverified.
+- **Difference from Stage 1:** Same checks. Each claim is shown as VER or REJ with its reason, in the GUI's text style (design change 50).
+
+![F05 GUI](screens/gui-f05.png)
+*F05 in the GUI, from the live recording.*
+
+![F05 CLI](screens/cli-f05.png)
+*F05 in the CLI, from the live recording.*
 
 ### F06 Agent Actions and Approval Queue
 
+- **Original requirement (Stage 1):** The agent runs low-risk actions itself (priority, linking, watchlist, tasks, report drafts); closing, escalating and finalising a report are only proposed and wait for a person; every action is audited.
 - **Classes:** `agent/tools/ActionTool` and its six subclasses (each creates its command), `actions/ActionCommand`
   and the commands, `CommandDispatcher` (one entry for every change), `PermissionPolicy`, `ApprovalQueue`,
   `PendingAction`; `gui/ApprovalsView`, `cli/ApprovalsCli`.
@@ -139,17 +186,33 @@ text layout uses the CLI-only `cli/Style` (labels, tables, wrapped prose, colour
 - **From input to result:** the agent may set priority, link alerts, watchlist an account and create tasks on its
   own case; closing or escalating becomes a proposal. On Approvals, F9 approves (the command is re-validated and run,
   or expires if the case changed) and F10 rejects with a reason the agent sees next time. Every step is audited.
+- **Difference from Stage 1:** Finalising a report is its own command rather than part of an escalation (section 4), because escalating a case and filing its report are two decisions.
+
+![F06 GUI](screens/gui-f06.png)
+*F06 in the GUI, from the live recording.*
+
+![F06 CLI](screens/cli-f06.png)
+*F06 in the CLI, from the live recording.*
 
 ### F07 Autonomous Queue Triage
 
+- **Original requirement (Stage 1):** The agent works through every open alert without human input (investigate, verify, act or propose), within limits set by the analyst, and ends with a triage summary.
 - **Classes:** `app/TriageService`, `app/TriageLimits`, `agent/TriageReport`; `gui/AlertsView`, `cli/TriageCli`.
 - **Key methods:** `triage(limits, listener)`, `TriageService.triage()`, `stop()`, `InvestigationService.investigate()`.
 - **From input to result:** F3 (or `tracewise triage --max-alerts --max-cost`) investigates the open alerts in risk
   order, re-checking each just before, until the queue is done, a limit is reached, Stop is pressed or three runs
   fail in a row; the agent's steps stream into the activity log and a summary lists each alert's outcome.
+- **Difference from Stage 1:** Same behaviour; the defaults Stage 1 left open were set (50 alerts, CAD 5.00, stop after 3 failures in a row; section 4).
+
+![F07 GUI, triage running: the agent's steps stream into the activity log](screens/gui-f07-running.png)
+*F07: GUI, triage running: the agent's steps stream into the activity log.*
+
+![F07 CLI, the triage summary](screens/cli-f07.png)
+*F07: CLI, the triage summary.*
 
 ### F08 Case Management and Audit Trail
 
+- **Original requirement (Stage 1):** Each case moves through Open, Under Investigation, Pending Approval, Escalated or Closed, and a closed case can be reopened with a reason; every event goes into an append-only audit trail that can be filtered and exported.
 - **Classes:** `domain/Case` with the states in `cases/state/`, `app/CaseService`, the note, close and reopen
   commands, `audit/AuditLog`; `gui/CaseView` (Notes, Tasks, History) and the Admin Audit log tab, `cli/CaseCli`,
   `cli/AuditCli`.
@@ -158,17 +221,36 @@ text layout uses the CLI-only `cli/Style` (labels, tables, wrapped prose, colour
 - **From input to result:** notes, closing and reopening go through the dispatcher like the agent's actions; the
   case's state object allows or refuses the transition; the audit log records every action with its actor (AGENT,
   HUMAN or SYSTEM) and can be filtered and exported to CSV.
+- **Difference from Stage 1:** None.
+
+![F08 GUI, a case's history after a note, a close and a reopen](screens/gui-f08.png)
+*F08: GUI, a case's history after a note, a close and a reopen.*
+
+![F08 GUI, the audit log filtered by actor](screens/gui-f08-audit.png)
+*F08: GUI, the audit log filtered by actor.*
+
+![F08 CLI, the case, a refused reopen and the audit export](screens/cli-f08.png)
+*F08: CLI, the case, a refused reopen and the audit export.*
 
 ### F09 Money-Flow Network View
 
+- **Original requirement (Stage 1):** The network of accounts around an account, up to a chosen number of hops: accounts with alerts and those the agent examined are marked, edges show the total moved, and clicking opens the transactions.
 - **Classes:** `app/NetworkService`, `network/MoneyFlowGraph`; `gui/NetworkView` (SmartGraph), `cli/NetworkCli`.
 - **Key methods:** `buildNetwork(accountId, hops, range, caseId)`, `NetworkService.build()`, `NetworkView.render()`.
 - **From input to result:** the Network tab (or `tracewise network <account> --hops 2`) collects counterparties hop
   by hop in a date range, marks accounts with alerts and those the agent examined, and draws accounts and total
   transfers; double-clicking an account or an edge lists its transactions.
+- **Difference from Stage 1:** None.
+
+![F09 GUI](screens/gui-f09.png)
+*F09 in the GUI, from the live recording.*
+
+![F09 CLI](screens/cli-f09.png)
+*F09 in the CLI, from the live recording.*
 
 ### F10 Natural-Language Analyst Assistant
 
+- **Original requirement (Stage 1):** Free-text questions answered by the agent with the investigation tools; cited transactions are verified, searches become a validated filter, the conversation is remembered, and the CLI's JSON mode serves the Stage 3 test harness.
 - **Classes:** `app/AssistantService`, `agent/AssistantTask` (read-only tools including `query_alerts`,
   `query_cases` and `get_case`), `agent/ConversationMemory`; `gui/AssistantView`, `cli/AskCli` (`--json`), `cli/TraceWiseShell`.
 - **Key methods:** `ask(question, context)`, `AgentRunner.run()`, `ClaimVerifier.verify(claims, totals)`,
@@ -176,9 +258,17 @@ text layout uses the CLI-only `cli/Style` (labels, tables, wrapped prose, colour
 - **From input to result:** a question with the current screen's selection as context (or `tracewise ask` with
   `--case`, `--account`, or plain words in the CLI shell, which keeps the conversation) runs a read-only agent; it answers, asks a clarifying question or declines a change; cited
   claims are verified and shown with a badge each, and a search request's validated rows open as a table.
+- **Difference from Stage 1:** Same behaviour. The CLI also runs a task file or standard input (`--input`, design change 52), so the standalone jar can be given a task as the course asked.
+
+![F10 GUI, a question and its checked answer](screens/gui-f10.png)
+*F10: GUI, a question and its checked answer.*
+
+![F10 CLI (shell), an answer with its cited transactions checked](screens/cli-f10.png)
+*F10: CLI (shell), an answer with its cited transactions checked.*
 
 ### F11 STR Drafting and Export
 
+- **Original requirement (Stage 1):** A draft STR modelled on FINTRAC's (subject, transactions, grounds for suspicion, actions taken), drafted by the agent from the verified finding and edited by the analyst; finalised only through an approval, then exported as HTML and JSON. Nothing is sent to FINTRAC.
 - **Classes:** `app/ReportService`, `reporting/StrReport`, `reporting/ReportExporter` with the HTML and JSON
   exporters, `actions/SaveReportDraftCommand` and `FinaliseReportCommand`; `gui/ReportTab`, `cli/ReportCli`.
 - **Key methods:** `draftReport(caseId, replace)`, `saveReport()`, `requestFinalisation()`, `exportReport()`,
@@ -186,9 +276,17 @@ text layout uses the CLI-only `cli/Style` (labels, tables, wrapped prose, colour
 - **From input to result:** on a case with a verified finding the agent drafts the grounds for suspicion from
   the confirmed claims only; the analyst edits the draft; finalisation, allowed once the case is escalated, waits in the approval queue (F06) and,
   once approved, locks the report, which can then be exported as HTML or JSON. Nothing is sent to FINTRAC.
+- **Difference from Stage 1:** Finalisation is its own approval (section 4); a later edit expires a waiting request.
+
+![F11 GUI](screens/gui-f11.png)
+*F11 in the GUI, from the live recording.*
+
+![F11 CLI](screens/cli-f11.png)
+*F11 in the CLI, from the live recording.*
 
 ### F12 Agent Performance Dashboard
 
+- **Original requirement (Stage 1):** Precision and recall against labels, claim verification rate, turns, cost, failures and human overrides, per model, and for each suspicion rule the share of its alerts that involve laundering.
 - **Classes:** `app/PerformanceService`, `metrics/PerformanceMetrics`, `metrics/MetricsCsv`; the Admin Performance
   tab, `cli/MetricsCli`; `tools/SchemeSampler` and `scripts/evaluate.py` for the evaluation data.
 - **Key methods:** `computeMetrics(filter)`, `metricsByModel(filter)`, `PerformanceService.compute()`,
@@ -196,6 +294,13 @@ text layout uses the CLI-only `cli/Style` (labels, tables, wrapped prose, colour
 - **From input to result:** the supervisor filters by model, rule and dates; precision, recall, verification rate,
   turns, cost, failure rate and override rate are computed from the cases, the data's labels, the audit log and the
   decided proposals, each figure with the number of cases it rests on, and exported to CSV.
+- **Difference from Stage 1:** What counts as a false alarm changed (section 4): a clean alert on an account that launders elsewhere is counted apart, because most of the first measurement's false positives were such alerts.
+
+![F12 GUI](screens/gui-f12.png)
+*F12 in the GUI, from the live recording.*
+
+![F12 CLI](screens/cli-f12.png)
+*F12 in the CLI, from the live recording.*
 
 # 3. Implemented patterns and the updated class diagram
 
