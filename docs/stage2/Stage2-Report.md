@@ -5,8 +5,8 @@
 | **Course** | EECS3311 Software Design, Fall 2026, York University |
 | **Author** | Kian Khooban |
 | **Repository** | https://github.com/kiankhooban/TraceWise |
-| **Status of this file** | 2026-11-05, final for submission. |
-| **Videos** | GUI: https://youtu.be/n7V_4Rqmrqw (6:26). CLI: https://youtu.be/miDa5toOh2Q (6:55). Both unlisted, with chapters per feature. |
+| **Status of this file** | 2026-11-20, updated for the course's 2026-11-20 requests: live demo videos, a standalone CLI with task input, and screenshots per feature. |
+| **Videos** | GUI: https://youtu.be/3QKfelFMLBc (8:24). CLI: https://youtu.be/HB1PoeIIGe8 (10:05). Both unlisted, with chapters per feature, recorded on 2026-11-20 with the agent running live on Claude Haiku 5.5 (no replay). |
 
 This report follows the Stage 2 instructions: 1 overview and status, 2 feature-to-implementation mapping, 3
 implemented patterns and the updated class diagram, 4 changes and rationale, 5 AI tools and collaboration, 6
@@ -59,18 +59,18 @@ text layout uses the CLI-only `cli/Style` (labels, tables, wrapped prose, colour
 
 | Feature | Stage 1 | Status | Type | Design patterns | Video |
 |---|---|---|---|---|---|
-| F01 Transaction Data Import | F01 | Implemented | Deterministic | Strategy, Facade, Template Method (CLI) | [GUI 0:07](https://youtu.be/n7V_4Rqmrqw?t=7), [CLI 0:08](https://youtu.be/miDa5toOh2Q?t=8) |
-| F02 Rule-Based Monitoring, Threshold Reporting, Alert Queue | F02 | Implemented | Deterministic | Strategy, Template Method, Facade | [GUI 0:43](https://youtu.be/n7V_4Rqmrqw?t=43), [CLI 0:28](https://youtu.be/miDa5toOh2Q?t=28) |
-| F03 Autonomous Alert Investigation | F03 | Modified (section 4: no hindsight, decision method) | AI-based | Observer, Adapter, Decorator, State, Strategy, Facade | [GUI 1:17](https://youtu.be/n7V_4Rqmrqw?t=77), [CLI 1:28](https://youtu.be/miDa5toOh2Q?t=88) |
-| F04 Indicator Retrieval and Case Memory | F04 | Implemented | Hybrid | Strategy, Facade | [GUI 1:56](https://youtu.be/n7V_4Rqmrqw?t=116), [CLI 4:37](https://youtu.be/miDa5toOh2Q?t=277) |
-| F05 Claim Verification | F05 | Implemented | Deterministic | none (a deterministic check used by F03, F10, F11) | [GUI 1:42](https://youtu.be/n7V_4Rqmrqw?t=102), [CLI 1:50](https://youtu.be/miDa5toOh2Q?t=110) |
-| F06 Agent Actions and Approval Queue | F06 | Implemented | Hybrid | Command, Factory Method, State | [GUI 3:21](https://youtu.be/n7V_4Rqmrqw?t=201), [CLI 3:12](https://youtu.be/miDa5toOh2Q?t=192) |
-| F07 Autonomous Queue Triage | F07 | Implemented | AI-based | Observer, Facade | [GUI 2:25](https://youtu.be/n7V_4Rqmrqw?t=145), [CLI 2:06](https://youtu.be/miDa5toOh2Q?t=126) |
-| F08 Case Management and Audit Trail | F08 | Implemented | Deterministic | State, Command, Observer | [GUI 3:56](https://youtu.be/n7V_4Rqmrqw?t=236), [GUI 5:57](https://youtu.be/n7V_4Rqmrqw?t=357), [CLI 3:52](https://youtu.be/miDa5toOh2Q?t=232) |
-| F09 Money-Flow Network View | F09 | Implemented | Deterministic | Facade | [GUI 2:07](https://youtu.be/n7V_4Rqmrqw?t=127), [CLI 5:09](https://youtu.be/miDa5toOh2Q?t=309) |
-| F10 Natural-Language Analyst Assistant | F10 | Implemented | AI-based | Template Method, Strategy, Facade | [GUI 2:49](https://youtu.be/n7V_4Rqmrqw?t=169), [CLI 2:20](https://youtu.be/miDa5toOh2Q?t=140) |
-| F11 STR Drafting and Export | F11 | Modified (section 4: finalisation command) | Hybrid | Command, Strategy, Facade | [GUI 4:40](https://youtu.be/n7V_4Rqmrqw?t=280), [CLI 5:29](https://youtu.be/miDa5toOh2Q?t=329) |
-| F12 Agent Performance Dashboard | F12 | Modified (section 4: false-alarm definition) | Deterministic | Facade | [GUI 5:41](https://youtu.be/n7V_4Rqmrqw?t=341), [CLI 6:20](https://youtu.be/miDa5toOh2Q?t=380) |
+| F01 Transaction Data Import | F01 | Implemented | Deterministic | Strategy, Facade, Template Method (CLI) | [GUI 0:07](https://youtu.be/3QKfelFMLBc?t=7), [CLI 0:08](https://youtu.be/HB1PoeIIGe8?t=8) |
+| F02 Rule-Based Monitoring, Threshold Reporting, Alert Queue | F02 | Implemented | Deterministic | Strategy, Template Method, Facade | [GUI 0:48](https://youtu.be/3QKfelFMLBc?t=48), [CLI 0:28](https://youtu.be/HB1PoeIIGe8?t=28) |
+| F03 Autonomous Alert Investigation | F03 | Modified (section 4: no hindsight, decision method) | AI-based | Observer, Adapter, Decorator, State, Strategy, Facade | [GUI 1:23](https://youtu.be/3QKfelFMLBc?t=83), [CLI 1:20](https://youtu.be/HB1PoeIIGe8?t=80) |
+| F04 Indicator Retrieval and Case Memory | F04 | Implemented | Hybrid | Strategy, Facade | [GUI 2:21](https://youtu.be/3QKfelFMLBc?t=141), [CLI 6:12](https://youtu.be/HB1PoeIIGe8?t=372) |
+| F05 Claim Verification | F05 | Implemented | Deterministic | none (a deterministic check used by F03, F10, F11) | [GUI 2:08](https://youtu.be/3QKfelFMLBc?t=128), [CLI 2:07](https://youtu.be/HB1PoeIIGe8?t=127) |
+| F06 Agent Actions and Approval Queue | F06 | Implemented | Hybrid | Command, Factory Method, State | [GUI 4:40](https://youtu.be/3QKfelFMLBc?t=280), [CLI 4:57](https://youtu.be/HB1PoeIIGe8?t=297) |
+| F07 Autonomous Queue Triage | F07 | Implemented | AI-based | Observer, Facade | [GUI 2:52](https://youtu.be/3QKfelFMLBc?t=172), [CLI 2:22](https://youtu.be/HB1PoeIIGe8?t=142) |
+| F08 Case Management and Audit Trail | F08 | Implemented | Deterministic | State, Command, Observer | [GUI 5:08](https://youtu.be/3QKfelFMLBc?t=308), [GUI 7:54](https://youtu.be/3QKfelFMLBc?t=474), [CLI 5:27](https://youtu.be/HB1PoeIIGe8?t=327) |
+| F09 Money-Flow Network View | F09 | Implemented | Deterministic | Facade | [GUI 2:33](https://youtu.be/3QKfelFMLBc?t=153), [CLI 6:41](https://youtu.be/HB1PoeIIGe8?t=401) |
+| F10 Natural-Language Analyst Assistant | F10 | Implemented | AI-based | Template Method, Strategy, Facade | [GUI 4:10](https://youtu.be/3QKfelFMLBc?t=250), [CLI 3:47](https://youtu.be/HB1PoeIIGe8?t=227), [CLI task file 8:41](https://youtu.be/HB1PoeIIGe8?t=521) |
+| F11 STR Drafting and Export | F11 | Modified (section 4: finalisation command) | Hybrid | Command, Strategy, Facade | [GUI 5:57](https://youtu.be/3QKfelFMLBc?t=357), [CLI 7:00](https://youtu.be/HB1PoeIIGe8?t=420) |
+| F12 Agent Performance Dashboard | F12 | Modified (section 4: false-alarm definition) | Deterministic | Facade | [GUI 7:38](https://youtu.be/3QKfelFMLBc?t=458), [CLI 8:15](https://youtu.be/HB1PoeIIGe8?t=495) |
 
 ### F01 Transaction Data Import
 
@@ -529,19 +529,20 @@ All commits: [period 1](https://github.com/kiankhooban/TraceWise/commits/main?si
 
 Each feature has a labelled video segment showing how it is invoked, the input, the running application and its
 output, where AI is involved, and an error or alternative case where one applies; together the recordings show the
-GUI and the CLI.
+GUI and the CLI. Both were recorded with the agent calling Claude Haiku 5.5 live, so its steps, verdicts and texts are
+those of that run (they differ slightly from the replays committed in `data/replays`).
 
 | Feature | Video segment (link with timestamp) | Shows (GUI, CLI) |
 |---|---|---|
-| F01 Transaction Data Import | [GUI 0:07](https://youtu.be/n7V_4Rqmrqw?t=7), [CLI 0:08](https://youtu.be/miDa5toOh2Q?t=8) | GUI: Import CSV, a wrong-format file refused with the accepted formats, then the preview and import. CLI: `import`, and an unknown format refused |
-| F02 Rule-Based Monitoring, Threshold Reporting, Alert Queue | [GUI 0:43](https://youtu.be/n7V_4Rqmrqw?t=43), [CLI 0:28](https://youtu.be/miDa5toOh2Q?t=28) | GUI: Run monitoring, the alert queue, the threshold report register, rule editing refused for an analyst. CLI: `monitor run`, `alerts list`, `threshold-reports list`, `rules list`, a rule change refused for an analyst and an invalid value refused for a supervisor |
-| F03 Autonomous Alert Investigation | [GUI 1:17](https://youtu.be/n7V_4Rqmrqw?t=77), [CLI 1:28](https://youtu.be/miDa5toOh2Q?t=88) | GUI: Investigate ALR-00001, the finding (ESCALATE 0.85, proposal waits for a person), the agent's steps. CLI: `investigate` in the shell with live steps; an unknown alert refused |
-| F04 Indicator Retrieval and Case Memory | [GUI 1:56](https://youtu.be/n7V_4Rqmrqw?t=116), [CLI 4:37](https://youtu.be/miDa5toOh2Q?t=277) | GUI: Evidence tab with the FINTRAC indicators and similar cases. CLI: `indicators search` and `cases similar`, with the decided CAS-00001 returned as a precedent |
-| F05 Claim Verification | [GUI 1:42](https://youtu.be/n7V_4Rqmrqw?t=102), [CLI 1:50](https://youtu.be/miDa5toOh2Q?t=110) | GUI: Finding tab, VER 6 of 6 claims confirmed. CLI: `case show`, VER 6/6 |
-| F06 Agent Actions and Approval Queue | [GUI 3:21](https://youtu.be/n7V_4Rqmrqw?t=201), [CLI 3:12](https://youtu.be/miDa5toOh2Q?t=192) | GUI: rejecting without a reason refused, then a rejection with a reason and an approval with confirmation. CLI: `approvals list`, `reject`, `approve`, a second decision refused |
-| F07 Autonomous Queue Triage | [GUI 2:25](https://youtu.be/n7V_4Rqmrqw?t=145), [CLI 2:06](https://youtu.be/miDa5toOh2Q?t=126) | GUI: Start triage, the agent activity log and the summary. CLI: `triage --max-alerts --max-cost` and its summary |
-| F08 Case Management and Audit Trail | [GUI 3:56](https://youtu.be/n7V_4Rqmrqw?t=236), [GUI 5:57](https://youtu.be/n7V_4Rqmrqw?t=357), [CLI 3:52](https://youtu.be/miDa5toOh2Q?t=232) | GUI: a note, close and reopen with reasons, the case History, the audit log filtered by actor (5:57). CLI: `case note`, `case show`, reopening an open case refused, `audit export` |
-| F09 Money-Flow Network View | [GUI 2:07](https://youtu.be/n7V_4Rqmrqw?t=127), [CLI 5:09](https://youtu.be/miDa5toOh2Q?t=309) | GUI: the Network tab and a double-click for the transactions behind an account. CLI: `network C1037 --hops 2`, an unknown account refused |
-| F10 Natural-Language Analyst Assistant | [GUI 2:49](https://youtu.be/n7V_4Rqmrqw?t=169), [CLI 2:20](https://youtu.be/miDa5toOh2Q?t=140) | GUI: a question with a checked answer and a results table, a result opened. CLI: a question in the shell (VER 5/5), `--json`, a vague question answered with a clarifying question, a request to close a case declined |
-| F11 STR Drafting and Export | [GUI 4:40](https://youtu.be/n7V_4Rqmrqw?t=280), [CLI 5:29](https://youtu.be/miDa5toOh2Q?t=329) | GUI: agent draft, edit, request finalisation, approval, export to HTML and JSON. CLI: `report draft`, exporting a draft refused, `report finalise`, approval, `report export` |
-| F12 Agent Performance Dashboard | [GUI 5:41](https://youtu.be/n7V_4Rqmrqw?t=341), [CLI 6:20](https://youtu.be/miDa5toOh2Q?t=380) | GUI: Admin, Performance tab with n per figure (under 10 marked too few). CLI: `metrics` and `metrics --csv` |
+| F01 Transaction Data Import | [GUI 0:07](https://youtu.be/3QKfelFMLBc?t=7), [CLI 0:08](https://youtu.be/HB1PoeIIGe8?t=8) | GUI: Import CSV, a wrong-format file refused with the accepted formats, then the preview and import. CLI: `import`, and an unknown format refused |
+| F02 Rule-Based Monitoring, Threshold Reporting, Alert Queue | [GUI 0:48](https://youtu.be/3QKfelFMLBc?t=48), [CLI 0:28](https://youtu.be/HB1PoeIIGe8?t=28) | GUI: Run monitoring, the alert queue, the threshold report register, rule editing refused for an analyst. CLI: `monitor run`, `alerts list`, `threshold-reports list`, `rules list`, a rule change refused for an analyst and an invalid value refused for a supervisor |
+| F03 Autonomous Alert Investigation | [GUI 1:23](https://youtu.be/3QKfelFMLBc?t=83), [CLI 1:20](https://youtu.be/HB1PoeIIGe8?t=80) | Live: the agent investigates ALR-00001, chooses its tools, raises the priority and proposes an escalation (ESCALATE 0.85, all claims checked). GUI: the steps as they run, the finding, the steps table. CLI: `investigate` in the shell; an unknown alert refused |
+| F04 Indicator Retrieval and Case Memory | [GUI 2:21](https://youtu.be/3QKfelFMLBc?t=141), [CLI 6:12](https://youtu.be/HB1PoeIIGe8?t=372) | GUI: Evidence tab with the FINTRAC indicators and similar cases. CLI: `indicators search` and `cases similar`, with the decided CAS-00001 returned as a precedent |
+| F05 Claim Verification | [GUI 2:08](https://youtu.be/3QKfelFMLBc?t=128), [CLI 2:07](https://youtu.be/HB1PoeIIGe8?t=127) | GUI: Finding tab, every claim VER. CLI: `case show`, VER for each claim |
+| F06 Agent Actions and Approval Queue | [GUI 4:40](https://youtu.be/3QKfelFMLBc?t=280), [CLI 4:57](https://youtu.be/HB1PoeIIGe8?t=297) | GUI: rejecting without a reason refused, then the agent's escalation approved with confirmation. CLI: `approvals list`, `approve`, a second decision refused |
+| F07 Autonomous Queue Triage | [GUI 2:52](https://youtu.be/3QKfelFMLBc?t=172), [CLI 2:22](https://youtu.be/HB1PoeIIGe8?t=142) | Live: the agent triages the remaining alerts in risk order. GUI: Start triage, the activity log as it runs, the summary. CLI: `triage --max-alerts --max-cost` and its summary |
+| F08 Case Management and Audit Trail | [GUI 5:08](https://youtu.be/3QKfelFMLBc?t=308), [GUI 7:54](https://youtu.be/3QKfelFMLBc?t=474), [CLI 5:27](https://youtu.be/HB1PoeIIGe8?t=327) | GUI: a note, close and reopen with reasons, the case History, the audit log filtered by actor. CLI: `case note`, `case show`, reopening an open case refused, `audit export` |
+| F09 Money-Flow Network View | [GUI 2:33](https://youtu.be/3QKfelFMLBc?t=153), [CLI 6:41](https://youtu.be/HB1PoeIIGe8?t=401) | GUI: the Network tab and a double-click for the transactions behind an account. CLI: `network C1037 --hops 2`, an unknown account refused |
+| F10 Natural-Language Analyst Assistant | [GUI 4:10](https://youtu.be/3QKfelFMLBc?t=250), [CLI 3:47](https://youtu.be/HB1PoeIIGe8?t=227), [CLI task file 8:41](https://youtu.be/HB1PoeIIGe8?t=521) | Live: GUI: a question with its checked result table. CLI: a question in the shell (cited transactions checked), `--json`, a vague question answered with a clarifying question, a request to close a case declined; then the standalone `java -jar ... --input task.txt` and `--input -` from standard input |
+| F11 STR Drafting and Export | [GUI 5:57](https://youtu.be/3QKfelFMLBc?t=357), [CLI 7:00](https://youtu.be/HB1PoeIIGe8?t=420) | Live agent draft. GUI: draft, edit, request finalisation, rejected with a reason, requested again, approved, export to HTML and JSON. CLI: `report draft`, exporting a draft refused, finalise, rejected with a reason, finalise, approve, `report export` |
+| F12 Agent Performance Dashboard | [GUI 7:38](https://youtu.be/3QKfelFMLBc?t=458), [CLI 8:15](https://youtu.be/HB1PoeIIGe8?t=495) | GUI: Admin, Performance tab with n per figure (under 10 marked too few). CLI: `metrics` and `metrics --csv` |

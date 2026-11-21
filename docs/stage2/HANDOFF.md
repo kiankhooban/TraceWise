@@ -7,6 +7,14 @@ TraceWise `CLAUDE.md` is NOT loaded automatically: read it explicitly. The Stage
 
 ## 0. NEXT SESSION STARTS HERE
 
+0. **DONE 2026-11-20: the course's three requests (deadline Nov 24).** (a) Videos re-recorded with the agent LIVE on
+   Claude Haiku 5.5 (no replay): GUI https://youtu.be/3QKfelFMLBc (8:24), CLI https://youtu.be/HB1PoeIIGe8 (10:05); the
+   replay videos of Nov 5 are superseded. (b) Standalone CLI: `java -jar cli/target/tracewise.jar --input task.txt`
+   (`-` for standard input), README section, `data/samples/task.txt`, design change 52 (`b8412b4`); the shell now
+   flushes per line so steps stream (`226b6ee`; the CLI video predates it, its caption says so). (c) Report: every
+   feature has its Stage 1 requirement, its difference, and GUI and CLI screenshots from the live runs
+   (`docs/stage2/screens/`). Kian's temporary API key expired the same day; `.env` holds the dead key.
+
 1. **DONE 2026-11-04: readable CLI and the shell** (Kian: "plain as hell"; he chose the Bloomberg palette, a dark
    terminal and the shell from previews). Commits `fcfd619` (layout in each `print()`, shared helpers in the CLI-only
    `Style`, colour via picocli `Ansi.AUTO` so pipes, tests and `NO_COLOR` stay plain, width from JLine), `a3b98a5`

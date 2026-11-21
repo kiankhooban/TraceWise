@@ -49,6 +49,7 @@ Codex and Gemini ran under their own subscriptions and are not in these counts.
 | 2026-10-29 | v6 instructions with the data cut at the alert: 75-alert tuning set and 75-alert held-out set (150 runs with a finding, plus runs lost to a network outage that cost nothing) | Claude Haiku 5.5 | about 3.7 |
 | 2026-10-29 | The same two sets again after `linked_alerts` stopped showing later alerts (150 runs), and the re-recorded replays | Claude Haiku 5.5 | about 3.6 |
 | 2026-10-29 | Model comparison (F12): v6 on the 75-alert held-out set | Claude Sonnet 5.5 | about 19.5 |
+| 2026-11-20 | Live demo recordings and their rehearsals (investigations, triage, assistant questions, report drafts in the CLI and GUI videos), the `--input` checks, and one live check of all four alerts | Claude Haiku 5.5 (one triage and one test question on Claude Sonnet 5.5) | about 0.7 (sum of the costs the runs printed) |
 
 The cost per run is computed by TraceWise from token counts and the published prices (USD 0.10 in /
 0.50 out per million tokens for Haiku 5.5, converted at the Bank of Canada rate); the Anthropic Console
