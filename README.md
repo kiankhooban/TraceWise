@@ -117,13 +117,56 @@ an id such as `CAS-00001`), F2 investigates the selected alert, F3 starts triage
 on Approvals, F5 refreshes. The Day / Night label in the bottom bar switches the theme (`TRACEWISE_THEME=day`).
 `TRACEWISE_SNAPSHOT=shots ./tracewise-gui` saves a PNG of every screen and exits.
 
-### Configuration and API key
+### Configuration and API key (plug in your own)
 
-Features that call the LLM need an Anthropic API key. Keep it out of git:
+The agent features (investigate, triage, ask, report draft) call an LLM; everything else runs without one.
+
+**1. Claude (the default).** Put an Anthropic API key in `.env` in the repository folder:
 
 ```bash
 cp .env.example .env      # .env is gitignored
-# then edit .env and replace the placeholder with your own key
+# then edit .env:  ANTHROPIC_API_KEY=sk-ant-...
+```
+
+An environment variable works too (`export ANTHROPIC_API_KEY=...`); `.env` wins when both are set.
+The default model is `claude-sonnet-5-5`; `--model claude-haiku-5-5` is much cheaper (about CAD 0.006 per investigation against about CAD 0.09).
+
+**2. Check that it works** (a new database, so your own data is not touched; about 20 seconds, under CAD 0.01
+with Haiku):
+
+```bash
+./tracewise --db check.db import data/samples/scenarios.csv
+./tracewise --db check.db monitor run
+./tracewise --db check.db --model claude-haiku-5-5 investigate ALR-00001
+```
+
+A working key lists the agent's steps as it takes them and ends with a verdict (for ALR-00001, ESCALATE),
+`Checked VER n/n`, and the tokens and cost used. A wrong or expired key ends with `Run FAILED` and the
+provider's message (`authentication_error: invalid x-api-key`).
+
+**3. Another provider.** Any API that speaks the OpenAI chat-completions format (OpenAI itself, a local
+server such as vLLM or Ollama, or another provider's OpenAI-compatible endpoint) works with `--llm openai`.
+Put its address and key in `.env`:
+
+```bash
+OPENAI_BASE_URL=https://api.openai.com/v1     # the provider's OpenAI-compatible address
+OPENAI_API_KEY=...                            # leave out for a local server without keys
+```
+
+then pass its model name: `./tracewise --llm openai --model <model id> investigate ALR-00001`. Prices are
+known only for Claude models, so with another provider no cost is shown and `--max-cost` does not apply
+(the CLI says so). This path is covered by tests against a stand-in server; the recorded runs, the
+videos and the measurements in the report all used Claude.
+
+**GUI.** The GUI reads the same settings from environment variables:
+`TRACEWISE_MODEL=claude-haiku-5-5 ./tracewise-gui`, or `TRACEWISE_LLM=openai TRACEWISE_MODEL=<model id> ./tracewise-gui`.
+
+**Windows.** `./tracewise` and `./tracewise-gui` are shell scripts; on Windows build with `mvnw.cmd package`
+and run from the repository folder:
+
+```bat
+java -jar cli\target\tracewise.jar --db check.db import data\samples\scenarios.csv
+java -cp gui\target\tracewise-gui.jar tracewise.ui.gui.GuiMain
 ```
 
 Never commit `.env` or paste a key into code, reports, screenshots or videos.
