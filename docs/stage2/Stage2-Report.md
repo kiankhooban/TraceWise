@@ -5,7 +5,7 @@
 | **Course** | EECS3311 Software Design, Fall 2026, York University |
 | **Author** | Kian Khooban |
 | **Repository** | https://github.com/kiankhooban/TraceWise |
-| **Status of this file** | 2026-11-20, updated for the course's 2026-11-20 requests: live demo videos, a standalone CLI with task input, and screenshots per feature. |
+| **Status of this file** | 2026-11-24, updated for the course's 2026-11-20 requests: live demo videos, a standalone CLI with task input, and screenshots per feature. |
 | **Videos** | GUI: https://youtu.be/3QKfelFMLBc (8:24). CLI: https://youtu.be/HB1PoeIIGe8 (10:05). Both unlisted, with chapters per feature, recorded on 2026-11-20 with the agent running live on Claude Haiku 5.5 (no replay). |
 
 This report follows the Stage 2 instructions: 1 overview and status, 2 feature-to-implementation mapping, 3
@@ -22,13 +22,13 @@ Claude through LangChain4j) then investigates each alert with read tools, retrie
 memory of past cases, and writes a finding. A claim verifier checks every figure the finding cites against the
 data before anyone sees it. The agent's actions are permission-tiered: low-risk actions run, while closing or
 escalating a case waits for a human decision. It has a JavaFX GUI and a picocli CLI over one facade; the CLI runs
-one command per call (with `--json` for scripts) or, as `tracewise` alone, an interactive shell where a command
-runs as typed and plain words go to the assistant.
+one command per call (with `--json` for scripts), a task file or standard input (`--input`), or, as `tracewise`
+alone, an interactive shell where a command runs as typed and plain words go to the assistant.
 
 **Status.** All 12 Stage 1 features are implemented and run in both the GUI and the CLI. All 9 design patterns
 of the Stage 1 report are in the code. The three Maven modules of the Stage 1 architecture are in place:
 `tracewise-core` holds all logic and depends on no user interface, and `tracewise-cli` and `tracewise-gui` call
-it only through `TraceWiseFacade`. 459 automated tests pass (section 6).
+it only through `TraceWiseFacade`. 463 automated tests pass (section 6).
 
 **Measured results** (F12, on SAML-D samples; each alert investigated on a fresh copy of the data, with the data
 cut at the alert so the agent has no hindsight):
@@ -429,7 +429,7 @@ A proposal that expires also returns its case to investigation.
 # 4. Changes and rationale
 
 No Stage 1 feature or design pattern was removed, replaced or added. The architecture (three modules over one
-facade), the 12 features and the 9 patterns are as designed. Five changes alter what the design described:
+facade), the 12 features and the 9 patterns are as designed. Six changes alter what the design described:
 
 | Original design | Implemented change | Reason | Impact |
 |---|---|---|---|
@@ -438,6 +438,7 @@ facade), the 12 features and the 9 patterns are as designed. Five changes alter 
 | F03: the agent escalates on "reasonable grounds to suspect" and dismisses on "a clear legitimate explanation" | The agent first describes the account's usual activity, then asks whether the flagged activity is new for it and where the money came from and went | With the original wording the agent escalated 75 of 75 alerts, because the data never contains a customer's explanation | F03 instructions only (`InvestigationTask`); see the measured results in section 1 |
 | Data: IBM's synthetic data and the scenario generator | A third source, SAML-D (a UK bank's 9.5 million synthetic transactions with normal and suspicious typologies), read by a new `SamlDCsvFormat` and used to measure the agent | IBM's normal accounts behave suspiciously, so IBM cannot test whether the agent clears a false alarm | F01 (one format class behind the existing Strategy), F12 evaluation data |
 | F12: an alert is laundering if any of its transactions is labelled; escalating any other alert is a false positive | A false alarm is a clean alert on an account with no laundering anywhere in the data; a clean alert on an account that launders elsewhere is counted apart | 10 of the 12 "false positives" in the first measurement were on laundering accounts the agent was told to look into | F12 metrics (`AlertLabel`, `PerformanceService`, `PerformanceMetrics`) |
+| CLI (Stage 1 section 1.1.7): each run executes one command given as arguments | `--input FILE` (or `-` for standard input) runs a task file: each line is a command or a plain-language question, on one database and model, with exit code 0 or 1 (`TraceWiseShell.runTask`, design change 52) | Asked for by the course on 2026-11-20 ("java -jar Agent.jar -LLMAPI -input task.txt"); also the entry point for the Stage 3 harness | The CLI only (`TraceWiseCli`, `TraceWiseShell`); no core class, use case or pattern changed |
 
 The other differences are details inside the design, grouped below. Each is listed with its reason in
 [`docs/stage2/design-changes.md`](design-changes.md).
@@ -455,16 +456,17 @@ use of development per period, and the cost of TraceWise's own model calls.
 
 | Item | Amount |
 |---|---|
-| Development (Claude Code, Opus 5.5 with Sonnet 5.5 subagents), Stage 2 to 2026-11-05 | 4,948 model calls (3,460 Opus, 1,488 Sonnet), 3.8M output tokens, 1.29B cache-read tokens; about USD 696 API-equivalent, covered by a Claude Max subscription (no per-token charge) |
-| TraceWise's own calls (Anthropic API) | about CAD 64, mostly the accuracy evaluations (CAD 19.5 for the Sonnet comparison) |
+| Development (Claude Code, Opus 5.5 with Sonnet 5.5 subagents), Stage 2 to 2026-11-24 | 5,193 model calls (3,705 Opus, 1,488 Sonnet), 3.9M output tokens, 1.39B cache-read tokens; about USD 753 API-equivalent, covered by a Claude Max subscription (no per-token charge) |
+| TraceWise's own calls (Anthropic API) | about CAD 65, mostly the accuracy evaluations (CAD 19.5 for the Sonnet comparison) |
 
-[`docs/ai-usage/collaboration-log.md`](../ai-usage/collaboration-log.md) has 18 entries with the task, the
+[`docs/ai-usage/collaboration-log.md`](../ai-usage/collaboration-log.md) has 19 entries with the task, the
 instruction, the AI's contribution, the human's contribution and the outcome. The pattern throughout: Kian set
 direction and limits (Java and LangChain4j, stay within the Stage 1 design, Haiku first and Sonnet last, no made-up
 data, no other AI models in reviews, approve spend), and Claude Code implemented test-first and reviewed every
 feature with a multi-reviewer review whose findings were each checked by an independent validator.
 
-Per period: period 1 about USD 116, period 2 about USD 407, period 3 to Nov 5 about USD 173 (API-equivalent;
+Per period: period 1 about USD 116, period 2 about USD 407, period 3 about USD 175, and Nov 10 to 24 (the course's
+follow-up requests: live videos, task input, screenshots) about USD 55 (API-equivalent;
 counted from Claude Code's local session logs, as described in `ai-tools.md`).
 
 # 6. Development and verification summary
@@ -480,7 +482,7 @@ GUI screen in the dark and day themes.
 |---|---|---|---|
 | 1: Oct 20 to 26 | 40 / 54 | F01, F02 and the CLI; LLM layer (Adapter, retry and replay Decorators); agent loop and read tools; claim verifier; cases (State); F03, F05, F06 (Command, Factory Method), F07; three reviews | [`37d28cc`](https://github.com/kiankhooban/TraceWise/commit/37d28cc), [`ec40332`](https://github.com/kiankhooban/TraceWise/commit/ec40332), [`0b441ec`](https://github.com/kiankhooban/TraceWise/commit/0b441ec), [`9e95cd8`](https://github.com/kiankhooban/TraceWise/commit/9e95cd8), [`df0e186`](https://github.com/kiankhooban/TraceWise/commit/df0e186), [`ef76050`](https://github.com/kiankhooban/TraceWise/commit/ef76050), [`ba33e93`](https://github.com/kiankhooban/TraceWise/commit/ba33e93), [`1ac695a`](https://github.com/kiankhooban/TraceWise/commit/1ac695a) |
 | 2: Oct 27 to Nov 2 | 52 / 79 | F04, F10, the JavaFX GUI, F08, F11, F09, F12; real data (IBM, SAML-D) and the accuracy work; three modules; GUI design | [`706473c`](https://github.com/kiankhooban/TraceWise/commit/706473c), [`6b0c392`](https://github.com/kiankhooban/TraceWise/commit/6b0c392), [`62e3c59`](https://github.com/kiankhooban/TraceWise/commit/62e3c59), [`b9db552`](https://github.com/kiankhooban/TraceWise/commit/b9db552), [`b6f5645`](https://github.com/kiankhooban/TraceWise/commit/b6f5645), [`4e1d2bc`](https://github.com/kiankhooban/TraceWise/commit/4e1d2bc), [`7408b00`](https://github.com/kiankhooban/TraceWise/commit/7408b00), [`3cc4e12`](https://github.com/kiankhooban/TraceWise/commit/3cc4e12), [`d717f58`](https://github.com/kiankhooban/TraceWise/commit/d717f58), [`da34670`](https://github.com/kiankhooban/TraceWise/commit/da34670) |
-| 3: Nov 3 to 9 | 13 / 27 (to Nov 5) | GUI polish, F10 GUI details, the GUI review and its fixes, updated diagrams, README check; the readable CLI and its interactive shell, review 13 and its fixes | [`10f4db8`](https://github.com/kiankhooban/TraceWise/commit/10f4db8), [`279946e`](https://github.com/kiankhooban/TraceWise/commit/279946e), [`02f1701`](https://github.com/kiankhooban/TraceWise/commit/02f1701), [`5707ae0`](https://github.com/kiankhooban/TraceWise/commit/5707ae0), [`b5908f2`](https://github.com/kiankhooban/TraceWise/commit/b5908f2), [`2ad9201`](https://github.com/kiankhooban/TraceWise/commit/2ad9201), [`fcfd619`](https://github.com/kiankhooban/TraceWise/commit/fcfd619), [`a3b98a5`](https://github.com/kiankhooban/TraceWise/commit/a3b98a5), [`5833b69`](https://github.com/kiankhooban/TraceWise/commit/5833b69) |
+| 3: Nov 3 to 9 | 13 / 27 | GUI polish, F10 GUI details, the GUI review and its fixes, updated diagrams, README check; the readable CLI and its interactive shell, review 13 and its fixes | [`10f4db8`](https://github.com/kiankhooban/TraceWise/commit/10f4db8), [`279946e`](https://github.com/kiankhooban/TraceWise/commit/279946e), [`02f1701`](https://github.com/kiankhooban/TraceWise/commit/02f1701), [`5707ae0`](https://github.com/kiankhooban/TraceWise/commit/5707ae0), [`b5908f2`](https://github.com/kiankhooban/TraceWise/commit/b5908f2), [`2ad9201`](https://github.com/kiankhooban/TraceWise/commit/2ad9201), [`fcfd619`](https://github.com/kiankhooban/TraceWise/commit/fcfd619), [`a3b98a5`](https://github.com/kiankhooban/TraceWise/commit/a3b98a5), [`5833b69`](https://github.com/kiankhooban/TraceWise/commit/5833b69) |
 
 All commits: [period 1](https://github.com/kiankhooban/TraceWise/commits/main?since=2026-10-20&until=2026-10-26),
 [period 2](https://github.com/kiankhooban/TraceWise/commits/main?since=2026-10-27&until=2026-11-02),
@@ -488,11 +490,11 @@ All commits: [period 1](https://github.com/kiankhooban/TraceWise/commits/main?si
 
 **Checks performed.**
 
-- 460 automated tests (459 pass, 1 skipped): unit tests per class, service tests on a real SQLite database, CLI
+- 464 automated tests (463 pass, 1 skipped): unit tests per class, service tests on a real SQLite database, CLI
   tests, GUI display logic, replayed agent runs (`CommittedReplaysTest`), and a test for each review finding. The
   suite also ran on x86 Linux in Docker (2026-10-29).
 - Accuracy measured on SAML-D alert sets never used for tuning (section 1; `scripts/evaluate.py`).
-- Fresh clone (2026-11-04, repeated after the CLI work): every README command run on a new clone with no `.env`, including the replayed
+- Fresh clone (2026-11-04, repeated after the CLI work and again on 2026-11-24 with the task-file example): every README command run on a new clone with no `.env`, including the replayed
   investigation, triage and assistant, report finalisation and export, and the GUI; a run that needs a key without
   one stops with a clear message.
 - Secret scan of the whole history: no key was ever committed (the only `sk-ant-` strings are test placeholders).
@@ -513,6 +515,8 @@ All commits: [period 1](https://github.com/kiankhooban/TraceWise/commits/main?si
 | A held F3 queued several paid triage runs; an opened case could fall back to the previous one | GUI review | Fixed ([`02f1701`](https://github.com/kiankhooban/TraceWise/commit/02f1701)) |
 | The CLI's live triage line threw when the terminal width was unknown, failing every agent run | Running the built CLI under a pseudo-terminal | Lines cut only to a known width, with a regression test ([`fcfd619`](https://github.com/kiankhooban/TraceWise/commit/fcfd619)) |
 | In the CLI shell, `--role` on a line was ignored and an options-only line opened a second shell | Review 13 | Such lines are refused with how to restart ([`5833b69`](https://github.com/kiankhooban/TraceWise/commit/5833b69)) |
+| In the CLI shell, an investigation's steps all appeared at the end instead of as the agent took them | Recording the live demo (2026-11-20) | The shell flushes every line, with a regression test ([`226b6ee`](https://github.com/kiankhooban/TraceWise/commit/226b6ee)) |
+| A task file ran on the default database and model instead of the `--db` and `--model` given | The new `--input` tests | The database and model are opened before the first line ([`b8412b4`](https://github.com/kiankhooban/TraceWise/commit/b8412b4)) |
 
 **Remaining limitations.**
 

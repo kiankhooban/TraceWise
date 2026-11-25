@@ -481,3 +481,32 @@ duplicate rows, `924b7e8` export lines); design change 51 (presentation only). A
 Claude reviewers, one validator per finding) confirmed 8 of 10 findings, the worst a shell line with `--role` that was
 silently ignored or opened a second shell; all fixed test-first in `5833b69`. 459 tests pass.
 
+
+## Entry 19: The course's follow-up requests: live videos, task input, screenshots (2026-11-20)
+
+**Task:** Answer the course's two emails of 2026-11-20: demo videos showing the agent running (GUI and CLI), a
+standalone CLI that takes its task from a file or standard input (`java -jar Agent.jar -LLMAPI -input task.txt`),
+and per-feature screenshots, requirement and differences in the report.
+
+**Input/Instruction:** Kian pasted both emails and asked whether the project already met them, "especially our agent,
+I want to make sure we are not demoing mode but our agent is actually working". He asked for both videos to be
+re-recorded live "exactly the same as previous videos", on the MacBook screen only, since he was on a call on the
+other monitor, and gave a temporary API key for the session.
+
+**AI Contribution:** Checked the repo against the emails: the earlier videos used recorded replays (the header read
+"replay"), piped input was not supported, and the report had no screenshots. Ran a live investigation first, which
+showed the stored key had expired; with the new key, ran the full CLI and GUI flows live in rehearsal before
+recording. Built `--input` test-first; the new tests caught the task file running on the default database and model,
+and recording found the shell printing an investigation's steps only at the end (fixed with a regression test).
+Recorded both videos with captions, scanned every frame for anything outside the app, and replaced 6 seconds where
+the chat window had covered the GUI. Took the report's 29 screenshots from the live recordings.
+
+**Human Contribution:** Raised the issue from the emails, insisted on a live agent rather than replays, set the
+constraints (MacBook screen only, the same style as before), supplied and later revoked the key, uploaded the videos
+and checked them on YouTube.
+
+**Outcome:** Commits `b8412b4` (`--input`, design change 52), `226b6ee` (shell flush), `a1b6fc9` and `2dafbde`
+(screenshots, requirement and difference per feature, live video links), `38ff26f` (README: plugging in a key).
+Two incidents are recorded honestly: one rehearsal opened the GUI on the wrong monitor and typed a file name into
+the chat window before it was stopped (the player now checks that TraceWise is the front app before every click
+or keystroke), and one early `--input` test run wrote to the developer's own database. Live API use about CAD 0.7.
